@@ -32,18 +32,25 @@ export class OpenClawSupervisor {
     { process: ChildProcess; gateway: SupervisedGateway }
   >();
   private readonly inflight = new Map<string, Promise<SupervisedGateway>>();
+  private readonly starting = new Map<string, ChildProcess>();
 
   async ensure(input: {
     tenant: TenantRuntimeConfig;
     skillsRoot: string;
   }): Promise<SupervisedGateway> {
-    const existing = this.children.get(input.tenant.tenant_id);
-    if (existing && existing.process.exitCode === null && !existing.process.killed) {
-      return existing.gateway;
-    }
     const pending = this.inflight.get(input.tenant.tenant_id);
     if (pending) {
       return pending;
+    }
+    const existing = this.children.get(input.tenant.tenant_id);
+    if (
+      existing &&
+      existing.process.exitCode === null &&
+      !existing.process.killed &&
+      existing.gateway.port > 0 &&
+      existing.gateway.url
+    ) {
+      return existing.gateway;
     }
     const work = this.spawnOne(input).finally(() => {
       if (this.inflight.get(input.tenant.tenant_id) === work) {
@@ -105,18 +112,12 @@ export class OpenClawSupervisor {
         stderr.shift();
       }
     });
-
-    const placeholder: SupervisedGateway = {
-      tenantId: input.tenant.tenant_id,
-      url: "",
-      token,
-      port: 0,
-      stateDir,
-      configPath,
-    };
-    this.children.set(input.tenant.tenant_id, { process: child, gateway: placeholder });
+    this.starting.set(input.tenant.tenant_id, child);
 
     child.once("exit", () => {
+      if (this.starting.get(input.tenant.tenant_id) === child) {
+        this.starting.delete(input.tenant.tenant_id);
+      }
       const current = this.children.get(input.tenant.tenant_id);
       if (current?.process === child) {
         this.children.delete(input.tenant.tenant_id);
@@ -126,15 +127,16 @@ export class OpenClawSupervisor {
     try {
       const port = await waitForReadyFile(stateDir, child, stderr);
       const gateway: SupervisedGateway = {
-        ...placeholder,
-        port,
+        tenantId: input.tenant.tenant_id,
         url: `ws://127.0.0.1:${port}`,
+        token,
+        port,
+        stateDir,
+        configPath,
       };
-      const current = this.children.get(input.tenant.tenant_id);
-      if (current?.process === child) {
-        current.gateway = gateway;
-      }
       await waitForHello(gateway, child, stderr);
+      this.starting.delete(input.tenant.tenant_id);
+      this.children.set(input.tenant.tenant_id, { process: child, gateway });
       return gateway;
     } catch (err) {
       await this.stop(input.tenant.tenant_id);
@@ -143,12 +145,15 @@ export class OpenClawSupervisor {
   }
 
   async stop(tenantId: string): Promise<void> {
+    const starting = this.starting.get(tenantId);
+    this.starting.delete(tenantId);
     const current = this.children.get(tenantId);
-    if (!current) {
+    this.children.delete(tenantId);
+    const child = current?.process ?? starting;
+    if (!child) {
       return;
     }
-    this.children.delete(tenantId);
-    await killChild(current.process);
+    await killChild(child);
   }
 
   async stopAll(): Promise<void> {
