@@ -7,6 +7,7 @@ import {
 } from "../openclaw-runtime/protocol.ts";
 import type { LoadedSkill, SkillSummary } from "./skill-loader.ts";
 import type { SkillTurnResult } from "./skill-turn.ts";
+import { WebSocket as NodeWebSocket } from "ws";
 
 export class OpenClawGatewayUnavailableError extends Error {
   constructor(message: string) {
@@ -35,19 +36,17 @@ export type AgentWaitResult = {
 /**
  * Operator client for the OpenClaw Gateway WebSocket protocol (wire v4).
  * Handshake: wait for connect.challenge, send connect with token, treat hello-ok as ready.
- * Trusted local backend clients omit device identity (docs.openclaw.ai/gateway/protocol/handshake).
+ * Uses the `ws` package so Node 20+ works (global WebSocket is not enabled there).
  */
 export class OpenClawGatewayClient {
   private reqId = 0;
   private readonly pending = new Map<
     string,
     { resolve: (value: unknown) => void; reject: (err: Error) => void }
-  >;
-  private challenge: { nonce: string; ts: number } | null = null;
-  private challengeWaiters: Array<() => void> = [];
+  >();
 
   private constructor(
-    private readonly ws: WebSocket,
+    private readonly ws: NodeWebSocket,
     readonly hello: GatewayHello,
     readonly url: string,
   ) {}
@@ -58,9 +57,9 @@ export class OpenClawGatewayClient {
     timeoutMs?: number;
   }): Promise<OpenClawGatewayClient> {
     const timeoutMs = input.timeoutMs ?? 8000;
-    let ws: WebSocket;
+    let ws: NodeWebSocket;
     try {
-      ws = new WebSocket(input.url);
+      ws = new NodeWebSocket(input.url);
     } catch (err) {
       throw new OpenClawGatewayUnavailableError(
         `openclaw_gateway_unavailable: ${err instanceof Error ? err.message : "websocket_construct_failed"}`,
@@ -70,34 +69,47 @@ export class OpenClawGatewayClient {
     const clientHolder: { client?: OpenClawGatewayClient } = {};
     const challengeBox: { nonce?: string; ts?: number; waiters: Array<() => void> } = { waiters: [] };
 
-    const ready = new Promise<OpenClawGatewayClient>((resolve, reject) => {
+    return new Promise<OpenClawGatewayClient>((resolve, reject) => {
+      let settled = false;
+      const finish = (err?: Error, client?: OpenClawGatewayClient) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(client as OpenClawGatewayClient);
+      };
+
       const timer = setTimeout(() => {
-        ws.close();
-        reject(new OpenClawGatewayUnavailableError("openclaw_gateway_unavailable: hello-ok timeout"));
+        ws.terminate();
+        finish(new OpenClawGatewayUnavailableError("openclaw_gateway_unavailable: hello-ok timeout"));
       }, timeoutMs);
 
-      ws.addEventListener("error", () => {
-        clearTimeout(timer);
-        reject(new OpenClawGatewayUnavailableError(`openclaw_gateway_unavailable: cannot connect ${input.url}`));
+      ws.on("error", () => {
+        if (!clientHolder.client) {
+          finish(new OpenClawGatewayUnavailableError(`openclaw_gateway_unavailable: cannot connect ${input.url}`));
+        }
       });
-      ws.addEventListener("close", (event) => {
+      ws.on("close", (code) => {
         const client = clientHolder.client;
         if (client) {
           client.failAll(new OpenClawGatewayUnavailableError("openclaw_gateway_unavailable: connection closed"));
           return;
         }
-        clearTimeout(timer);
-        reject(
+        finish(
           new OpenClawGatewayUnavailableError(
-            `openclaw_gateway_unavailable: closed before hello-ok (${event.code})`,
+            `openclaw_gateway_unavailable: closed before hello-ok (${code})`,
           ),
         );
       });
-      ws.addEventListener("message", (event) => {
-        const raw = frameRaw(event.data);
+      ws.on("message", (data) => {
         let frame: GatewayFrame;
         try {
-          frame = parseFrame(raw);
+          frame = parseFrame(frameRaw(data));
         } catch {
           return;
         }
@@ -116,10 +128,10 @@ export class OpenClawGatewayClient {
           client.takeRes(frame);
         }
       });
-      ws.addEventListener("open", () => {
+      ws.on("open", () => {
         void (async () => {
           try {
-            const challenge = await waitChallenge(challengeBox, timeoutMs);
+            await waitChallenge(challengeBox, timeoutMs);
             const id = "connect-1";
             const connectP = waitRes(ws, id, timeoutMs);
             ws.send(
@@ -140,22 +152,18 @@ export class OpenClawGatewayClient {
                 auth: { token: input.token },
                 locale: "zh-CN",
                 userAgent: "campaign-agent-openclaw-client/0.2.0",
-                device: undefined,
               }),
             );
             const hello = (await connectP) as GatewayHello;
             if (typeof hello?.protocol !== "number") {
               throw new OpenClawGatewayUnavailableError("openclaw_gateway_unavailable: missing hello-ok");
             }
-            clearTimeout(timer);
             const client = new OpenClawGatewayClient(ws, hello, input.url);
-            client.challenge = { nonce: challenge.nonce, ts: challenge.ts };
             clientHolder.client = client;
-            resolve(client);
+            finish(undefined, client);
           } catch (err) {
-            clearTimeout(timer);
-            ws.close();
-            reject(
+            ws.terminate();
+            finish(
               err instanceof OpenClawGatewayUnavailableError
                 ? err
                 : new OpenClawGatewayUnavailableError(
@@ -166,8 +174,6 @@ export class OpenClawGatewayClient {
         })();
       });
     });
-
-    return ready;
   }
 
   async rpc<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
@@ -304,17 +310,16 @@ function waitChallenge(
   });
 }
 
-function waitRes(ws: WebSocket, id: string, timeoutMs: number): Promise<unknown> {
+function waitRes(ws: NodeWebSocket, id: string, timeoutMs: number): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      ws.removeEventListener("message", onMessage);
+      ws.off("message", onMessage);
       reject(new OpenClawGatewayUnavailableError("openclaw_gateway_unavailable: connect response timeout"));
     }, timeoutMs);
-    const onMessage = (event: { data: unknown }) => {
-      const raw = frameRaw(event.data);
+    const onMessage = (data: unknown) => {
       let frame: GatewayFrame;
       try {
-        frame = parseFrame(raw);
+        frame = parseFrame(frameRaw(data));
       } catch {
         return;
       }
@@ -322,14 +327,14 @@ function waitRes(ws: WebSocket, id: string, timeoutMs: number): Promise<unknown>
         return;
       }
       clearTimeout(timer);
-      ws.removeEventListener("message", onMessage);
+      ws.off("message", onMessage);
       if (frame.ok) {
         resolve(frame.payload);
       } else {
         reject(new OpenClawGatewayUnavailableError(`${frame.error.code}: ${frame.error.message}`));
       }
     };
-    ws.addEventListener("message", onMessage);
+    ws.on("message", onMessage);
   });
 }
 
