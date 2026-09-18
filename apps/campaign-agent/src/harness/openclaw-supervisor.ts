@@ -1,7 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { createServer } from "node:net";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
@@ -25,14 +24,14 @@ export type SupervisedGateway = {
 
 /**
  * Embedding host: spawn one OpenClaw-compatible Gateway child per tenant.
- * Readiness is hello-ok over WebSocket, not a log substring
- * (docs.openclaw.ai/gateway/embedding).
+ * Child binds an ephemeral port and writes ready.json; readiness is then hello-ok.
  */
 export class OpenClawSupervisor {
   private readonly children = new Map<
     string,
     { process: ChildProcess; gateway: SupervisedGateway }
   >();
+  private readonly inflight = new Map<string, Promise<SupervisedGateway>>();
 
   async ensure(input: {
     tenant: TenantRuntimeConfig;
@@ -42,22 +41,40 @@ export class OpenClawSupervisor {
     if (existing && existing.process.exitCode === null && !existing.process.killed) {
       return existing.gateway;
     }
-    if (existing) {
+    const pending = this.inflight.get(input.tenant.tenant_id);
+    if (pending) {
+      return pending;
+    }
+    const work = this.spawnOne(input).finally(() => {
+      if (this.inflight.get(input.tenant.tenant_id) === work) {
+        this.inflight.delete(input.tenant.tenant_id);
+      }
+    });
+    this.inflight.set(input.tenant.tenant_id, work);
+    return work;
+  }
+
+  private async spawnOne(input: {
+    tenant: TenantRuntimeConfig;
+    skillsRoot: string;
+  }): Promise<SupervisedGateway> {
+    const stale = this.children.get(input.tenant.tenant_id);
+    if (stale) {
       await this.stop(input.tenant.tenant_id);
     }
-    const port = await freePort();
     const token = randomBytes(24).toString("hex");
-    const stateDir = await mkdir(
-      path.join(os.tmpdir(), `campaign-openclaw-${input.tenant.tenant_id}-${port}`),
-      { recursive: true },
-    ).then(() => path.join(os.tmpdir(), `campaign-openclaw-${input.tenant.tenant_id}-${port}`));
+    const stateDir = path.join(
+      os.tmpdir(),
+      `campaign-openclaw-${input.tenant.tenant_id}-${randomBytes(6).toString("hex")}`,
+    );
+    await mkdir(stateDir, { recursive: true });
     const workspace = path.join(stateDir, "workspace");
     await mkdir(workspace, { recursive: true });
     const config = buildOpenClawDevConfig({
       tenant: input.tenant,
       skillsRoot: input.skillsRoot,
       workspace,
-      port,
+      port: 0,
       token,
     });
     const configPath = path.join(stateDir, "openclaw.json");
@@ -88,33 +105,41 @@ export class OpenClawSupervisor {
         stderr.shift();
       }
     });
-    const gateway: SupervisedGateway = {
+
+    const placeholder: SupervisedGateway = {
       tenantId: input.tenant.tenant_id,
-      url: `ws://127.0.0.1:${port}`,
+      url: "",
       token,
-      port,
+      port: 0,
       stateDir,
       configPath,
     };
-    this.children.set(input.tenant.tenant_id, { process: child, gateway });
+    this.children.set(input.tenant.tenant_id, { process: child, gateway: placeholder });
 
-    child.once("exit", (code) => {
+    child.once("exit", () => {
       const current = this.children.get(input.tenant.tenant_id);
       if (current?.process === child) {
         this.children.delete(input.tenant.tenant_id);
       }
-      if (code && code !== 0) {
-        /* next ensure() respawns; callers fail on missing hello-ok */
-      }
     });
 
     try {
+      const port = await waitForReadyFile(stateDir, child, stderr);
+      const gateway: SupervisedGateway = {
+        ...placeholder,
+        port,
+        url: `ws://127.0.0.1:${port}`,
+      };
+      const current = this.children.get(input.tenant.tenant_id);
+      if (current?.process === child) {
+        current.gateway = gateway;
+      }
       await waitForHello(gateway, child, stderr);
+      return gateway;
     } catch (err) {
       await this.stop(input.tenant.tenant_id);
       throw err;
     }
-    return gateway;
   }
 
   async stop(tenantId: string): Promise<void> {
@@ -130,6 +155,31 @@ export class OpenClawSupervisor {
     const ids = [...this.children.keys()];
     await Promise.all(ids.map((id) => this.stop(id)));
   }
+}
+
+async function waitForReadyFile(stateDir: string, child: ChildProcess, stderr: string[]): Promise<number> {
+  const readyPath = path.join(stateDir, "ready.json");
+  const deadline = Date.now() + 12000;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) {
+      throw new OpenClawGatewayUnavailableError(
+        `openclaw_gateway_unavailable: child exited ${child.exitCode} ${stderr.join("")}`.trim(),
+      );
+    }
+    try {
+      const raw = await readFile(readyPath, "utf8");
+      const parsed = JSON.parse(raw) as { port?: number };
+      if (typeof parsed.port === "number" && parsed.port > 0) {
+        return parsed.port;
+      }
+    } catch {
+      /* not written yet */
+    }
+    await sleep(40);
+  }
+  throw new OpenClawGatewayUnavailableError(
+    `openclaw_gateway_unavailable: ready.json not written ${stderr.join("")}`.trim(),
+  );
 }
 
 async function waitForHello(
@@ -161,24 +211,6 @@ async function waitForHello(
   throw new OpenClawGatewayUnavailableError(
     `openclaw_gateway_unavailable: hello-ok not received (${last?.message ?? "timeout"}) ${stderr.join("")}`.trim(),
   );
-}
-
-function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const addr = server.address();
-      const port = typeof addr === "object" && addr ? addr.port : 0;
-      server.close((err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(port);
-      });
-    });
-  });
 }
 
 function killChild(child: ChildProcess): Promise<void> {
