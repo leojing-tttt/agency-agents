@@ -12,11 +12,29 @@ const WHO = {
   content: ["内", "内容Agent"],
 };
 
+function a3Message(type, text) {
+  const iconMap = {
+    success: "fa-check-circle",
+    info: "fa-info-circle",
+    warning: "fa-exclamation-triangle",
+    danger: "fa-times-circle",
+  };
+  const msg = document.createElement("div");
+  msg.className = `a3-message a3-message-${type}`;
+  msg.innerHTML = `<i class="fas ${iconMap[type] || iconMap.info}"></i><span>${escapeHtml(text)}</span>`;
+  document.body.appendChild(msg);
+  setTimeout(() => msg.remove(), 3000);
+}
+
 async function loadMeta() {
   const meta = await (await fetch("/api/meta")).json();
-  document.getElementById("user-chip").textContent = `林AE · ${meta.tenant.name}`;
+  document.getElementById("user-chip").innerHTML =
+    `<i class="fas fa-user"></i> 林AE · ${escapeHtml(meta.tenant.name)}`;
   skillsEl.innerHTML = meta.skills
-    .map((s) => `<li><b>${s.name}</b> @${s.version}<br>${escapeHtml(s.description)}</li>`)
+    .map(
+      (s) =>
+        `<div class="a3-campaign-pin"><b class="a3-text-primary">${escapeHtml(s.name)}</b> <span class="a3-tag a3-tag-info"><span class="a3-tag-dot"></span>@${escapeHtml(s.version)}</span><div class="a3-text-secondary a3-mt-4">${escapeHtml(s.description)}</div></div>`,
+    )
     .join("");
   mcpLine.textContent = meta.mcp.length
     ? `MCP 白名单：${meta.mcp.map((t) => t.handle).join("、")}`
@@ -29,39 +47,55 @@ async function loadCampaign() {
 }
 
 function render(snap) {
-  document.querySelector(".thread-item small").textContent = `本场 · ${snap.campaign.status}`;
-  threadEl.innerHTML = snap.thread.map(renderMsg).join("");
-  const steps = document.querySelectorAll(".prog span");
-  if (steps[0]) {
-    steps[0].classList.add("on");
+  const statusEl = document.querySelector(".a3-campaign-status");
+  if (statusEl) {
+    statusEl.textContent = `本场 · ${snap.campaign.status}`;
   }
-  if (steps[2]) {
-    steps[2].classList.toggle("on", Boolean(snap.pinned_proposal));
+  threadEl.innerHTML = snap.thread.map(renderMsg).join("");
+  const briefTag = document.querySelector('[data-step="brief"]');
+  const planTag = document.querySelector('[data-step="plan"]');
+  if (briefTag) {
+    briefTag.className = "a3-tag a3-tag-success";
+    briefTag.innerHTML = `<span class="a3-tag-dot"></span>Brief`;
+  }
+  if (planTag) {
+    const on = Boolean(snap.pinned_proposal);
+    planTag.className = on ? "a3-tag a3-tag-success" : "a3-tag a3-tag-default";
+    planTag.innerHTML = `<span class="a3-tag-dot"></span>策划`;
   }
   memoryEl.innerHTML = snap.memory.length
     ? snap.memory
         .map(
           (p) =>
-            `<li>${p.kind}<br><code>${p.version_id}</code></li>`,
+            `<div class="a3-campaign-pin"><span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span><i class="fas fa-thumbtack"></i> ${escapeHtml(p.kind)}</span><div class="a3-mt-4"><code>${escapeHtml(p.version_id)}</code></div></div>`,
         )
         .join("")
-    : "<li>尚无 pin。丢 Brief 后会钉产物版本。</li>";
+    : `<div class="a3-empty"><i class="fas fa-inbox"></i><div class="a3-empty-text">尚无 pin。丢 Brief 后会钉产物版本。</div></div>`;
   threadEl.scrollTop = threadEl.scrollHeight;
 }
 
 function renderMsg(msg) {
   const [ch, who] = WHO[msg.agent_name] || (msg.role === "user" ? WHO.user : ["系", "系统"]);
-  const mine = msg.role === "user" ? " mine" : "";
-  const extra =
-    msg.kind === "artifact_card" || msg.kind === "open_questions"
-      ? `<div class="art"><span class="tag">${msg.agent_name === "plan" ? "方案卡片" : "产物卡片"}</span>${escapeHtml(msg.text)}${
-          msg.artifact_ref
-            ? `<div class="tag">${msg.artifact_ref.version_id}</div>`
-            : ""
-        }</div>`
-      : escapeHtml(msg.text);
-  const bubbleClass = msg.kind === "wait" ? "bubble wait" : "bubble";
-  return `<div class="msg${mine}"><span class="ava">${ch}</span><div><div class="who">${who}</div><div class="${bubbleClass}">${extra}</div></div></div>`;
+  const mine = msg.role === "user" ? " a3-msg-mine" : "";
+  return `<div class="a3-msg${mine}"><span class="a3-avatar a3-avatar-square">${escapeHtml(ch)}</span><div class="a3-msg-body"><div class="a3-msg-who">${escapeHtml(who)}</div><div class="a3-msg-bubble">${renderBubble(msg)}</div></div></div>`;
+}
+
+function renderBubble(msg) {
+  if (msg.kind === "artifact_card" || msg.kind === "open_questions") {
+    const isPlan = msg.agent_name === "plan";
+    const label = isPlan ? "方案卡片" : "产物卡片";
+    const icon = isPlan ? "fa-lightbulb" : "fa-file-alt";
+    const tagClass = isPlan ? "a3-tag-success" : "a3-tag-info";
+    return `<div class="a3-card"><div class="a3-card-header"><span><i class="fas ${icon}"></i> ${label}</span>${
+      msg.artifact_ref
+        ? `<span class="a3-tag a3-tag-default"><span class="a3-tag-dot"></span>${escapeHtml(msg.artifact_ref.version_id)}</span>`
+        : ""
+    }</div><div class="a3-card-body">${escapeHtml(msg.text)}</div></div>`;
+  }
+  if (msg.kind === "wait") {
+    return `<div class="a3-alert a3-alert-warning"><i class="fas fa-hourglass-half"></i><span>${escapeHtml(msg.text)}</span></div>`;
+  }
+  return escapeHtml(msg.text);
 }
 
 function escapeHtml(value) {
@@ -77,13 +111,13 @@ async function upload(file) {
   const res = await fetch("/api/brief", { method: "POST", body });
   const data = await res.json();
   if (!res.ok) {
-    alert(data.error || "upload failed");
+    a3Message("danger", data.error || "upload failed");
     return;
   }
   render(data.snapshot);
 }
 
-const dropzone = document.querySelector(".dropzone");
+const dropzone = document.querySelector(".a3-upload-drop");
 
 fileInput.addEventListener("change", () => {
   const file = fileInput.files && fileInput.files[0];
@@ -127,7 +161,7 @@ sayForm.addEventListener("submit", async (event) => {
   });
   const data = await res.json();
   if (!res.ok) {
-    alert(data.error || "send failed");
+    a3Message("danger", data.error || "send failed");
     return;
   }
   render(data.snapshot);
