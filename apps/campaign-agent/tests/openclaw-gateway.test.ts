@@ -108,17 +108,20 @@ describe("OpenClaw Gateway is a real process", () => {
     await other.close();
   });
 
-  it("concurrent ensure for one tenant reuses a single Gateway process", async () => {
+  it("concurrent ensure for one tenant reuses a single ready Gateway process", async () => {
     const tenant = demoTenant("office-once");
     const supervisor = new OpenClawSupervisor();
     adapters.push(new OpenClawGatewayAdapter({ core: new CampaignCore(), supervisor }));
+    const firstP = supervisor.ensure({ tenant, skillsRoot: SKILLS_ROOT });
+    await new Promise((resolve) => setTimeout(resolve, 50));
     const [first, second] = await Promise.all([
-      supervisor.ensure({ tenant, skillsRoot: SKILLS_ROOT }),
+      firstP,
       supervisor.ensure({ tenant, skillsRoot: SKILLS_ROOT }),
     ]);
-    expect(first.port).toBe(second.port);
     expect(first.port).toBeGreaterThan(0);
-    expect(first.url).toBe(second.url);
+    expect(first.url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+$/);
+    expect(second.port).toBe(first.port);
+    expect(second.url).toBe(first.url);
   });
 
   it("does not serve Control UI from the Gateway HTTP surface", async () => {
