@@ -1,12 +1,25 @@
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { SkillLibrary, SkillLoadError } from "../src/harness/skill-loader.ts";
-import { LocalLoopAdapter } from "../src/harness/local-loop.ts";
 import { OpenClawGatewayAdapter } from "../src/harness/openclaw-adapter.ts";
+import { OpenClawGatewayUnavailableError } from "../src/harness/openclaw-client.ts";
+import { OpenClawSupervisor } from "../src/harness/openclaw-supervisor.ts";
 import { CampaignCore } from "../src/campaign-core/index.ts";
 import { demoTenant, isolateRuntime, SKILLS_ROOT } from "../src/harness/tenant-runtime.ts";
+
+const adapters: OpenClawGatewayAdapter[] = [];
+
+afterEach(async () => {
+  await Promise.all(adapters.splice(0).map((item) => item.stop()));
+});
+
+function liveAdapter(core: CampaignCore) {
+  const adapter = new OpenClawGatewayAdapter({ core, supervisor: new OpenClawSupervisor() });
+  adapters.push(adapter);
+  return adapter;
+}
 
 describe("skill load (Agent Skills spec)", () => {
   it("discovers brief-parse SKILL.md with name matching the directory", async () => {
@@ -22,7 +35,7 @@ describe("skill load (Agent Skills spec)", () => {
     const tenant = demoTenant();
     const core = new CampaignCore();
     const campaign = core.createCampaign({ tenant_id: tenant.tenant_id, name: "x" });
-    const session = await new LocalLoopAdapter(core).createSession(
+    const session = await liveAdapter(core).createSession(
       isolateRuntime(tenant, "beauty-essence-campaign", SKILLS_ROOT),
       campaign.campaign_id,
     );
@@ -44,13 +57,14 @@ describe("skill load (Agent Skills spec)", () => {
     expect(loaded.bundled.references).toContain("references/brief-schema.md");
     expect(loaded.files["SKILL.md"]).toMatch(/^---/);
     await expect(session.activateSkill("talent-shortlist")).rejects.toBeInstanceOf(SkillLoadError);
+    await session.close();
   });
 
   it("support agent does not see brief-parse even though the files exist on disk", async () => {
     const tenant = demoTenant();
     const core = new CampaignCore();
     const campaign = core.createCampaign({ tenant_id: tenant.tenant_id, name: "客服" });
-    const session = await new LocalLoopAdapter(core).createSession(
+    const session = await liveAdapter(core).createSession(
       isolateRuntime(tenant, "cs-faq", SKILLS_ROOT),
       campaign.campaign_id,
     );
@@ -58,6 +72,7 @@ describe("skill load (Agent Skills spec)", () => {
     expect(session.mcpTools().map((t) => t.handle)).toEqual(["tickets/read_ticket"]);
     expect(session.mcpTools().some((t) => t.name === "rate_card")).toBe(false);
     await expect(session.activateSkill("brief-parse")).rejects.toThrow(/skill_not_allowed/);
+    await session.close();
   });
 
   it("rejects SKILL.md whose name does not match the parent directory", async () => {
@@ -72,12 +87,14 @@ describe("skill load (Agent Skills spec)", () => {
     await expect(library.discover()).rejects.toThrow(SkillLoadError);
   });
 
-  it("does not pretend the OpenClaw Gateway is running", async () => {
+  it("does not pretend a missing OpenClaw Gateway is running", async () => {
     await expect(
-      new OpenClawGatewayAdapter().createSession(
-        isolateRuntime(demoTenant(), "beauty-essence-campaign", SKILLS_ROOT),
-        "cmp_demo",
-      ),
-    ).rejects.toThrow(/openclaw_gateway_not_embedded/);
+      new OpenClawGatewayAdapter({
+        core: new CampaignCore(),
+        spawn: false,
+        url: "ws://127.0.0.1:9",
+        token: "nope",
+      }).createSession(isolateRuntime(demoTenant(), "beauty-essence-campaign", SKILLS_ROOT), "cmp_demo"),
+    ).rejects.toThrow(OpenClawGatewayUnavailableError);
   });
 });

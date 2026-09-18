@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { CampaignCore } from "../campaign-core/index.ts";
-import { LocalLoopAdapter } from "../harness/local-loop.ts";
+import { OpenClawGatewayAdapter } from "../harness/openclaw-adapter.ts";
 import { isolateRuntime, demoTenant, SKILLS_ROOT } from "../harness/tenant-runtime.ts";
 import { writeSamplePdf } from "./sample-pdf.ts";
 
@@ -14,17 +14,21 @@ export async function runDemo(filePath: string) {
     name: "美妆精华 Q3 种草",
   });
   const runtime = isolateRuntime(tenant, "beauty-essence-campaign", SKILLS_ROOT);
-  const harness = new LocalLoopAdapter(core);
-  const session = await harness.createSession(runtime, campaign.campaign_id);
-  const bytes = await readFile(filePath);
-  const turn = await session.turn({
-    attachment: { filename: path.basename(filePath), bytes },
-  });
-  const snap = core.snapshot(tenant.tenant_id, campaign.campaign_id);
-  const catalog = session.skillCatalog();
-  const mcp = session.mcpTools();
-  await session.close();
-  return { turn, snap, catalog, mcp };
+  const harness = new OpenClawGatewayAdapter({ core });
+  try {
+    const session = await harness.createSession(runtime, campaign.campaign_id);
+    const bytes = await readFile(filePath);
+    const turn = await session.turn({
+      attachment: { filename: path.basename(filePath), bytes },
+    });
+    const snap = core.snapshot(tenant.tenant_id, campaign.campaign_id);
+    const catalog = session.skillCatalog();
+    const mcp = session.mcpTools();
+    await session.close();
+    return { turn, snap, catalog, mcp };
+  } finally {
+    await harness.stop();
+  }
 }
 
 async function main() {
@@ -42,7 +46,7 @@ async function main() {
   }
   const result = await runDemo(path.resolve(target));
   const brief = result.snap.pinned_brief;
-  console.log(`harness: local-loop (OpenClaw Gateway not embedded)`);
+  console.log(`harness: openclaw-gateway`);
   console.log(`skills: ${result.catalog.map((s) => s.name).join(", ") || "(none)"}`);
   console.log(`mcp: ${result.mcp.map((t) => t.handle).join(", ") || "(none)"}`);
   console.log(`routed: ${result.turn.routed_skill} status=${result.turn.status}`);

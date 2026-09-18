@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 import { CampaignCore } from "../src/campaign-core/index.ts";
 import { extractSourceText } from "../src/harness/source-text.ts";
 import { buildSamplePdf } from "../src/demo/sample-pdf.ts";
-import { LocalLoopAdapter, runParseBriefScript } from "../src/harness/local-loop.ts";
+import { runParseBriefScript } from "../src/harness/skill-turn.ts";
+import { OpenClawGatewayAdapter } from "../src/harness/openclaw-adapter.ts";
+import { OpenClawSupervisor } from "../src/harness/openclaw-supervisor.ts";
 import { demoTenant, isolateRuntime, SKILLS_ROOT } from "../src/harness/tenant-runtime.ts";
 import { SkillLibrary } from "../src/harness/skill-loader.ts";
 
@@ -71,19 +73,25 @@ describe("brief-parse refuses to invent budget/KPI", () => {
     const tenant = demoTenant();
     const core = new CampaignCore();
     const campaign = core.createCampaign({ tenant_id: tenant.tenant_id, name: "客服" });
-    const session = await new LocalLoopAdapter(core).createSession(
-      isolateRuntime(tenant, "cs-faq", SKILLS_ROOT),
-      campaign.campaign_id,
-    );
-    const turn = await session.turn({
-      attachment: {
-        filename: "brief.txt",
-        bytes: Buffer.from("目标：种草\nKPI：抖音完播\n预算：达人费 80 万\n"),
-      },
-    });
-    expect(turn.routed_skill).toBeNull();
-    expect(turn.status).toBe("ignored");
-    expect(core.resolvePinnedBrief(tenant.tenant_id, campaign.campaign_id)).toBeUndefined();
+    const harness = new OpenClawGatewayAdapter({ core, supervisor: new OpenClawSupervisor() });
+    try {
+      const session = await harness.createSession(
+        isolateRuntime(tenant, "cs-faq", SKILLS_ROOT),
+        campaign.campaign_id,
+      );
+      const turn = await session.turn({
+        attachment: {
+          filename: "brief.txt",
+          bytes: Buffer.from("目标：种草\nKPI：抖音完播\n预算：达人费 80 万\n"),
+        },
+      });
+      expect(turn.routed_skill).toBeNull();
+      expect(turn.status).toBe("ignored");
+      expect(core.resolvePinnedBrief(tenant.tenant_id, campaign.campaign_id)).toBeUndefined();
+      await session.close();
+    } finally {
+      await harness.stop();
+    }
   });
 });
 

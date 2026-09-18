@@ -1,6 +1,6 @@
-# Campaign Agent (slice 1)
+# Campaign Agent (slice 2)
 
-Conversation is the product face. OpenClaw is the harness *shape*. Campaign contracts are ours.
+Conversation is the product face. OpenClaw is the harness *loop*. Campaign contracts are ours.
 
 This package lives in `apps/campaign-agent/` on purpose: the rest of this repository is still the upstream [agency-agents](https://github.com/msitarzewski/agency-agents) markdown roster. Do not put application code next to those `.md` specialists.
 
@@ -17,6 +17,14 @@ npm start
 
 Then open http://127.0.0.1:4173 and drop a Brief `.txt` / `.pdf` into the thread.
 
+`npm start` and `npm run demo` spawn a **per-tenant OpenClaw-compatible Gateway process** (WebSocket protocol v4). If that process cannot start or `hello-ok` never arrives, the app errors — it does not fake a successful turn.
+
+Optional: run the Gateway yourself, then point the app at it:
+
+```bash
+npm run gateway -- --config /path/to/openclaw.json
+```
+
 Generate the sample PDF fixture (UTF-16BE content stream, readable by this slice’s extractor):
 
 ```bash
@@ -26,42 +34,44 @@ npm run demo -- fixtures/briefs/complete.pdf
 
 ## What this slice does
 
-1. **Harness loop (Skill + MCP session)** — per-tenant isolated runtime config. An Agent only sees its published skill allowlist and MCP tool allowlist. No global tool dump.
-2. **campaign-core** — versioned `Brief` artifact + campaign memory index that pins `(object_id, version)`. The thread stores projections (`artifact_ref`), not the object.
-3. **`brief-parse` SKILL.md** — real Agent Skills bundle. Demo path: drop Brief PDF/text → structured Brief with `version_id`. Missing budget/KPI → `open_questions` (never invented).
+1. **OpenClaw harness loop** — isolated Gateway child per tenant. Session start snapshots skills (`skills.status`) and the per-agent MCP allowlist (`tools.effective`). Drop-Brief is `agent` + `agent.wait`, not an in-process stub.
+2. **campaign-core** — versioned `Brief` artifact + campaign memory index that pins `(object_id, version)`. The thread stores projections (`artifact_ref`), not the object. The Gateway does not own Brief truth.
+3. **`brief-parse` SKILL.md** — real Agent Skills bundle loaded by the Gateway. Missing budget/KPI → `open_questions` (never invented).
 
-Content cards are gated even though the content skill is not in this slice: lock-row before any `ContentPack`. Until then the content worker only emits a wait message.
+Content cards stay gated: lock-row before any `ContentPack`. Until then the content worker only emits a wait message.
 
-## Real vs adapter
+## Real vs stubbed
 
 | Piece | Status |
 |---|---|
-| Agent Skills `SKILL.md` load (frontmatter routing, then full body + `scripts/` + `references/`) | **Real** |
-| Per-tenant / per-agent skill and MCP allowlists | **Real** |
+| OpenClaw-compatible Gateway process (WS v4: `connect.challenge` → `connect` → `hello-ok`) | **Real** (local/dev runtime; one child per tenant) |
+| Drop-Brief path: Gateway `agent` / `agent.wait` → `brief-parse` SKILL.md + bundled script | **Real** |
+| Per-tenant / per-agent skill and MCP allowlists (`agents.entries.*.skills`, no shared tool dump) | **Real** |
 | campaign-core Brief versions, memory pins, thread projections | **Real** |
-| Local harness loop (`LocalLoopAdapter`) that routes a dropped Brief to `brief-parse` and runs `scripts/parse-brief.mjs` | **Real** |
-| `OpenClawHarnessAdapter` / `OpenClawSession` matching OpenClaw session + skill snapshot + session MCP concepts | **Adapter interface** |
-| `OpenClawGatewayAdapter` talking to a live OpenClaw Gateway process | **Stub** (throws `openclaw_gateway_not_embedded`, not a fake success) |
-| OpenClaw Control UI, WhatsApp/channels, Skill Workshop, Hermes-style self-memory | **Not shipped** |
-| Full PDF engine (compressed/binary vendor PDFs) | **Not in this slice** — extractor reads uncompressed literals + UTF-16BE hex strings. If text cannot be read, fields stay empty and become `open_questions`. |
-| Gates UI (AE confirm card), plan/talent/content skills, KB retrieve | **Later slices** |
+| Tests when Gateway/runtime is missing | **Fail** (`openclaw_gateway_unavailable`) — not a fake pass |
+| Official `openclaw` npm Gateway (~200MB, Node ≥24.16) | **Not embedded** — too heavy for this app’s Node 22 CI; local process speaks the documented protocol instead |
+| OpenClaw Control UI, WhatsApp/channels, Skill Workshop, Hermes-style self-memory | **Not shipped** (Gateway HTTP 404s Control UI) |
+| Full PDF engine (compressed/binary vendor PDFs) | **Not in this slice** |
+| Gates UI (AE confirm card), plan/talent/content skills, KB retrieve, live MCP servers | **Later slices** |
 
-OpenClaw mapping we will keep when a Gateway is actually embedded:
+OpenClaw mapping in this slice:
 
-- Session start → skill snapshot + `getOrCreateSessionMcpRuntime`
-- `agents.entries.*.skills` → our published Agent allowlist
+- Session start → skill snapshot + session MCP catalog (`tools.effective`)
+- `agents.entries.*.skills` → published Agent allowlist (explicit `[]` means no skills)
 - Progressive disclosure → catalog is `name` + `description` only
-- One isolated runtime per tenant (or per published Agent). Never one Gateway mixing customers.
+- One isolated Gateway process per tenant. Never one Gateway mixing customers.
+- Embedding env: `OPENCLAW_NO_RESPAWN`, `OPENCLAW_SKIP_CHANNELS`, `OPENCLAW_DISABLE_BONJOUR`
 
 ## Layout
 
 ```
 apps/campaign-agent/
   skills/brief-parse/SKILL.md   # Agent Skills bundle
-  src/campaign-core/            # artifacts, memory, gates
-  src/harness/                  # skill loader, OpenClaw adapter, local loop
-  src/server.ts                 # demo thread UI
-  tests/                        # versioning, skill load, ungated content cards
+  src/campaign-core/            # artifacts, memory, gates (source of truth)
+  src/openclaw-runtime/         # local OpenClaw-compatible Gateway process
+  src/harness/                  # supervisor, WS client, skill loader
+  src/server.ts                 # demo thread UI (spawns Gateway)
+  tests/                        # missing Gateway fails; isolation; versioning
 ```
 
 ## Tests
@@ -70,4 +80,4 @@ apps/campaign-agent/
 npm test
 ```
 
-Covers artifact versioning, skill allowlist load, no content cards before lock, and “do not invent budget/KPI”.
+Covers live Gateway drop-Brief, fail-closed when the process is down, per-agent allowlists, two-tenant isolation, artifact versioning, no content cards before lock, and “do not invent budget/KPI”.
