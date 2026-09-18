@@ -140,13 +140,14 @@ const server = http.createServer(async (req, res) => {
             "Agent Skills SKILL.md loading via Gateway skills.status + session snapshot",
             "campaign-core versioned Brief + memory pins",
             "drop-Brief agent + agent.wait turn",
+            "plan-proposal SKILL.md → versioned Proposal + memory pin",
           ],
           not_shipped: [
             "Official 200MB openclaw npm binary (Node >=24)",
             "OpenClaw Control UI",
             "WhatsApp channels",
             "self-learning memory",
-            "plan/talent/content skills",
+            "talent/content skills",
           ],
         },
       });
@@ -172,6 +173,19 @@ const server = http.createServer(async (req, res) => {
       }
       const session = await sessionFor(seeded.campaign_id);
       const turn = await session.turn({ attachment: { filename, bytes } });
+      json(res, 200, { turn, snapshot: core.snapshot(tenant.tenant_id, seeded.campaign_id) });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/turn") {
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}") as { text?: string };
+      const text = typeof body.text === "string" ? body.text.trim() : "";
+      if (!text) {
+        json(res, 400, { error: "text_required" });
+        return;
+      }
+      const session = await sessionFor(seeded.campaign_id);
+      const turn = await session.turn({ text });
       json(res, 200, { turn, snapshot: core.snapshot(tenant.tenant_id, seeded.campaign_id) });
       return;
     }

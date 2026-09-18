@@ -138,3 +138,22 @@ html, body {
   text-align: center;
 }
 .dropzone.is-over { background: #ece8e1; }
+.say {
+  display: flex;
+  gap: 8px;
+  margin: 0 16px 8px;
+}
+.say input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font: inherit;
+}
+.say button {
+  padding: 8px 12px;
+  border: 1px solid #444;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}

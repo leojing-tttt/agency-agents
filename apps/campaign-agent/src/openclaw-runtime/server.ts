@@ -2,7 +2,7 @@ import http from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
 import { newId } from "../campaign-core/ids.ts";
 import { SkillLibrary, SkillLoadError, type LoadedSkill, type SkillSummary } from "../harness/skill-loader.ts";
-import { routeSkillTurn, type SkillTurnResult } from "../harness/skill-turn.ts";
+import { routeSkillTurn, type PinnedBriefInput, type SkillTurnResult } from "../harness/skill-turn.ts";
 import type { OpenClawDevConfig } from "./config.ts";
 import {
   eventFrame,
@@ -345,6 +345,7 @@ export class OpenClawDevGateway {
         turn: {
           text: message,
           attachment: attachments[0],
+          pinned_brief: isPinnedBrief(params.pinnedBrief) ? params.pinnedBrief : undefined,
         },
       });
       this.runs.set(runId, {
@@ -449,6 +450,7 @@ function serializeTurn(result: SkillTurnResult | undefined) {
     status: result.status,
     notes: result.notes,
     parsed: result.parsed ?? null,
+    proposal: result.proposal ?? null,
     loaded_skill: loaded
       ? {
           name: loaded.name,
@@ -462,6 +464,14 @@ function serializeTurn(result: SkillTurnResult | undefined) {
         }
       : null,
   };
+}
+
+function isPinnedBrief(value: unknown): value is PinnedBriefInput {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const rec = value as { version_id?: unknown; payload?: unknown };
+  return typeof rec.version_id === "string" && typeof rec.payload === "object" && rec.payload !== null;
 }
 
 function json(res: http.ServerResponse, status: number, body: unknown) {

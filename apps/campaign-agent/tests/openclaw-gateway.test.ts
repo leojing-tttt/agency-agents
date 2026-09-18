@@ -100,7 +100,7 @@ describe("OpenClaw Gateway is a real process", () => {
     );
 
     expect(beauty.mcpTools().map((t) => t.handle)).toEqual(["talent-mdm/search_talent"]);
-    expect(beauty.skillCatalog().map((s) => s.name)).toEqual(["brief-parse"]);
+    expect(beauty.skillCatalog().map((s) => s.name).sort()).toEqual(["brief-parse", "plan-proposal"]);
     expect(other.mcpTools().map((t) => t.handle)).toEqual(["tickets/read_ticket"]);
     expect(other.skillCatalog()).toEqual([]);
     expect(other.mcpTools().some((t) => t.handle.includes("talent-mdm"))).toBe(false);

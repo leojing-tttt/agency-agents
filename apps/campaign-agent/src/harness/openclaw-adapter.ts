@@ -6,6 +6,12 @@ import type { IsolatedRuntime } from "./tenant-runtime.ts";
 import { OpenClawGatewayClient, OpenClawGatewayUnavailableError } from "./openclaw-client.ts";
 import { OpenClawSupervisor } from "./openclaw-supervisor.ts";
 import { newId } from "../campaign-core/ids.ts";
+import {
+  chainPlanProposalAfterBrief,
+  commitSkillResult,
+  pinnedBriefInput,
+  type SkillTurnResult,
+} from "./skill-turn.ts";
 
 /**
  * OpenClaw-shaped harness contract.
@@ -25,6 +31,13 @@ export type SessionTurnInput = {
   attachment?: {
     filename: string;
     bytes: Uint8Array;
+  };
+  pinned_brief?: {
+    version_id: string;
+    object_id: string;
+    version: number;
+    payload: import("../campaign-core/types.ts").BriefPayload;
+    open_questions: import("../campaign-core/types.ts").OpenQuestion[];
   };
 };
 
@@ -208,23 +221,26 @@ class GatewayBackedSession implements OpenClawSession {
         `文件 ${input.attachment.filename}`,
       );
     }
-    const wait = await this.ctx.client.agentTurn({
-      agentId: this.agentId,
-      sessionKey: this.ctx.sessionKey,
-      message: input.text,
-      attachment: input.attachment,
-    });
-    const result = wait.result;
+    const result = await this.runGatewayTurn(input);
     if (!result) {
       return { routed_skill: null, loaded_skill: null, status: "ignored", notes: [] };
     }
-    if (result.routed_skill === "brief-parse" && result.parsed) {
-      this.ctx.core.recordBrief({
-        tenant_id: this.tenantId,
-        campaign_id: this.ctx.campaignId,
-        payload: result.parsed.payload,
-        citations: result.parsed.citations,
-      });
+    commitSkillResult(this.ctx.core, this.tenantId, this.ctx.campaignId, result);
+    const chained = await chainPlanProposalAfterBrief({
+      catalog: this.ctx.catalog,
+      briefResult: result,
+      pinnedBrief: pinnedBriefInput(this.ctx.core, this.tenantId, this.ctx.campaignId),
+      runTurn: async (next) => {
+        const inner = await this.runGatewayTurn(next);
+        if (!inner) {
+          return { routed_skill: null, loaded_skill: null, status: "ignored" as const, notes: ["gateway_empty_plan_turn"] };
+        }
+        return inner;
+      },
+    });
+    if (chained) {
+      commitSkillResult(this.ctx.core, this.tenantId, this.ctx.campaignId, chained);
+      result.notes = [...result.notes, "chained_plan-proposal"];
     }
     return {
       routed_skill: result.routed_skill,
@@ -232,6 +248,17 @@ class GatewayBackedSession implements OpenClawSession {
       status: result.status,
       notes: result.notes,
     };
+  }
+
+  private async runGatewayTurn(input: SessionTurnInput): Promise<SkillTurnResult | null> {
+    const wait = await this.ctx.client.agentTurn({
+      agentId: this.agentId,
+      sessionKey: this.ctx.sessionKey,
+      message: input.text,
+      attachment: input.attachment,
+      pinnedBrief: input.pinned_brief ?? pinnedBriefInput(this.ctx.core, this.tenantId, this.ctx.campaignId),
+    });
+    return wait.result ?? null;
   }
 
   async close(): Promise<void> {

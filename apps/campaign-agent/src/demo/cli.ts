@@ -50,6 +50,9 @@ async function main() {
   console.log(`skills: ${result.catalog.map((s) => s.name).join(", ") || "(none)"}`);
   console.log(`mcp: ${result.mcp.map((t) => t.handle).join(", ") || "(none)"}`);
   console.log(`routed: ${result.turn.routed_skill} status=${result.turn.status}`);
+  if (result.turn.notes?.length) {
+    console.log(`notes: ${result.turn.notes.join(", ")}`);
+  }
   if (!brief) {
     console.log("no Brief artifact");
     return;
@@ -57,6 +60,14 @@ async function main() {
   console.log(`Brief ${brief.version_id} gate=${brief.gate_state}`);
   console.log(JSON.stringify(brief.payload, null, 2));
   console.log("open_questions:", brief.open_questions);
+  const proposal = result.snap.pinned_proposal;
+  if (proposal) {
+    console.log(`Proposal ${proposal.version_id} gate=${proposal.gate_state}`);
+    console.log(`strategy_idea: ${proposal.payload.strategy_idea}`);
+    console.log(`budget_split: ${JSON.stringify(proposal.payload.budget_split)}`);
+  } else {
+    console.log("no Proposal artifact (complete Brief auto-chains 出方案)");
+  }
   console.log(
     "memory pins:",
     result.snap.memory.map((p) => `${p.kind}->${p.version_id}`).join(", "),

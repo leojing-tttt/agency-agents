@@ -7,6 +7,7 @@ import {
 } from "./gates.ts";
 import { newId, nowIso } from "./ids.ts";
 import { CampaignMemoryIndex } from "./memory.ts";
+import { openQuestionsForProposal, proposalGateState } from "./proposal.ts";
 import type {
   Artifact,
   BriefArtifact,
@@ -15,6 +16,8 @@ import type {
   Citation,
   ContentPackPayload,
   ContentSurface,
+  ProposalArtifact,
+  ProposalPayload,
   TalentRowLock,
   ThreadMessage,
 } from "./types.ts";
@@ -138,6 +141,76 @@ export class CampaignCore {
     return { brief, message: card };
   }
 
+  recordProposal(input: {
+    tenant_id: string;
+    campaign_id: string;
+    object_id?: string;
+    payload: ProposalPayload;
+    citations: Citation[];
+  }): { proposal: ProposalArtifact; message: ThreadMessage } {
+    const campaign = this.getCampaign(input.tenant_id, input.campaign_id);
+    const brief = this.resolvePinnedBrief(input.tenant_id, campaign.campaign_id);
+    const questions = openQuestionsForProposal(input.payload, brief?.payload);
+    const existingPin = this.memory.activePin(
+      input.tenant_id,
+      campaign.campaign_id,
+      "drafted_proposal",
+    );
+    const objectId = input.object_id ?? existingPin?.object_id ?? newId("prop");
+    const proposal = this.artifacts.append<ProposalPayload>({
+      object_id: objectId,
+      type: "Proposal",
+      tenant_id: campaign.tenant_id,
+      campaign_id: campaign.campaign_id,
+      gate_state: proposalGateState(questions),
+      payload: input.payload,
+      open_questions: questions,
+      citations: input.citations,
+      created_by: "agent",
+    }) as ProposalArtifact;
+
+    this.memory.pin({
+      tenant_id: campaign.tenant_id,
+      campaign_id: campaign.campaign_id,
+      kind: "drafted_proposal",
+      object_type: "Proposal",
+      object_id: proposal.object_id,
+      object_version: proposal.version,
+      note: questions.length ? "drafted_with_open_questions" : "drafted_complete",
+    });
+
+    const card = this.appendMessage({
+      campaign_id: campaign.campaign_id,
+      tenant_id: campaign.tenant_id,
+      role: "agent",
+      agent_name: "plan",
+      kind: questions.length ? "open_questions" : "artifact_card",
+      text: projectProposalCardText(proposal),
+      artifact_ref: {
+        object_id: proposal.object_id,
+        version: proposal.version,
+        version_id: proposal.version_id,
+      },
+    });
+    return { proposal, message: card };
+  }
+
+  recordPlannerBlocked(input: {
+    tenant_id: string;
+    campaign_id: string;
+    reason: "brief_not_pinned";
+  }): ThreadMessage {
+    this.getCampaign(input.tenant_id, input.campaign_id);
+    return this.appendMessage({
+      campaign_id: input.campaign_id,
+      tenant_id: input.tenant_id,
+      role: "agent",
+      agent_name: "plan",
+      kind: "open_questions",
+      text: "没有钉住的 Brief 版本。策划不编造客户要什么——先丢 Brief。",
+    });
+  }
+
   /**
    * Resolve the pinned Brief version. Downstream must use this, not the latest draft
    * and not the wording sitting in the thread.
@@ -153,6 +226,23 @@ export class CampaignCore {
       pin.object_id,
       pin.object_version,
     ) as BriefArtifact;
+  }
+
+  /**
+   * Resolve the pinned Proposal draft version. Freezing strategy is a later gate;
+   * this pin is not frozen_strategy and is not a KB write.
+   */
+  resolvePinnedProposal(tenantId: string, campaignId: string): ProposalArtifact | undefined {
+    const pin = this.memory.activePin(tenantId, campaignId, "drafted_proposal")
+      ?? this.memory.activePin(tenantId, campaignId, "frozen_strategy");
+    if (!pin || pin.object_type !== "Proposal") {
+      return undefined;
+    }
+    return this.artifacts.getVersion<ProposalArtifact["payload"]>(
+      tenantId,
+      pin.object_id,
+      pin.object_version,
+    ) as ProposalArtifact;
   }
 
   appendUserMessage(tenantId: string, campaignId: string, text: string): ThreadMessage {
@@ -185,6 +275,9 @@ export class CampaignCore {
     );
     if (artifact.type === "Brief") {
       return { ...message, text: projectBriefCardText(artifact as BriefArtifact) };
+    }
+    if (artifact.type === "Proposal") {
+      return { ...message, text: projectProposalCardText(artifact as ProposalArtifact) };
     }
     return message;
   }
@@ -282,6 +375,7 @@ export class CampaignCore {
       thread,
       memory: this.memory.list(tenantId, campaignId),
       pinned_brief: this.resolvePinnedBrief(tenantId, campaignId) ?? null,
+      pinned_proposal: this.resolvePinnedProposal(tenantId, campaignId) ?? null,
       content: this.contentSurface(tenantId, campaignId),
       artifacts: this.artifacts.listForCampaign(tenantId, campaignId),
     };
@@ -327,6 +421,43 @@ export function projectBriefCardText(brief: BriefArtifact): string {
     `目标：${p.objective ?? "未给出"} · KPI：${kpi} · 预算：${budget}`,
     p.platforms_include.length ? `平台：${p.platforms_include.join("、")}` : null,
     p.platforms_exclude.length ? `不做：${p.platforms_exclude.join("、")}` : null,
+    questions || null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function projectProposalCardText(proposal: ProposalArtifact): string {
+  const p = proposal.payload;
+  const budget = p.budget_split
+    ? [
+        p.budget_split.talent_fee !== undefined ? `达人费 ${p.budget_split.talent_fee}` : null,
+        p.budget_split.production !== undefined ? `制作 ${p.budget_split.production}` : null,
+        p.budget_split.raw ? `原文 ${p.budget_split.raw}` : null,
+        p.budget_split.matches_brief_band ? "对齐 Brief 带" : "未对齐 Brief 带",
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "未给出（不编造）";
+  const plays = p.platform_play.length
+    ? p.platform_play.map((item) => `${item.platform}/${item.format}/${item.role}`).join("、")
+    : "未给出";
+  const hooks = p.sample_content_hooks.length
+    ? p.sample_content_hooks.join(" / ")
+    : "无钩子（不写脚本）";
+  const questions = proposal.open_questions
+    .map((q) => `缺项 · ${q.field}：${q.question}`)
+    .join("\n");
+  return [
+    `策划方案 ${proposal.version_id}（产物版本 ${proposal.version}，drafting）。线程只是这张卡片，不是真相。`,
+    `主张：${p.strategy_idea ?? "未给出（不准空转）"}`,
+    p.insight ? `洞察：${p.insight}` : null,
+    p.comm_idea ? `传播：${p.comm_idea}` : null,
+    `平台玩法：${plays}`,
+    `预算拆分：${budget}`,
+    p.phasing.length ? `排期：${p.phasing.join("、")}` : null,
+    `钩子：${hooks}`,
+    p.source_brief_version_id ? `引用 Brief ${p.source_brief_version_id}` : null,
     questions || null,
   ]
     .filter(Boolean)

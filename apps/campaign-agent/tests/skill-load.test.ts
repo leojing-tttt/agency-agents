@@ -22,10 +22,10 @@ function liveAdapter(core: CampaignCore) {
 }
 
 describe("skill load (Agent Skills spec)", () => {
-  it("discovers brief-parse SKILL.md with name matching the directory", async () => {
+  it("discovers brief-parse and plan-proposal SKILL.md with names matching directories", async () => {
     const library = new SkillLibrary(SKILLS_ROOT);
     const all = await library.discover();
-    expect(all.map((s) => s.name)).toContain("brief-parse");
+    expect(all.map((s) => s.name).sort()).toEqual(["brief-parse", "plan-proposal"]);
     const skill = all.find((s) => s.name === "brief-parse");
     expect(skill?.description).toMatch(/Brief/);
     expect(skill?.dir.endsWith(`${path.sep}brief-parse`)).toBe(true);
@@ -40,22 +40,31 @@ describe("skill load (Agent Skills spec)", () => {
       campaign.campaign_id,
     );
     const catalog = session.skillCatalog();
-    expect(catalog.map((s) => s.name)).toEqual(["brief-parse"]);
-    expect(catalog[0]).toEqual(
+    expect(catalog.map((s) => s.name).sort()).toEqual(["brief-parse", "plan-proposal"]);
+    const briefSummary = catalog.find((item) => item.name === "brief-parse");
+    expect(briefSummary).toEqual(
       expect.objectContaining({
         name: "brief-parse",
         description: expect.any(String),
         version: "1.0",
       }),
     );
-    expect(catalog[0]).not.toHaveProperty("instructions");
-    expect(catalog[0]).not.toHaveProperty("files");
+    expect(briefSummary).not.toHaveProperty("instructions");
+    expect(briefSummary).not.toHaveProperty("files");
+    for (const item of catalog) {
+      expect(item).not.toHaveProperty("instructions");
+      expect(item).not.toHaveProperty("files");
+    }
 
     const loaded = await session.activateSkill("brief-parse");
     expect(loaded.instructions).toMatch(/When to use/);
     expect(loaded.bundled.scripts).toContain("scripts/parse-brief.mjs");
     expect(loaded.bundled.references).toContain("references/brief-schema.md");
     expect(loaded.files["SKILL.md"]).toMatch(/^---/);
+    const plan = await session.activateSkill("plan-proposal");
+    expect(plan.instructions).toMatch(/When to use/);
+    expect(plan.bundled.scripts).toContain("scripts/draft-proposal.mjs");
+    expect(plan.bundled.references).toContain("references/proposal-schema.md");
     await expect(session.activateSkill("talent-shortlist")).rejects.toBeInstanceOf(SkillLoadError);
     await session.close();
   });
@@ -72,6 +81,7 @@ describe("skill load (Agent Skills spec)", () => {
     expect(session.mcpTools().map((t) => t.handle)).toEqual(["tickets/read_ticket"]);
     expect(session.mcpTools().some((t) => t.name === "rate_card")).toBe(false);
     await expect(session.activateSkill("brief-parse")).rejects.toThrow(/skill_not_allowed/);
+    await expect(session.activateSkill("plan-proposal")).rejects.toThrow(/skill_not_allowed/);
     await session.close();
   });
 

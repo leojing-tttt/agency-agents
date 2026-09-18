@@ -9,7 +9,13 @@ import type {
   SessionTurnResult,
 } from "./openclaw-adapter.ts";
 import { newId } from "../campaign-core/ids.ts";
-import { routeSkillTurn, runParseBriefScript } from "./skill-turn.ts";
+import {
+  chainPlanProposalAfterBrief,
+  commitSkillResult,
+  pinnedBriefInput,
+  routeSkillTurn,
+  runParseBriefScript,
+} from "./skill-turn.ts";
 import type { IsolatedRuntime } from "./tenant-runtime.ts";
 
 export { runParseBriefScript };
@@ -96,15 +102,28 @@ class LocalLoopSession implements OpenClawSession {
     const result = await routeSkillTurn({
       catalog: this.ctx.catalog,
       activateSkill: (name) => this.activateSkill(name),
-      turn: input,
+      turn: {
+        ...input,
+        pinned_brief: input.pinned_brief ?? pinnedBriefInput(this.ctx.core, this.tenantId, this.ctx.campaignId),
+      },
     });
-    if (result.routed_skill === "brief-parse" && result.parsed) {
-      this.ctx.core.recordBrief({
-        tenant_id: this.tenantId,
-        campaign_id: this.ctx.campaignId,
-        payload: result.parsed.payload,
-        citations: result.parsed.citations,
-      });
+    commitSkillResult(this.ctx.core, this.tenantId, this.ctx.campaignId, result);
+    const chained = await chainPlanProposalAfterBrief({
+      catalog: this.ctx.catalog,
+      briefResult: result,
+      pinnedBrief: pinnedBriefInput(this.ctx.core, this.tenantId, this.ctx.campaignId),
+      runTurn: async (next) => {
+        const inner = await routeSkillTurn({
+          catalog: this.ctx.catalog,
+          activateSkill: (name) => this.activateSkill(name),
+          turn: next,
+        });
+        commitSkillResult(this.ctx.core, this.tenantId, this.ctx.campaignId, inner);
+        return inner;
+      },
+    });
+    if (chained) {
+      result.notes = [...result.notes, "chained_plan-proposal"];
     }
     return {
       routed_skill: result.routed_skill,
