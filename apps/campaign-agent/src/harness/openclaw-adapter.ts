@@ -88,28 +88,33 @@ export class OpenClawGatewayAdapter implements OpenClawHarnessAdapter {
       url: endpoint.url,
       token: endpoint.token,
     });
-    const sessionKey = `tenant:${runtime.tenant.tenant_id}:campaign:${campaignId}:agent:${runtime.agent.agent_id}`;
-    const created = await client.sessionsCreate(runtime.agent.agent_id, sessionKey);
-    const skills = await client.skillsStatus(runtime.agent.agent_id);
-    const tools = await client.toolsEffective(created.sessionKey, runtime.agent.agent_id);
-    const mcp = advertisedMcpTools(runtime.tenant.mcp_servers, runtime.agent);
-    const advertised = tools.groups.flatMap((group) => group.tools.map((tool) => tool.id));
-    const filtered = mcp.filter((tool) => advertised.includes(tool.handle));
-    return new GatewayBackedSession({
-      core: this.core,
-      client,
-      runtime,
-      campaignId,
-      sessionId: created.sessionId,
-      sessionKey: created.sessionKey,
-      catalog: skills.skills.map(({ name, description, version, dir }) => ({
-        name,
-        description,
-        version,
-        dir,
-      })),
-      mcp: filtered,
-    });
+    try {
+      const sessionKey = `tenant:${runtime.tenant.tenant_id}:campaign:${campaignId}:agent:${runtime.agent.agent_id}`;
+      const created = await client.sessionsCreate(runtime.agent.agent_id, sessionKey);
+      const skills = await client.skillsStatus(runtime.agent.agent_id);
+      const tools = await client.toolsEffective(created.sessionKey, runtime.agent.agent_id);
+      const mcp = advertisedMcpTools(runtime.tenant.mcp_servers, runtime.agent);
+      const advertised = tools.groups.flatMap((group) => group.tools.map((tool) => tool.id));
+      const filtered = mcp.filter((tool) => advertised.includes(tool.handle));
+      return new GatewayBackedSession({
+        core: this.core,
+        client,
+        runtime,
+        campaignId,
+        sessionId: created.sessionId,
+        sessionKey: created.sessionKey,
+        catalog: skills.skills.map(({ name, description, version, dir }) => ({
+          name,
+          description,
+          version,
+          dir,
+        })),
+        mcp: filtered,
+      });
+    } catch (err) {
+      client.close();
+      throw err;
+    }
   }
 
   async stop(): Promise<void> {

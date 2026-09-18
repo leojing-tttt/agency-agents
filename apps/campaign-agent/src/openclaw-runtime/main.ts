@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { OpenClawDevGateway } from "./server.ts";
 import type { OpenClawDevConfig } from "./config.ts";
 
@@ -14,6 +15,10 @@ async function main() {
   const config = JSON.parse(raw) as OpenClawDevConfig;
   const gateway = new OpenClawDevGateway(config);
   const { port } = await gateway.listen();
+  const stateDir = process.env.OPENCLAW_STATE_DIR;
+  if (stateDir) {
+    await writeFile(path.join(stateDir, "ready.json"), `${JSON.stringify({ port, pid: process.pid })}\n`);
+  }
   const shutdown = async () => {
     await gateway.close();
     process.exit(0);

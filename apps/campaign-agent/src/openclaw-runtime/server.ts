@@ -92,14 +92,23 @@ export class OpenClawDevGateway {
   }
 
   async close(): Promise<void> {
-    this.wss?.close();
-    await new Promise<void>((resolve) => {
-      if (!this.httpServer) {
-        resolve();
-        return;
+    const wss = this.wss;
+    const httpServer = this.httpServer;
+    this.wss = null;
+    this.httpServer = null;
+    if (wss) {
+      for (const socket of wss.clients) {
+        socket.terminate();
       }
-      this.httpServer.close(() => resolve());
-    });
+      await new Promise<void>((resolve) => {
+        wss.close(() => resolve());
+      });
+    }
+    if (httpServer) {
+      await new Promise<void>((resolve) => {
+        httpServer.close(() => resolve());
+      });
+    }
   }
 
   private async handleSocket(socket: WebSocket): Promise<void> {

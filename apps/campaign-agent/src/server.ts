@@ -22,6 +22,7 @@ const harness = new OpenClawGatewayAdapter({ core, supervisor });
 
 type Sessions = Map<string, Awaited<ReturnType<OpenClawGatewayAdapter["createSession"]>>>;
 const sessions: Sessions = new Map();
+const creatingSessions = new Map<string, Promise<Awaited<ReturnType<OpenClawGatewayAdapter["createSession"]>>>>();
 
 async function sessionFor(campaignId: string, agentId = "beauty-essence-campaign") {
   const key = `${campaignId}:${agentId}`;
@@ -29,10 +30,20 @@ async function sessionFor(campaignId: string, agentId = "beauty-essence-campaign
   if (existing) {
     return existing;
   }
-  const runtime = isolateRuntime(tenant, agentId, SKILLS_ROOT);
-  const created = await harness.createSession(runtime, campaignId);
-  sessions.set(key, created);
-  return created;
+  const pending = creatingSessions.get(key);
+  if (pending) {
+    return pending;
+  }
+  const work = (async () => {
+    const runtime = isolateRuntime(tenant, agentId, SKILLS_ROOT);
+    const created = await harness.createSession(runtime, campaignId);
+    sessions.set(key, created);
+    return created;
+  })().finally(() => {
+    creatingSessions.delete(key);
+  });
+  creatingSessions.set(key, work);
+  return work;
 }
 
 function json(res: http.ServerResponse, status: number, body: unknown) {
@@ -189,8 +200,12 @@ const server = http.createServer(async (req, res) => {
 });
 
 async function shutdown() {
+  await Promise.all([...sessions.values()].map((session) => session.close()));
+  sessions.clear();
   await harness.stop();
-  server.close();
+  await new Promise<void>((resolve) => {
+    server.close(() => resolve());
+  });
 }
 
 process.on("SIGINT", () => {
