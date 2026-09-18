@@ -50,6 +50,41 @@ export type BriefPayload = {
   notes: string | null;
 };
 
+export type PlatformPlay = {
+  platform: string;
+  format: string;
+  role: string;
+};
+
+export type BudgetSplit = {
+  /** Amounts are copied from the pinned Brief band only. Never invented. */
+  talent_fee?: number;
+  production?: number;
+  media?: number;
+  reserve?: number;
+  currency?: string;
+  raw: string;
+  matches_brief_band: boolean;
+};
+
+export type ProposalPage = {
+  title: string;
+  purpose: string;
+};
+
+export type ProposalPayload = {
+  insight: string | null;
+  strategy_idea: string | null;
+  comm_idea: string | null;
+  audience: string | null;
+  platform_play: PlatformPlay[];
+  budget_split: BudgetSplit | null;
+  phasing: string[];
+  pages: ProposalPage[];
+  sample_content_hooks: string[];
+  source_brief_version_id: string;
+};
+
 export type Artifact<T = unknown> = {
   object_id: string;
   type: ArtifactType;
@@ -67,10 +102,12 @@ export type Artifact<T = unknown> = {
 };
 
 export type BriefArtifact = Artifact<BriefPayload>;
+export type ProposalArtifact = Artifact<ProposalPayload>;
 
 export type MemoryPinKind =
   | "parsed_brief"
   | "confirmed_brief"
+  | "drafted_proposal"
   | "frozen_strategy"
   | "locked_row"
   | "rulepack";

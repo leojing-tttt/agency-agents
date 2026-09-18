@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>战役 Agent · 第一刀</title>
+  <title>战役 Agent · Brief→策划</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="note">第一刀演示 · 对话是脸 · 产物版本在 campaign-core · 不是 OpenClaw Control UI</div>
+  <div class="note">策划切片演示 · 对话是脸 · Brief→Proposal 产物版本在 campaign-core · 不是 OpenClaw Control UI</div>
   <header>
     <nav class="global-nav">
       <span class="nav-brand">战役 Agent</span>
@@ -44,7 +44,11 @@
           拖 Brief PDF / 文本进线程，或点这里丢入
           <input id="file" type="file" accept=".txt,.md,.pdf,text/plain,application/pdf" hidden />
         </label>
-        <p class="hint">锁名单前内容 Agent 只有等待消息，不会出内容卡。</p>
+        <form id="say" class="say">
+          <input id="say-text" type="text" placeholder="Brief 之后可以说「出方案」" autocomplete="off" />
+          <button type="submit">发送</button>
+        </form>
+        <p class="hint">完整 Brief 会接着出策划方案卡。锁名单前内容 Agent 只有等待消息。</p>
       </div>
     </main>
   </div>

@@ -2,7 +2,7 @@
   "name": "@campaign-agent/runtime",
   "private": true,
   "version": "0.1.0",
-  "description": "Campaign Agent runtime: OpenClaw-compatible Gateway loop + campaign-core Brief artifacts",
+  "description": "Campaign Agent runtime: OpenClaw-compatible Gateway loop + campaign-core Brief/Proposal artifacts",
   "type": "module",
   "engines": {
     "node": ">=20"

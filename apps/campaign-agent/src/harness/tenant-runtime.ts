@@ -10,7 +10,10 @@ export const BEAUTY_CAMPAIGN_AGENT: PublishedAgentConfig = {
   agent_id: "beauty-essence-campaign",
   version: "1",
   display_name: "美妆精华战役 Agent",
-  skills: [{ skill_id: "brief-parse", version: "1.0" }],
+  skills: [
+    { skill_id: "brief-parse", version: "1.0" },
+    { skill_id: "plan-proposal", version: "1.0" },
+  ],
   mcp: [{ server_id: "talent-mdm", tool_names: ["search_talent"] }],
   kb_collection_ids: ["brand-kit-published"],
 };

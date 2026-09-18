@@ -6,7 +6,7 @@ import {
   type GatewayFrame,
 } from "../openclaw-runtime/protocol.ts";
 import type { LoadedSkill, SkillSummary } from "./skill-loader.ts";
-import type { SkillTurnResult } from "./skill-turn.ts";
+import type { PinnedBriefInput, SkillTurnResult } from "./skill-turn.ts";
 import { WebSocket as NodeWebSocket } from "ws";
 
 export class OpenClawGatewayUnavailableError extends Error {
@@ -218,6 +218,7 @@ export class OpenClawGatewayClient {
     sessionKey: string;
     message?: string;
     attachment?: { filename: string; bytes: Uint8Array };
+    pinnedBrief?: PinnedBriefInput;
   }): Promise<AgentWaitResult> {
     const attachments = input.attachment
       ? [
@@ -234,6 +235,7 @@ export class OpenClawGatewayClient {
       sessionKey: input.sessionKey,
       message: input.message,
       attachments,
+      pinnedBrief: input.pinnedBrief,
       idempotencyKey: newId("run"),
     });
     const wait = await this.rpc<AgentWaitResult>("agent.wait", { runId: accepted.runId });
@@ -352,6 +354,7 @@ function restoreTurn(wait: AgentWaitResult): AgentWaitResult {
       status: result.status,
       notes: result.notes,
       parsed: result.parsed,
+      proposal: result.proposal,
     },
   };
 }

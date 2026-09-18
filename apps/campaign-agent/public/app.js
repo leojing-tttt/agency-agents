@@ -31,9 +31,12 @@ async function loadCampaign() {
 function render(snap) {
   document.querySelector(".thread-item small").textContent = `本场 · ${snap.campaign.status}`;
   threadEl.innerHTML = snap.thread.map(renderMsg).join("");
-  const content = snap.content;
-  if (content.kind === "wait_message") {
-    /* wait message already in thread from core */
+  const steps = document.querySelectorAll(".prog span");
+  if (steps[0]) {
+    steps[0].classList.add("on");
+  }
+  if (steps[2]) {
+    steps[2].classList.toggle("on", Boolean(snap.pinned_proposal));
   }
   memoryEl.innerHTML = snap.memory.length
     ? snap.memory
@@ -51,7 +54,7 @@ function renderMsg(msg) {
   const mine = msg.role === "user" ? " mine" : "";
   const extra =
     msg.kind === "artifact_card" || msg.kind === "open_questions"
-      ? `<div class="art"><span class="tag">产物卡片</span>${escapeHtml(msg.text)}${
+      ? `<div class="art"><span class="tag">${msg.agent_name === "plan" ? "方案卡片" : "产物卡片"}</span>${escapeHtml(msg.text)}${
           msg.artifact_ref
             ? `<div class="tag">${msg.artifact_ref.version_id}</div>`
             : ""
@@ -106,6 +109,28 @@ dropzone.addEventListener("drop", (event) => {
   if (file) {
     upload(file);
   }
+});
+
+const sayForm = document.getElementById("say");
+const sayText = document.getElementById("say-text");
+sayForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const text = sayText.value.trim();
+  if (!text) {
+    return;
+  }
+  sayText.value = "";
+  const res = await fetch("/api/turn", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    alert(data.error || "send failed");
+    return;
+  }
+  render(data.snapshot);
 });
 
 loadMeta().then(loadCampaign);
