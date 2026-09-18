@@ -28,9 +28,15 @@ body {
 }
 
 .a3-campaign-top {
+  border-bottom: 1px solid var(--a3-border);
+}
+
+.a3-campaign-top-inner {
+  max-width: 1180px;
+  margin: 0 auto;
   height: 48px;
   padding: 0 20px;
-  border-bottom: 1px solid var(--a3-border);
+  width: 100%;
 }
 
 .a3-campaign-brand {
@@ -249,12 +255,17 @@ body {
 }
 
 .a3-campaign-pins .a3-empty {
-  padding: 16px 0;
+  padding: 12px 4px;
 }
 
 .a3-campaign-pins .a3-empty i {
   font-size: 22px;
   margin-bottom: 6px;
+}
+
+.a3-campaign-pins .a3-empty-text {
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 @media (max-width: 800px) {
