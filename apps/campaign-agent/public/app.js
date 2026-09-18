@@ -60,7 +60,9 @@ function render(snap) {
     briefTag.innerHTML = `<span class="a3-tag-dot"></span>Brief`;
   }
   if (planTag) {
-    const on = Boolean(snap.pinned_proposal);
+    const on =
+      Boolean(snap.pinned_proposal) ||
+      snap.memory.some((p) => p.kind === "drafted_proposal");
     planTag.className = on ? "a3-tag a3-tag-success" : "a3-tag a3-tag-default";
     planTag.innerHTML = `<span class="a3-tag-dot"></span>策划`;
   }
