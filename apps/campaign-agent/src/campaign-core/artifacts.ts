@@ -1,5 +1,5 @@
 import type { Artifact, ArtifactType } from "./types.ts";
-import { nowIso, versionId } from "./ids.ts";
+import { nowIsoMonotonic, versionId } from "./ids.ts";
 
 export class ArtifactStore {
   private readonly byObject = new Map<string, Artifact[]>();
@@ -35,7 +35,7 @@ export class ArtifactStore {
       payload: input.payload,
       open_questions: input.open_questions,
       citations: input.citations,
-      created_at: nowIso(),
+      created_at: nowIsoMonotonic(previous?.created_at),
       created_by: input.created_by,
       supersedes_version: previous?.version,
     };
@@ -95,6 +95,15 @@ export class ArtifactStore {
         }
       }
     }
-    return out.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    return out.sort((a, b) => {
+      const byTime = a.created_at.localeCompare(b.created_at);
+      if (byTime !== 0) {
+        return byTime;
+      }
+      if (a.object_id === b.object_id) {
+        return a.version - b.version;
+      }
+      return a.object_id.localeCompare(b.object_id);
+    });
   }
 }

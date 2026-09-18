@@ -1,5 +1,5 @@
 import type { BriefPayload } from "../src/campaign-core/types.ts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CampaignCore } from "../src/campaign-core/index.ts";
 import { LocalLoopAdapter } from "../src/harness/local-loop.ts";
 import { isolateRuntime, demoTenant, SKILLS_ROOT } from "../src/harness/tenant-runtime.ts";
@@ -63,14 +63,57 @@ describe("artifact versioning", () => {
       citations: [],
     });
     expect(second.brief.version).toBe(2);
+    expect(second.brief.version_id).toBe(`${first.brief.object_id}:v2`);
+    expect(second.brief.version_id).not.toBe(first.brief.version_id);
     expect(second.brief.supersedes_version).toBe(1);
+
+    const history = core.artifacts.history(tenant.tenant_id, first.brief.object_id);
+    expect(history.map((item) => item.version)).toEqual([1, 2]);
+    expect(history.map((item) => item.version_id)).toEqual([
+      `${first.brief.object_id}:v1`,
+      `${first.brief.object_id}:v2`,
+    ]);
 
     const v1 = core.artifacts.getVersion(tenant.tenant_id, first.brief.object_id, 1);
     expect(v1.payload).toMatchObject({ kpis: ["抖音完播"] });
     expect(core.artifacts.getVersion(tenant.tenant_id, first.brief.object_id, 2).payload).toMatchObject({
       kpis: ["小红书在看"],
     });
-    expect(v1.created_at).not.toBe(second.brief.created_at);
+    expect(v1.object_id).toBe(second.brief.object_id);
+    expect(v1.version).not.toBe(second.brief.version);
+  });
+
+  it("still appends distinct versions when wall-clock ms does not advance", () => {
+    const frozen = 1_700_000_000_000;
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(frozen);
+    try {
+      const { tenant, core, campaign } = tenantCore();
+      const first = core.recordBrief({
+        tenant_id: tenant.tenant_id,
+        campaign_id: campaign.campaign_id,
+        payload: emptyBrief({ kpis: ["A"], budget_band: { talent_fee: 1, raw: "1" } }),
+        citations: [],
+      });
+      const second = core.recordBrief({
+        tenant_id: tenant.tenant_id,
+        campaign_id: campaign.campaign_id,
+        object_id: first.brief.object_id,
+        payload: emptyBrief({ kpis: ["B"], budget_band: { talent_fee: 1, raw: "1" } }),
+        citations: [],
+      });
+      expect(first.brief.version_id).toBe(`${first.brief.object_id}:v1`);
+      expect(second.brief.version_id).toBe(`${first.brief.object_id}:v2`);
+      expect(
+        core.artifacts.getVersion<{ kpis: string[] }>(
+          tenant.tenant_id,
+          first.brief.object_id,
+          1,
+        ).payload.kpis,
+      ).toEqual(["A"]);
+      expect(Date.parse(second.brief.created_at)).toBeGreaterThan(Date.parse(first.brief.created_at));
+    } finally {
+      nowSpy.mockRestore();
+    }
   });
 
   it("pins memory to a version; thread cards are projections not truth", async () => {
