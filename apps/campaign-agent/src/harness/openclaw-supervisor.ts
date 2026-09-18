@@ -135,8 +135,8 @@ export class OpenClawSupervisor {
         configPath,
       };
       await waitForHello(gateway, child, stderr);
-      this.starting.delete(input.tenant.tenant_id);
       this.children.set(input.tenant.tenant_id, { process: child, gateway });
+      this.starting.delete(input.tenant.tenant_id);
       return gateway;
     } catch (err) {
       await this.stop(input.tenant.tenant_id);
@@ -157,8 +157,14 @@ export class OpenClawSupervisor {
   }
 
   async stopAll(): Promise<void> {
-    const ids = [...this.children.keys()];
-    await Promise.all(ids.map((id) => this.stop(id)));
+    const ids = new Set([
+      ...this.children.keys(),
+      ...this.starting.keys(),
+      ...this.inflight.keys(),
+    ]);
+    const pending = [...this.inflight.values()];
+    await Promise.all([...ids].map((id) => this.stop(id)));
+    await Promise.allSettled(pending);
   }
 }
 
