@@ -1,7 +1,8 @@
 import type { BriefPayload } from "../src/campaign-core/types.ts";
 import { describe, expect, it, vi } from "vitest";
 import { CampaignCore } from "../src/campaign-core/index.ts";
-import { LocalLoopAdapter } from "../src/harness/local-loop.ts";
+import { OpenClawGatewayAdapter } from "../src/harness/openclaw-adapter.ts";
+import { OpenClawSupervisor } from "../src/harness/openclaw-supervisor.ts";
 import { isolateRuntime, demoTenant, SKILLS_ROOT } from "../src/harness/tenant-runtime.ts";
 
 function tenantCore() {
@@ -162,27 +163,33 @@ describe("artifact versioning", () => {
   });
 });
 
-describe("local loop writes a versioned Brief from a file", () => {
+describe("OpenClaw Gateway writes a versioned Brief from a file", () => {
   it("drop text brief → object with version_id and memory pin", async () => {
     const { tenant, core, campaign } = tenantCore();
-    const session = await new LocalLoopAdapter(core).createSession(
-      isolateRuntime(tenant, "beauty-essence-campaign", SKILLS_ROOT),
-      campaign.campaign_id,
-    );
-    const source = Buffer.from(
-      "目标：种草\nKPI：抖音完播\n预算：达人费 80 万、制作 20 万、周期 6 周\n",
-      "utf8",
-    );
-    const turn = await session.turn({
-      attachment: { filename: "客户Brief.txt", bytes: source },
-    });
-    expect(turn.routed_skill).toBe("brief-parse");
-    const brief = core.resolvePinnedBrief(tenant.tenant_id, campaign.campaign_id);
-    expect(brief?.version_id).toMatch(/:v1$/);
-    expect(brief?.payload.kpis).toContain("抖音完播");
-    expect(brief?.payload.budget_band?.talent_fee).toBe(800000);
-    expect(core.memory.activePin(tenant.tenant_id, campaign.campaign_id, "parsed_brief")?.version_id).toBe(
-      brief?.version_id,
-    );
+    const harness = new OpenClawGatewayAdapter({ core, supervisor: new OpenClawSupervisor() });
+    try {
+      const session = await harness.createSession(
+        isolateRuntime(tenant, "beauty-essence-campaign", SKILLS_ROOT),
+        campaign.campaign_id,
+      );
+      const source = Buffer.from(
+        "目标：种草\nKPI：抖音完播\n预算：达人费 80 万、制作 20 万、周期 6 周\n",
+        "utf8",
+      );
+      const turn = await session.turn({
+        attachment: { filename: "客户Brief.txt", bytes: source },
+      });
+      expect(turn.routed_skill).toBe("brief-parse");
+      const brief = core.resolvePinnedBrief(tenant.tenant_id, campaign.campaign_id);
+      expect(brief?.version_id).toMatch(/:v1$/);
+      expect(brief?.payload.kpis).toContain("抖音完播");
+      expect(brief?.payload.budget_band?.talent_fee).toBe(800000);
+      expect(core.memory.activePin(tenant.tenant_id, campaign.campaign_id, "parsed_brief")?.version_id).toBe(
+        brief?.version_id,
+      );
+      await session.close();
+    } finally {
+      await harness.stop();
+    }
   });
 });

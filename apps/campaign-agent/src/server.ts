@@ -3,7 +3,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CampaignCore } from "./campaign-core/index.ts";
-import { LocalLoopAdapter } from "./harness/local-loop.ts";
+import { OpenClawGatewayAdapter } from "./harness/openclaw-adapter.ts";
+import { OpenClawSupervisor } from "./harness/openclaw-supervisor.ts";
 import { demoTenant, isolateRuntime, SKILLS_ROOT } from "./harness/tenant-runtime.ts";
 
 const APP_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -16,9 +17,10 @@ const seeded = core.createCampaign({
   tenant_id: tenant.tenant_id,
   name: "美妆精华 Q3 种草",
 });
-const harness = new LocalLoopAdapter(core);
+const supervisor = new OpenClawSupervisor();
+const harness = new OpenClawGatewayAdapter({ core, supervisor });
 
-type Sessions = Map<string, Awaited<ReturnType<LocalLoopAdapter["createSession"]>>>;
+type Sessions = Map<string, Awaited<ReturnType<OpenClawGatewayAdapter["createSession"]>>>;
 const sessions: Sessions = new Map();
 
 async function sessionFor(campaignId: string, agentId = "beauty-essence-campaign") {
@@ -113,7 +115,7 @@ const server = http.createServer(async (req, res) => {
         tenant: { id: tenant.tenant_id, name: tenant.display_name },
         campaign: seeded,
         agent: { id: "beauty-essence-campaign", version: "1" },
-        harness: "local-loop",
+        harness: "openclaw-gateway",
         skills: session.skillCatalog().map(({ name, description, version }) => ({
           name,
           description,
@@ -122,13 +124,19 @@ const server = http.createServer(async (req, res) => {
         mcp: session.mcpTools(),
         real_vs_adapter: {
           real: [
-            "Agent Skills SKILL.md loading",
-            "per-tenant isolated allowlists",
+            "OpenClaw-compatible Gateway process (WS protocol v4, hello-ok readiness)",
+            "per-tenant isolated Gateway child (not one shared tool dump)",
+            "Agent Skills SKILL.md loading via Gateway skills.status + session snapshot",
             "campaign-core versioned Brief + memory pins",
-            "local harness loop",
+            "drop-Brief agent + agent.wait turn",
           ],
-          adapter: ["OpenClawHarnessAdapter / OpenClawGatewayAdapter seam"],
-          not_shipped: ["OpenClaw Control UI", "WhatsApp channels", "self-learning memory"],
+          not_shipped: [
+            "Official 200MB openclaw npm binary (Node >=24)",
+            "OpenClaw Control UI",
+            "WhatsApp channels",
+            "self-learning memory",
+            "plan/talent/content skills",
+          ],
         },
       });
       return;
@@ -180,8 +188,20 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+async function shutdown() {
+  await harness.stop();
+  server.close();
+}
+
+process.on("SIGINT", () => {
+  void shutdown().then(() => process.exit(0));
+});
+process.on("SIGTERM", () => {
+  void shutdown().then(() => process.exit(0));
+});
+
 server.listen(PORT, () => {
   console.log(`campaign-agent demo http://127.0.0.1:${PORT}`);
   console.log(`tenant=${tenant.tenant_id} campaign=${seeded.campaign_id}`);
-  console.log("harness=local-loop (OpenClaw Gateway not embedded)");
+  console.log("harness=openclaw-gateway (Control UI / WhatsApp / self-memory not shipped)");
 });

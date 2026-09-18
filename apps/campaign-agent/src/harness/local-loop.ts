@@ -1,8 +1,4 @@
-import { pathToFileURL } from "node:url";
-import path from "node:path";
 import { CampaignCore } from "../campaign-core/index.ts";
-import type { BriefPayload, Citation } from "../campaign-core/types.ts";
-import { newId } from "../campaign-core/ids.ts";
 import type { LoadedSkill, SkillSummary } from "./skill-loader.ts";
 import { SkillLibrary } from "./skill-loader.ts";
 import { advertisedMcpTools, type McpToolRef } from "./mcp-whitelist.ts";
@@ -12,20 +8,15 @@ import type {
   SessionTurnInput,
   SessionTurnResult,
 } from "./openclaw-adapter.ts";
-import { extractSourceText, looksLikeBrief } from "./source-text.ts";
+import { newId } from "../campaign-core/ids.ts";
+import { routeSkillTurn, runParseBriefScript } from "./skill-turn.ts";
 import type { IsolatedRuntime } from "./tenant-runtime.ts";
 
-type ParseBriefModule = {
-  parseBriefSource: (input: {
-    text: string;
-    filename?: string;
-    pages?: string[];
-  }) => { payload: BriefPayload; citations: Citation[] };
-};
+export { runParseBriefScript };
 
 /**
- * Working local harness loop. Compatible with Agent Skills loading and the
- * OpenClaw adapter interface. Does not start an OpenClaw Gateway.
+ * In-process skill engine. The product drop-Brief path uses OpenClawGatewayAdapter.
+ * Kept so the Gateway process and unit tests share the same router/script runner.
  */
 export class LocalLoopAdapter implements OpenClawHarnessAdapter {
   readonly kind = "local-loop" as const;
@@ -92,7 +83,6 @@ class LocalLoopSession implements OpenClawSession {
 
   async turn(input: SessionTurnInput): Promise<SessionTurnResult> {
     this.ensureOpen();
-    const notes: string[] = [];
     if (input.text) {
       this.ctx.core.appendUserMessage(this.tenantId, this.ctx.campaignId, input.text);
     }
@@ -102,42 +92,30 @@ class LocalLoopSession implements OpenClawSession {
         this.ctx.campaignId,
         `文件 ${input.attachment.filename}`,
       );
-      const extracted = extractSourceText(input.attachment.filename, input.attachment.bytes);
-      if (!looksLikeBrief(input.attachment.filename, extracted.text) && extracted.text.trim()) {
-        notes.push("attachment_not_classified_as_brief");
-      }
-      if (!this.hasSkill("brief-parse")) {
-        notes.push("brief-parse_not_on_allowlist");
-        return { routed_skill: null, loaded_skill: null, status: "ignored", notes };
-      }
-      const loaded = await this.activateSkill("brief-parse");
-      const parsed = await runParseBriefScript(loaded, extracted, input.attachment.filename);
+    }
+    const result = await routeSkillTurn({
+      catalog: this.ctx.catalog,
+      activateSkill: (name) => this.activateSkill(name),
+      turn: input,
+    });
+    if (result.routed_skill === "brief-parse" && result.parsed) {
       this.ctx.core.recordBrief({
         tenant_id: this.tenantId,
         campaign_id: this.ctx.campaignId,
-        payload: parsed.payload,
-        citations: parsed.citations,
+        payload: result.parsed.payload,
+        citations: result.parsed.citations,
       });
-      return {
-        routed_skill: "brief-parse",
-        loaded_skill: loaded,
-        status: parsed.payload.budget_band && parsed.payload.kpis.length ? "completed" : "blocked",
-        notes,
-      };
     }
-
-    if (input.text && /brief|纪要|客户要/i.test(input.text) && this.hasSkill("brief-parse")) {
-      notes.push("text_without_file_is_not_a_brief_source");
-    }
-    return { routed_skill: null, loaded_skill: null, status: "ignored", notes };
+    return {
+      routed_skill: result.routed_skill,
+      loaded_skill: result.loaded_skill,
+      status: result.status,
+      notes: result.notes,
+    };
   }
 
   async close(): Promise<void> {
     this.closed = true;
-  }
-
-  private hasSkill(name: string): boolean {
-    return this.ctx.catalog.some((item) => item.name === name);
   }
 
   private ensureOpen(): void {
@@ -145,22 +123,4 @@ class LocalLoopSession implements OpenClawSession {
       throw new Error("session_closed");
     }
   }
-}
-
-export async function runParseBriefScript(
-  skill: LoadedSkill,
-  extracted: { text: string; pages: string[] },
-  filename: string,
-): Promise<{ payload: BriefPayload; citations: Citation[] }> {
-  const scriptRel = skill.bundled.scripts.find((item) => item.endsWith("parse-brief.mjs"));
-  if (!scriptRel) {
-    throw new Error("brief-parse skill is missing scripts/parse-brief.mjs");
-  }
-  const scriptPath = path.join(skill.dir, scriptRel);
-  const mod = (await import(pathToFileURL(scriptPath).href)) as ParseBriefModule;
-  return mod.parseBriefSource({
-    text: extracted.text,
-    filename,
-    pages: extracted.pages,
-  });
 }
