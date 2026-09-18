@@ -4,51 +4,97 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>战役 Agent · Brief→策划</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/a3-components.css" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body>
-  <div class="note">策划切片演示 · 对话是脸 · Brief→Proposal 产物版本在 campaign-core · 不是 OpenClaw Control UI</div>
-  <header>
-    <nav class="global-nav">
-      <span class="nav-brand">战役 Agent</span>
-      <span class="nav-muted">一场一线程 · openclaw-gateway</span>
-      <span class="nav-spacer"></span>
-      <span class="user-chip" id="user-chip">林AE · 内容营销中心</span>
-    </nav>
+<body class="a3-page">
+  <div class="a3-alert a3-alert-info a3-campaign-note">
+    <i class="fas fa-info-circle"></i>
+    策划切片演示 · 对话是脸 · Brief→Proposal 产物版本在 campaign-core · 不是 OpenClaw Control UI
+  </div>
+  <header class="a3-campaign-top a3-flex-between a3-bg-card">
+    <div class="a3-flex a3-campaign-brand">
+      <span class="a3-text-brand a3-campaign-logo">
+        <i class="fas fa-comments"></i>
+        战役 Agent
+      </span>
+      <span class="a3-text-secondary a3-campaign-kicker">一场一线程 · openclaw-gateway</span>
+    </div>
+    <span class="a3-tag a3-tag-default" id="user-chip">
+      <i class="fas fa-user"></i>
+      林AE · 内容营销中心
+    </span>
   </header>
-  <div class="shell">
-    <aside class="rail">
-      <h2>战役线程</h2>
-      <div class="thread-item is-on">
-        <span id="campaign-name">美妆精华 Q3 种草</span>
-        <small>本场 · draft</small>
-      </div>
-      <p class="hint">不是看板。一场 = 一段对话。</p>
-      <h2>战役记忆</h2>
-      <ul id="memory" class="pins"></ul>
-      <h2>本场能力</h2>
-      <ul id="skills" class="pins"></ul>
-      <p class="hint" id="mcp-line"></p>
+  <div class="a3-flex a3-campaign-shell">
+    <aside class="a3-campaign-sider a3-bg-card">
+      <ul class="a3-menu">
+        <li class="a3-menu-group-title">战役线程</li>
+        <li class="a3-menu-item active">
+          <i class="fas fa-comments"></i>
+          <span>
+            <span id="campaign-name">美妆精华 Q3 种草</span>
+            <small class="a3-campaign-status">本场 · draft</small>
+          </span>
+        </li>
+      </ul>
+      <p class="a3-text-secondary a3-campaign-hint">不是看板。一场 = 一段对话。</p>
+
+      <div class="a3-menu-group-title"><i class="fas fa-thumbtack"></i> 战役记忆</div>
+      <div id="memory" class="a3-campaign-pins"></div>
+
+      <div class="a3-menu-group-title"><i class="fas fa-puzzle-piece"></i> 本场能力</div>
+      <div id="skills" class="a3-campaign-pins"></div>
+      <p class="a3-text-secondary a3-campaign-hint" id="mcp-line"></p>
     </aside>
-    <main class="chat">
-      <div class="chat-hd">
-        <b id="hd-name">美妆精华 Q3 种草</b>
-        <div class="prog">
-          <span class="on">Brief</span><span>→</span><span>策划</span><span>→</span><span>提报</span><span>→</span><span>内容</span>
+    <main class="a3-flex-1 a3-campaign-chat">
+      <div class="a3-page-header a3-campaign-hd">
+        <b id="hd-name" class="a3-text-primary">美妆精华 Q3 种草</b>
+        <div class="a3-campaign-steps" id="prog">
+          <span class="a3-tag a3-tag-info" data-step="brief"><span class="a3-tag-dot"></span>Brief</span>
+          <i class="fas fa-angle-right a3-text-disabled"></i>
+          <span class="a3-tag a3-tag-default" data-step="plan"><span class="a3-tag-dot"></span>策划</span>
+          <i class="fas fa-angle-right a3-text-disabled"></i>
+          <span class="a3-tag a3-tag-default" data-step="talent"><span class="a3-tag-dot"></span>提报</span>
+          <i class="fas fa-angle-right a3-text-disabled"></i>
+          <span class="a3-tag a3-tag-default" data-step="content"><span class="a3-tag-dot"></span>内容</span>
         </div>
-        <div class="team">本场小队 <i>解</i><i>策</i><i>达</i><i>内</i></div>
+        <div class="a3-campaign-team a3-text-secondary">
+          本场小队
+          <span class="a3-avatar a3-avatar-sm a3-avatar-square">解</span>
+          <span class="a3-avatar a3-avatar-sm a3-avatar-square">策</span>
+          <span class="a3-avatar a3-avatar-sm a3-avatar-square">达</span>
+          <span class="a3-avatar a3-avatar-sm a3-avatar-square">内</span>
+        </div>
       </div>
-      <div id="thread" class="thread"></div>
-      <div class="composer">
-        <label class="dropzone">
-          拖 Brief PDF / 文本进线程，或点这里丢入
-          <input id="file" type="file" accept=".txt,.md,.pdf,text/plain,application/pdf" hidden />
-        </label>
-        <form id="say" class="say">
-          <input id="say-text" type="text" placeholder="Brief 之后可以说「出方案」" autocomplete="off" />
-          <button type="submit">发送</button>
+      <div id="thread" class="a3-campaign-thread"></div>
+      <div class="a3-campaign-composer a3-bg-card">
+        <div class="a3-upload a3-upload-block">
+          <label class="a3-upload-drop">
+            <i class="fas fa-cloud-upload-alt"></i>
+            拖 Brief PDF / 文本进线程，或点这里丢入
+            <input id="file" type="file" accept=".txt,.md,.pdf,text/plain,application/pdf" hidden />
+          </label>
+        </div>
+        <form id="say" class="a3-campaign-say">
+          <div class="a3-input-wrapper">
+            <i class="fas fa-comment a3-input-prefix"></i>
+            <input
+              id="say-text"
+              class="a3-input"
+              type="text"
+              placeholder="Brief 之后可以说「出方案」"
+              autocomplete="off"
+            />
+          </div>
+          <button type="submit" class="a3-btn a3-btn-primary">
+            <i class="fas fa-paper-plane"></i>
+            发送
+          </button>
         </form>
-        <p class="hint">完整 Brief 会接着出策划方案卡。锁名单前内容 Agent 只有等待消息。</p>
+        <p class="a3-text-secondary a3-campaign-composer-hint">
+          完整 Brief 会接着出策划方案卡。锁名单前内容 Agent 只有等待消息。
+        </p>
       </div>
     </main>
   </div>
