@@ -55,7 +55,8 @@ function render(snap) {
   const briefTag = document.querySelector('[data-step="brief"]');
   const planTag = document.querySelector('[data-step="plan"]');
   if (briefTag) {
-    briefTag.className = "a3-tag a3-tag-success";
+    const on = Boolean(snap.pinned_brief);
+    briefTag.className = on ? "a3-tag a3-tag-success" : "a3-tag a3-tag-info";
     briefTag.innerHTML = `<span class="a3-tag-dot"></span>Brief`;
   }
   if (planTag) {
