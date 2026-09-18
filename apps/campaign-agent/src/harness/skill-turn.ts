@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import { briefGateState, openQuestionsForBrief } from "../campaign-core/brief.ts";
 import { CampaignCore } from "../campaign-core/index.ts";
 import type {
   BriefPayload,
@@ -66,7 +67,7 @@ export async function routeSkillTurn(input: {
     return {
       routed_skill: "brief-parse",
       loaded_skill: loaded,
-      status: parsed.payload.budget_band && parsed.payload.kpis.length ? "completed" : "blocked",
+      status: isBriefReadyToPlan(parsed.payload) ? "completed" : "blocked",
       notes,
       parsed,
     };
@@ -104,6 +105,11 @@ export async function routeSkillTurn(input: {
     notes.push("text_without_file_is_not_a_brief_source");
   }
   return { routed_skill: null, loaded_skill: null, status: "ignored", notes };
+}
+
+/** Same rule as the Brief artifact gate — not “band object exists + KPI list nonempty”. */
+export function isBriefReadyToPlan(payload: BriefPayload): boolean {
+  return briefGateState(openQuestionsForBrief(payload)) !== "blocked";
 }
 
 export function looksLikePlanIntent(text?: string): boolean {
@@ -209,13 +215,13 @@ export async function chainPlanProposalAfterBrief(input: {
   pinnedBrief?: PinnedBriefInput;
   runTurn: (turn: SessionTurnInput) => Promise<SkillTurnResult>;
 }): Promise<SkillTurnResult | null> {
-  if (input.briefResult.routed_skill !== "brief-parse" || input.briefResult.status !== "completed") {
+  if (input.briefResult.routed_skill !== "brief-parse") {
     return null;
   }
   if (!input.catalog.some((item) => item.name === "plan-proposal")) {
     return null;
   }
-  if (!input.pinnedBrief) {
+  if (!input.pinnedBrief || !isBriefReadyToPlan(input.pinnedBrief.payload)) {
     return null;
   }
   return input.runTurn({ text: "出方案", pinned_brief: input.pinnedBrief });

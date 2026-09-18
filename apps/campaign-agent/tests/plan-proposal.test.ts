@@ -7,6 +7,10 @@ import { LocalLoopAdapter } from "../src/harness/local-loop.ts";
 import { OpenClawGatewayAdapter } from "../src/harness/openclaw-adapter.ts";
 import { OpenClawSupervisor } from "../src/harness/openclaw-supervisor.ts";
 import { SkillLibrary } from "../src/harness/skill-loader.ts";
+import {
+  chainPlanProposalAfterBrief,
+  isBriefReadyToPlan,
+} from "../src/harness/skill-turn.ts";
 import { demoTenant, isolateRuntime, SKILLS_ROOT } from "../src/harness/tenant-runtime.ts";
 
 const adapters: OpenClawGatewayAdapter[] = [];
@@ -306,6 +310,40 @@ describe("local conversational loop Brief → Proposal", () => {
     await session.close();
   });
 
+  it("raw-only budget band plus KPI does not auto-plan; 出方案 still drafts with open_questions", async () => {
+    const tenant = demoTenant();
+    const core = new CampaignCore();
+    const campaign = core.createCampaign({ tenant_id: tenant.tenant_id, name: "预算待定" });
+    const session = await new LocalLoopAdapter(core).createSession(
+      isolateRuntime(tenant, "beauty-essence-campaign", SKILLS_ROOT),
+      campaign.campaign_id,
+    );
+    const briefTurn = await session.turn({
+      attachment: {
+        filename: "待定.txt",
+        bytes: Buffer.from("目标：种草\nKPI：抖音完播\n预算：待定\n卖点：屏障修护\n", "utf8"),
+      },
+    });
+    expect(briefTurn.routed_skill).toBe("brief-parse");
+    expect(briefTurn.status).toBe("blocked");
+    expect(briefTurn.notes).not.toContain("chained_plan-proposal");
+    const brief = core.resolvePinnedBrief(tenant.tenant_id, campaign.campaign_id);
+    expect(brief?.gate_state).toBe("blocked");
+    expect(brief?.payload.kpis).toEqual(["抖音完播"]);
+    expect(brief?.payload.budget_band).toMatchObject({ raw: expect.stringContaining("待定") });
+    expect(brief?.payload.budget_band?.talent_fee).toBeUndefined();
+    expect(brief?.payload.budget_band?.production).toBeUndefined();
+    expect(core.resolvePinnedProposal(tenant.tenant_id, campaign.campaign_id)).toBeUndefined();
+
+    const planTurn = await session.turn({ text: "出方案" });
+    expect(planTurn.routed_skill).toBe("plan-proposal");
+    const proposal = core.resolvePinnedProposal(tenant.tenant_id, campaign.campaign_id);
+    expect(proposal?.gate_state).toBe("blocked");
+    expect(proposal?.open_questions.some((q) => q.field === "budget_split" && q.blocking)).toBe(true);
+    expect(JSON.stringify(proposal?.payload)).not.toMatch(/800000/);
+    await session.close();
+  });
+
   it("blocked Brief does not auto-plan; 出方案 still drafts with open_questions and no invented amounts", async () => {
     const tenant = demoTenant();
     const core = new CampaignCore();
@@ -404,5 +442,40 @@ describe("Gateway thread Brief → Proposal", () => {
       1, 2,
     ]);
     await session.close();
+  });
+});
+
+describe("auto-chain follows campaign-core Brief gate, not harness band-object status", () => {
+  it("treats a raw-only budget band as not ready even when KPIs exist", () => {
+    expect(
+      isBriefReadyToPlan(
+        completeBrief({
+          kpis: ["抖音完播"],
+          budget_band: { raw: "待定" },
+        }),
+      ),
+    ).toBe(false);
+    expect(isBriefReadyToPlan(completeBrief())).toBe(true);
+  });
+
+  it("does not invoke plan turn when the pinned Brief gate is blocked", async () => {
+    const runTurn = vi.fn();
+    const result = await chainPlanProposalAfterBrief({
+      catalog: [{ name: "plan-proposal", description: "x", version: "1.0", dir: "/tmp" }],
+      briefResult: { routed_skill: "brief-parse", loaded_skill: null, status: "completed", notes: [] },
+      pinnedBrief: {
+        version_id: "brief_x:v1",
+        object_id: "brief_x",
+        version: 1,
+        payload: completeBrief({
+          kpis: ["抖音完播"],
+          budget_band: { raw: "待定" },
+        }),
+        open_questions: [],
+      },
+      runTurn,
+    });
+    expect(result).toBeNull();
+    expect(runTurn).not.toHaveBeenCalled();
   });
 });
