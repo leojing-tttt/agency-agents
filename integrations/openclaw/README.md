@@ -1,5 +1,9 @@
 # OpenClaw Integration
 
+The campaign product runtime (Skill + MCP session loop, not this installer)
+lives in [`apps/campaign-agent/`](../../apps/campaign-agent/). This folder is
+only the upstream OpenClaw *workspace installer* for markdown specialists.
+
 OpenClaw agents are installed as workspaces containing `SOUL.md`, `AGENTS.md`,
 and `IDENTITY.md` files. The installer copies each workspace into
 `~/.openclaw/agency-agents/` and registers it when the `openclaw` CLI is

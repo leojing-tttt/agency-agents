@@ -63,6 +63,10 @@ notes/
 TODO.md
 NOTES.md
 
+# Campaign Agent product (this fork) — keep its lockfile
+!apps/campaign-agent/package-lock.json
+apps/campaign-agent/data/
+
 # Generated integration files — run scripts/convert.sh to regenerate locally
 # The scripts/ and integrations/*/README.md files ARE committed; only generated
 # agent/skill files are excluded.

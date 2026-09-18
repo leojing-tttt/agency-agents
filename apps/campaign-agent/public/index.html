@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>战役 Agent · 第一刀</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="note">第一刀演示 · 对话是脸 · 产物版本在 campaign-core · 不是 OpenClaw Control UI</div>
+  <header>
+    <nav class="global-nav">
+      <span class="nav-brand">战役 Agent</span>
+      <span class="nav-muted">一场一线程 · local-loop</span>
+      <span class="nav-spacer"></span>
+      <span class="user-chip" id="user-chip">林AE · 内容营销中心</span>
+    </nav>
+  </header>
+  <div class="shell">
+    <aside class="rail">
+      <h2>战役线程</h2>
+      <div class="thread-item is-on">
+        <span id="campaign-name">美妆精华 Q3 种草</span>
+        <small>本场 · draft</small>
+      </div>
+      <p class="hint">不是看板。一场 = 一段对话。</p>
+      <h2>战役记忆</h2>
+      <ul id="memory" class="pins"></ul>
+      <h2>本场能力</h2>
+      <ul id="skills" class="pins"></ul>
+      <p class="hint" id="mcp-line"></p>
+    </aside>
+    <main class="chat">
+      <div class="chat-hd">
+        <b id="hd-name">美妆精华 Q3 种草</b>
+        <div class="prog">
+          <span class="on">Brief</span><span>→</span><span>策划</span><span>→</span><span>提报</span><span>→</span><span>内容</span>
+        </div>
+        <div class="team">本场小队 <i>解</i><i>策</i><i>达</i><i>内</i></div>
+      </div>
+      <div id="thread" class="thread"></div>
+      <div class="composer">
+        <label class="dropzone">
+          拖 Brief PDF / 文本进线程，或点这里丢入
+          <input id="file" type="file" accept=".txt,.md,.pdf,text/plain,application/pdf" hidden />
+        </label>
+        <p class="hint">锁名单前内容 Agent 只有等待消息，不会出内容卡。</p>
+      </div>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
