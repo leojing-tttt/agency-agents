@@ -33,6 +33,7 @@ export class OpenClawSupervisor {
   >();
   private readonly inflight = new Map<string, Promise<SupervisedGateway>>();
   private readonly starting = new Map<string, ChildProcess>();
+  private readonly aborted = new Set<string>();
 
   async ensure(input: {
     tenant: TenantRuntimeConfig;
@@ -52,6 +53,7 @@ export class OpenClawSupervisor {
     ) {
       return existing.gateway;
     }
+    this.aborted.delete(input.tenant.tenant_id);
     const work = this.spawnOne(input).finally(() => {
       if (this.inflight.get(input.tenant.tenant_id) === work) {
         this.inflight.delete(input.tenant.tenant_id);
@@ -61,22 +63,32 @@ export class OpenClawSupervisor {
     return work;
   }
 
+  private throwIfAborted(tenantId: string): void {
+    if (this.aborted.has(tenantId)) {
+      throw new OpenClawGatewayUnavailableError("openclaw_gateway_unavailable: supervisor stopped");
+    }
+  }
+
   private async spawnOne(input: {
     tenant: TenantRuntimeConfig;
     skillsRoot: string;
   }): Promise<SupervisedGateway> {
-    const stale = this.children.get(input.tenant.tenant_id);
+    const tenantId = input.tenant.tenant_id;
+    const stale = this.children.get(tenantId);
     if (stale) {
-      await this.stop(input.tenant.tenant_id);
+      await this.stop(tenantId, { abort: false });
     }
+    this.throwIfAborted(tenantId);
     const token = randomBytes(24).toString("hex");
     const stateDir = path.join(
       os.tmpdir(),
-      `campaign-openclaw-${input.tenant.tenant_id}-${randomBytes(6).toString("hex")}`,
+      `campaign-openclaw-${tenantId}-${randomBytes(6).toString("hex")}`,
     );
     await mkdir(stateDir, { recursive: true });
+    this.throwIfAborted(tenantId);
     const workspace = path.join(stateDir, "workspace");
     await mkdir(workspace, { recursive: true });
+    this.throwIfAborted(tenantId);
     const config = buildOpenClawDevConfig({
       tenant: input.tenant,
       skillsRoot: input.skillsRoot,
@@ -86,6 +98,7 @@ export class OpenClawSupervisor {
     });
     const configPath = path.join(stateDir, "openclaw.json");
     await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
+    this.throwIfAborted(tenantId);
 
     const tsxCli = require.resolve("tsx/cli");
     const child = spawn(process.execPath, [tsxCli, GATEWAY_MAIN, "--config", configPath], {
@@ -112,22 +125,28 @@ export class OpenClawSupervisor {
         stderr.shift();
       }
     });
-    this.starting.set(input.tenant.tenant_id, child);
+    this.starting.set(tenantId, child);
 
     child.once("exit", () => {
-      if (this.starting.get(input.tenant.tenant_id) === child) {
-        this.starting.delete(input.tenant.tenant_id);
+      if (this.starting.get(tenantId) === child) {
+        this.starting.delete(tenantId);
       }
-      const current = this.children.get(input.tenant.tenant_id);
+      const current = this.children.get(tenantId);
       if (current?.process === child) {
-        this.children.delete(input.tenant.tenant_id);
+        this.children.delete(tenantId);
       }
     });
 
+    if (this.aborted.has(tenantId)) {
+      await this.stop(tenantId);
+      throw new OpenClawGatewayUnavailableError("openclaw_gateway_unavailable: supervisor stopped");
+    }
+
     try {
       const port = await waitForReadyFile(stateDir, child, stderr);
+      this.throwIfAborted(tenantId);
       const gateway: SupervisedGateway = {
-        tenantId: input.tenant.tenant_id,
+        tenantId,
         url: `ws://127.0.0.1:${port}`,
         token,
         port,
@@ -135,16 +154,20 @@ export class OpenClawSupervisor {
         configPath,
       };
       await waitForHello(gateway, child, stderr);
-      this.children.set(input.tenant.tenant_id, { process: child, gateway });
-      this.starting.delete(input.tenant.tenant_id);
+      this.throwIfAborted(tenantId);
+      this.children.set(tenantId, { process: child, gateway });
+      this.starting.delete(tenantId);
       return gateway;
     } catch (err) {
-      await this.stop(input.tenant.tenant_id);
+      await this.stop(tenantId);
       throw err;
     }
   }
 
-  async stop(tenantId: string): Promise<void> {
+  async stop(tenantId: string, opts: { abort?: boolean } = {}): Promise<void> {
+    if (opts.abort !== false) {
+      this.aborted.add(tenantId);
+    }
     const starting = this.starting.get(tenantId);
     this.starting.delete(tenantId);
     const current = this.children.get(tenantId);

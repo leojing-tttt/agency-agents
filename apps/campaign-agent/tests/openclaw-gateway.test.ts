@@ -124,6 +124,15 @@ describe("OpenClaw Gateway is a real process", () => {
     expect(second.url).toBe(first.url);
   });
 
+  it("stopAll aborts ensure before the Gateway process is spawned", async () => {
+    const tenant = demoTenant("office-prespawn");
+    const supervisor = new OpenClawSupervisor();
+    adapters.push(new OpenClawGatewayAdapter({ core: new CampaignCore(), supervisor }));
+    const started = supervisor.ensure({ tenant, skillsRoot: SKILLS_ROOT });
+    await supervisor.stopAll();
+    await expect(started).rejects.toThrow(/openclaw_gateway/);
+  });
+
   it("stopAll kills a Gateway that is still starting", async () => {
     const tenant = demoTenant("office-stopall");
     const supervisor = new OpenClawSupervisor();
