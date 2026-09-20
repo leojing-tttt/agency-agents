@@ -1,0 +1,364 @@
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  line-height: 1.5715;
+  color: var(--a3-text-primary);
+}
+
+button { font-family: inherit; }
+
+.fav-top {
+  height: 48px;
+  border-bottom: 1px solid var(--a3-border);
+  padding: 0 16px;
+  gap: 8px;
+}
+
+.fav-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--a3-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+.fav-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.fav-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--a3-radius);
+  color: var(--a3-text-secondary);
+  cursor: default;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.fav-nav-item.active {
+  color: var(--a3-primary);
+  background: var(--a3-primary-light);
+  font-weight: 500;
+}
+
+.fav-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--a3-text-secondary);
+  flex-shrink: 0;
+}
+
+.fav-shell {
+  min-height: calc(100vh - 48px);
+}
+
+.fav-sider {
+  width: 200px;
+  flex: none;
+  border-right: 1px solid var(--a3-border);
+  padding: 8px 0 24px;
+}
+
+.fav-sider .a3-menu {
+  width: 100%;
+  border-right: 0;
+}
+
+.fav-sider-group {
+  padding: 10px 16px 4px;
+  font-size: 13px;
+  color: var(--a3-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fav-main {
+  min-width: 0;
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fav-panel {
+  background: var(--a3-bg-card);
+  border-radius: 6px;
+  padding: 16px 20px 8px;
+  min-height: calc(100vh - 80px);
+}
+
+.fav-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--a3-text-primary);
+  margin: 0 0 12px;
+}
+
+.fav-folder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fav-folders {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fav-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: var(--a3-radius);
+  background: var(--a3-bg-card);
+  color: var(--a3-text-primary);
+  cursor: pointer;
+}
+
+.fav-folder.active {
+  border-color: var(--a3-primary);
+  color: var(--a3-primary);
+  background: var(--a3-primary-light);
+}
+
+.fav-folder .fa-caret-down {
+  font-size: 12px;
+  color: var(--a3-text-disabled);
+}
+
+.fav-plat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.fav-plat-xhs { background: #ff2442; }
+.fav-plat-tt { background: #111; }
+
+.fav-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fav-search-row .a3-input-wrapper { max-width: 280px; }
+
+.fav-keyword-row {
+  margin-top: 12px;
+}
+
+.fav-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.fav-toolbar-left,
+.fav-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fav-selected {
+  font-size: 13px;
+  color: var(--a3-text-secondary);
+  margin-right: 4px;
+}
+
+.fav-table-wrap {
+  margin-top: 12px;
+  overflow: auto;
+}
+
+.fav-table-wrap .a3-table { min-width: 1280px; }
+
+.fav-nick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fav-link-out {
+  color: var(--a3-text-disabled);
+  margin-left: 4px;
+}
+
+.fav-tags {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--a3-text-secondary);
+}
+
+.fav-ops {
+  display: inline-flex;
+  gap: 10px;
+  color: var(--a3-text-secondary);
+}
+
+.fav-ops i { cursor: pointer; }
+.fav-ops i:hover { color: var(--a3-primary); }
+
+.fav-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0 8px;
+  color: var(--a3-text-secondary);
+  font-size: 13px;
+}
+
+.fav-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fav-jump .a3-input {
+  width: 48px;
+  height: 28px;
+  padding: 0 8px;
+}
+
+.fav-hidden { display: none !important; }
+
+.fav-drawer {
+  width: 640px;
+  max-width: 96vw;
+}
+
+.fav-drawer .a3-drawer-body { color: var(--a3-text-primary); padding: 20px 24px 8px; }
+
+.fav-form-item { margin-bottom: 20px; }
+
+.fav-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--a3-text-primary);
+}
+
+.fav-req::before {
+  content: "*";
+  color: var(--a3-danger);
+  margin-right: 4px;
+}
+
+.fav-counter { font-size: 12px; color: var(--a3-text-disabled); }
+
+.fav-label-extra {
+  font-size: 12px;
+  color: var(--a3-text-secondary);
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+.fav-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+}
+
+.fav-drawer .a3-input-wrapper,
+.fav-drawer .a3-select-wrapper {
+  max-width: none;
+  width: 100%;
+}
+
+.fav-drawer .a3-textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+
+.fav-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--a3-text-secondary);
+  line-height: 1.6;
+}
+
+.fav-hint i { color: var(--a3-info); margin-top: 2px; }
+
+.fav-field-error {
+  color: var(--a3-danger);
+  font-size: 12px;
+  margin-top: 6px;
+  min-height: 0;
+}
+
+.fav-input-error {
+  border-color: var(--a3-danger) !important;
+}
+
+.fav-suffix {
+  position: absolute;
+  right: 12px;
+  color: var(--a3-text-secondary);
+  pointer-events: none;
+  font-size: 13px;
+}
+
+.fav-cycle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+}
+
+.fav-duration .a3-input { padding-right: 36px; }
+
+@media (max-width: 720px) {
+  .fav-form-row { grid-template-columns: 1fr; }
+  .fav-sider { display: none; }
+}

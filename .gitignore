@@ -63,8 +63,9 @@ notes/
 TODO.md
 NOTES.md
 
-# Campaign Agent product (this fork) — keep its lockfile
+# Product slices (this fork) — keep lockfiles for CI npm ci
 !apps/campaign-agent/package-lock.json
+!apps/talent-favorites/package-lock.json
 apps/campaign-agent/data/
 
 # Generated integration files — run scripts/convert.sh to regenerate locally

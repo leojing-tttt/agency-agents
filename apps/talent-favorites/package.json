@@ -1,0 +1,21 @@
+{
+  "name": "@a3/talent-favorites",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A3 达人收藏夹：母婴 tab 关键词找号侧栏",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}
