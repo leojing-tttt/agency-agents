@@ -17,6 +17,28 @@ export const BRANDS = [
 export const SORT_OPTIONS = ["综合", "最新", "最多点赞", "最多评论", "最多收藏"];
 export const PUBLISH_OPTIONS = ["不限", "一天内", "一周内", "一个月内", "三个月内", "半年内", "一年内"];
 
+/** @typedef {{ min: number | null, max: number | null }} NumberRange */
+
+export const NOTE_RANGE_FIELDS = [
+  { key: "likeCount", min: "noteLikeMin", max: "noteLikeMax", errorKey: "noteLikeRange", label: "点赞量", integer: true },
+];
+
+export const PGY_RANGE_FIELDS = [
+  { key: "quote", min: "pgyQuoteMin", max: "pgyQuoteMax", errorKey: "pgyQuoteRange", label: "报价", integer: true },
+  { key: "fansCount", min: "pgyFansMin", max: "pgyFansMax", errorKey: "pgyFansRange", label: "达人粉丝数", integer: true },
+  { key: "cpe30d", min: "pgyCpeMin", max: "pgyCpeMax", errorKey: "pgyCpeRange", label: "近30天全流量商单 CPE", integer: false },
+  { key: "expose30d", min: "pgyExposeMin", max: "pgyExposeMax", errorKey: "pgyExposeRange", label: "商单曝光", integer: true },
+  { key: "read30d", min: "pgyReadMin", max: "pgyReadMax", errorKey: "pgyReadRange", label: "商单阅读", integer: true },
+  { key: "interactRate", min: "pgyInteractMin", max: "pgyInteractMax", errorKey: "pgyInteractRange", label: "商单互动率", integer: false, maxBound: 100 },
+  { key: "completeRate", min: "pgyCompleteMin", max: "pgyCompleteMax", errorKey: "pgyCompleteRange", label: "商单完播率", integer: false, maxBound: 100 },
+  { key: "dailyRead", min: "pgyDailyReadMin", max: "pgyDailyReadMax", errorKey: "pgyDailyReadRange", label: "日常笔记阅读", integer: true },
+  { key: "dailyInteract", min: "pgyDailyInteractMin", max: "pgyDailyInteractMax", errorKey: "pgyDailyInteractRange", label: "日常笔记互动率", integer: false, maxBound: 100 },
+  { key: "likeEst", min: "pgyLikeEstMin", max: "pgyLikeEstMax", errorKey: "pgyLikeEstRange", label: "商单预估点赞", integer: true },
+  { key: "read3s", min: "pgyRead3sMin", max: "pgyRead3sMax", errorKey: "pgyRead3sRange", label: "商单3秒阅读率", integer: false, maxBound: 100 },
+  { key: "cpv", min: "pgyCpvMin", max: "pgyCpvMax", errorKey: "pgyCpvRange", label: "商单 CPV", integer: false },
+  { key: "cpm", min: "pgyCpmMin", max: "pgyCpmMax", errorKey: "pgyCpmRange", label: "商单 CPM", integer: false },
+];
+
 const LINK_RE = /https?:\/\/|www\.|xhslink\.com|xiaohongshu\.com/i;
 
 export function parseKeywords(text) {
@@ -39,6 +61,59 @@ export function linesForBrand(brandId) {
 }
 
 /**
+ * @param {unknown} minRaw
+ * @param {unknown} maxRaw
+ * @param {{ label: string, integer?: boolean, minBound?: number, maxBound?: number }} options
+ * @returns {{ ok: true, value: NumberRange | null } | { ok: false, error: string }}
+ */
+export function parseOptionalRange(minRaw, maxRaw, options) {
+  const integer = options.integer !== false;
+  const minBound = options.minBound ?? 0;
+  const maxBound = options.maxBound ?? Number.POSITIVE_INFINITY;
+  const label = options.label;
+  const minEmpty = minRaw === "" || minRaw == null;
+  const maxEmpty = maxRaw === "" || maxRaw == null;
+  if (minEmpty && maxEmpty) return { ok: true, value: null };
+
+  const parseOne = (raw, empty) => {
+    if (empty) return { ok: true, value: null };
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return { ok: false, error: `${label}请输入数字` };
+    if (integer && !Number.isInteger(n)) return { ok: false, error: `${label}请输入整数` };
+    if (n < minBound) return { ok: false, error: `${label}不能小于 ${minBound}` };
+    if (n > maxBound) {
+      return { ok: false, error: maxBound === 100 ? `${label}请输入 0–100` : `${label}超出上限` };
+    }
+    return { ok: true, value: n };
+  };
+
+  const minRes = parseOne(minRaw, minEmpty);
+  if (!minRes.ok) return minRes;
+  const maxRes = parseOne(maxRaw, maxEmpty);
+  if (!maxRes.ok) return maxRes;
+  if (minRes.value != null && maxRes.value != null && minRes.value > maxRes.value) {
+    return { ok: false, error: `${label}最小值不能大于最大值` };
+  }
+  return { ok: true, value: { min: minRes.value, max: maxRes.value } };
+}
+
+function collectRanges(input, fields) {
+  /** @type {Record<string, NumberRange | null>} */
+  const value = {};
+  /** @type {Record<string, string>} */
+  const errors = {};
+  for (const field of fields) {
+    const parsed = parseOptionalRange(input?.[field.min], input?.[field.max], field);
+    if (!parsed.ok) {
+      errors[field.errorKey] = parsed.error;
+    } else {
+      value[field.key] = parsed.value;
+    }
+  }
+  return { value, errors };
+}
+
+/**
  * @typedef {{
  *   name: string,
  *   brandId: string,
@@ -49,7 +124,9 @@ export function linesForBrand(brandId) {
  *   cycle: "once" | "daily",
  *   durationDays: number | null,
  *   sortBy: string,
- *   publishTime: string
+ *   publishTime: string,
+ *   noteFilters: { likeCount: NumberRange | null },
+ *   pgyFilters: Record<string, NumberRange | null>
  * }} KeywordTask
  * @param {Record<string, unknown>} input
  * @returns {{ ok: true, value: KeywordTask } | { ok: false, errors: Record<string, string> }}
@@ -115,6 +192,10 @@ export function validateKeywordTask(input) {
     errors.publishTime = "请选择有效的发布时间";
   }
 
+  const noteRanges = collectRanges(input, NOTE_RANGE_FIELDS);
+  const pgyRanges = collectRanges(input, PGY_RANGE_FIELDS);
+  Object.assign(errors, noteRanges.errors, pgyRanges.errors);
+
   if (Object.keys(errors).length) {
     return { ok: false, errors };
   }
@@ -132,6 +213,8 @@ export function validateKeywordTask(input) {
       durationDays,
       sortBy,
       publishTime,
+      noteFilters: noteRanges.value,
+      pgyFilters: pgyRanges.value,
     },
   };
 }

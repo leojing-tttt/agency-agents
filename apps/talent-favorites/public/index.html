@@ -278,6 +278,190 @@
           <div class="fav-field-error" data-error="publishTime"></div>
         </div>
       </div>
+
+      <section class="fav-filter-section" id="note-filter-section">
+        <h3 class="fav-section-head">笔记数据筛选</h3>
+        <p class="fav-hint">
+          <i class="fas fa-circle-info"></i>
+          仅点赞量落在该区间内的笔记会进入下一步；区间外笔记不会进入采集与找号。
+        </p>
+        <div class="fav-form-item fav-form-item-tight">
+          <div class="fav-label-row"><label for="note-like-min">点赞量</label></div>
+          <div class="fav-range" data-range="noteLikeRange" role="group" aria-label="点赞量区间">
+            <input id="note-like-min" name="noteLikeMin" class="a3-input" type="number" min="0" placeholder="最小" />
+            <span class="fav-range-sep">–</span>
+            <input id="note-like-max" name="noteLikeMax" class="a3-input" type="number" min="0" placeholder="最大" />
+          </div>
+          <div class="fav-field-error" data-error="noteLikeRange"></div>
+        </div>
+      </section>
+
+      <section class="fav-filter-section" id="pgy-filter-section">
+        <h3 class="fav-section-head">蒲公英数据筛选</h3>
+        <p class="fav-hint">
+          <i class="fas fa-circle-info"></i>
+          按达人蒲公英指标收窄候选；未填的区间不限制。商单指标均为近 30 天全流量图文+视频。
+        </p>
+
+        <div class="fav-filter-group">
+          <h4 class="fav-filter-group-title">达人基础信息</h4>
+          <div class="fav-form-item fav-form-item-tight">
+            <div class="fav-label-row"><label for="pgy-quote-min">报价</label></div>
+            <div class="fav-range" data-range="pgyQuoteRange" role="group" aria-label="报价区间">
+              <input id="pgy-quote-min" name="pgyQuoteMin" class="a3-input" type="number" min="0" placeholder="最小" />
+              <span class="fav-range-sep">–</span>
+              <input id="pgy-quote-max" name="pgyQuoteMax" class="a3-input" type="number" min="0" placeholder="最大" />
+            </div>
+            <p class="fav-hint fav-hint-tight">图文报价、视频报价均按此区间筛选</p>
+            <div class="fav-field-error" data-error="pgyQuoteRange"></div>
+          </div>
+        </div>
+
+        <div class="fav-filter-group">
+          <h4 class="fav-filter-group-title">达人粉丝</h4>
+          <div class="fav-form-item fav-form-item-tight">
+            <div class="fav-label-row"><label for="pgy-fans-min">达人粉丝数</label></div>
+            <div class="fav-range" data-range="pgyFansRange" role="group" aria-label="达人粉丝数区间">
+              <input id="pgy-fans-min" name="pgyFansMin" class="a3-input" type="number" min="0" placeholder="最小" />
+              <span class="fav-range-sep">–</span>
+              <input id="pgy-fans-max" name="pgyFansMax" class="a3-input" type="number" min="0" placeholder="最大" />
+            </div>
+            <div class="fav-field-error" data-error="pgyFansRange"></div>
+          </div>
+        </div>
+
+        <div class="fav-filter-group">
+          <h4 class="fav-filter-group-title">达人商单数据</h4>
+          <div class="fav-form-row">
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-cpe-min">近30天全流量商单 CPE</label></div>
+              <div class="fav-range" data-range="pgyCpeRange" role="group" aria-label="近30天全流量商单 CPE 区间">
+                <input id="pgy-cpe-min" name="pgyCpeMin" class="a3-input" type="number" min="0" step="0.01" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-cpe-max" name="pgyCpeMax" class="a3-input" type="number" min="0" step="0.01" placeholder="最大" />
+              </div>
+              <div class="fav-field-error" data-error="pgyCpeRange"></div>
+            </div>
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-expose-min">商单曝光</label></div>
+              <div class="fav-range" data-range="pgyExposeRange" role="group" aria-label="商单曝光区间">
+                <input id="pgy-expose-min" name="pgyExposeMin" class="a3-input" type="number" min="0" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-expose-max" name="pgyExposeMax" class="a3-input" type="number" min="0" placeholder="最大" />
+              </div>
+              <div class="fav-field-error" data-error="pgyExposeRange"></div>
+            </div>
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-read-min">商单阅读</label></div>
+              <div class="fav-range" data-range="pgyReadRange" role="group" aria-label="商单阅读区间">
+                <input id="pgy-read-min" name="pgyReadMin" class="a3-input" type="number" min="0" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-read-max" name="pgyReadMax" class="a3-input" type="number" min="0" placeholder="最大" />
+              </div>
+              <div class="fav-field-error" data-error="pgyReadRange"></div>
+            </div>
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-interact-min">商单互动率</label></div>
+              <div class="fav-range fav-range-pct" data-range="pgyInteractRange" role="group" aria-label="商单互动率区间">
+                <input id="pgy-interact-min" name="pgyInteractMin" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-interact-max" name="pgyInteractMax" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最大" />
+                <span class="fav-range-unit">%</span>
+              </div>
+              <div class="fav-field-error" data-error="pgyInteractRange"></div>
+            </div>
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-complete-min">商单完播率</label></div>
+              <div class="fav-range fav-range-pct" data-range="pgyCompleteRange" role="group" aria-label="商单完播率区间">
+                <input id="pgy-complete-min" name="pgyCompleteMin" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-complete-max" name="pgyCompleteMax" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最大" />
+                <span class="fav-range-unit">%</span>
+              </div>
+              <div class="fav-field-error" data-error="pgyCompleteRange"></div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="a3-btn a3-btn-text"
+          id="pgy-more-toggle"
+          aria-expanded="false"
+          aria-controls="pgy-more-filters"
+        >
+          <i class="fas fa-angle-down"></i>
+          更多筛选
+        </button>
+        <div id="pgy-more-filters" class="fav-more-filters fav-hidden">
+          <div class="fav-filter-group">
+            <h4 class="fav-filter-group-title">达人日常笔记数据</h4>
+            <div class="fav-form-row">
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-daily-read-min">日常笔记阅读</label></div>
+                <div class="fav-range" data-range="pgyDailyReadRange" role="group" aria-label="日常笔记阅读区间">
+                  <input id="pgy-daily-read-min" name="pgyDailyReadMin" class="a3-input" type="number" min="0" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-daily-read-max" name="pgyDailyReadMax" class="a3-input" type="number" min="0" placeholder="最大" />
+                </div>
+                <div class="fav-field-error" data-error="pgyDailyReadRange"></div>
+              </div>
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-daily-interact-min">日常笔记互动率</label></div>
+                <div class="fav-range fav-range-pct" data-range="pgyDailyInteractRange" role="group" aria-label="日常笔记互动率区间">
+                  <input id="pgy-daily-interact-min" name="pgyDailyInteractMin" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-daily-interact-max" name="pgyDailyInteractMax" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最大" />
+                  <span class="fav-range-unit">%</span>
+                </div>
+                <div class="fav-field-error" data-error="pgyDailyInteractRange"></div>
+              </div>
+            </div>
+          </div>
+          <div class="fav-filter-group">
+            <h4 class="fav-filter-group-title">更多商单指标</h4>
+            <div class="fav-form-row">
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-like-est-min">商单预估点赞</label></div>
+                <div class="fav-range" data-range="pgyLikeEstRange" role="group" aria-label="商单预估点赞区间">
+                  <input id="pgy-like-est-min" name="pgyLikeEstMin" class="a3-input" type="number" min="0" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-like-est-max" name="pgyLikeEstMax" class="a3-input" type="number" min="0" placeholder="最大" />
+                </div>
+                <div class="fav-field-error" data-error="pgyLikeEstRange"></div>
+              </div>
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-read3s-min">商单3秒阅读率</label></div>
+                <div class="fav-range fav-range-pct" data-range="pgyRead3sRange" role="group" aria-label="商单3秒阅读率区间">
+                  <input id="pgy-read3s-min" name="pgyRead3sMin" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-read3s-max" name="pgyRead3sMax" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最大" />
+                  <span class="fav-range-unit">%</span>
+                </div>
+                <div class="fav-field-error" data-error="pgyRead3sRange"></div>
+              </div>
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-cpv-min">商单 CPV</label></div>
+                <div class="fav-range" data-range="pgyCpvRange" role="group" aria-label="商单 CPV 区间">
+                  <input id="pgy-cpv-min" name="pgyCpvMin" class="a3-input" type="number" min="0" step="0.01" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-cpv-max" name="pgyCpvMax" class="a3-input" type="number" min="0" step="0.01" placeholder="最大" />
+                </div>
+                <div class="fav-field-error" data-error="pgyCpvRange"></div>
+              </div>
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-cpm-min">商单 CPM</label></div>
+                <div class="fav-range" data-range="pgyCpmRange" role="group" aria-label="商单 CPM 区间">
+                  <input id="pgy-cpm-min" name="pgyCpmMin" class="a3-input" type="number" min="0" step="0.01" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-cpm-max" name="pgyCpmMax" class="a3-input" type="number" min="0" step="0.01" placeholder="最大" />
+                </div>
+                <div class="fav-field-error" data-error="pgyCpmRange"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </form>
     <div class="a3-drawer-footer">
       <button type="button" class="a3-btn a3-btn-default" id="task-cancel">取消</button>

@@ -7,6 +7,10 @@ import {
   validateKeywordTask,
 } from "../public/keyword-task.js";
 
+async function pageHtml() {
+  return readFile(path.join(root, "../public/index.html"), "utf8");
+}
+
 const root = path.dirname(fileURLToPath(import.meta.url));
 
 describe("validateKeywordTask", () => {
@@ -81,11 +85,62 @@ describe("validateKeywordTask", () => {
     expect(daily.ok).toBe(false);
     if (!daily.ok) expect(daily.errors.durationDays).toBeTruthy();
   });
+
+  it("allows empty note like and pgy ranges", () => {
+    const result = validateKeywordTask(valid);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.noteFilters.likeCount).toBeNull();
+      expect(result.value.pgyFilters.fansCount).toBeNull();
+      expect(result.value.pgyFilters.quote).toBeNull();
+      expect(result.value.pgyFilters.cpe30d).toBeNull();
+    }
+  });
+
+  it("keeps a closed like-count range on the task", () => {
+    const result = validateKeywordTask({
+      ...valid,
+      noteLikeMin: "100",
+      noteLikeMax: "5000",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.noteFilters.likeCount).toEqual({ min: 100, max: 5000 });
+    }
+  });
+
+  it("rejects inverted like-count ranges", () => {
+    const result = validateKeywordTask({
+      ...valid,
+      noteLikeMin: "900",
+      noteLikeMax: "100",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors.noteLikeRange).toMatch(/最小/);
+  });
+
+  it("rejects inverted pgy ranges and out-of-bound percents", () => {
+    const inverted = validateKeywordTask({
+      ...valid,
+      pgyFansMin: "20000",
+      pgyFansMax: "1000",
+    });
+    expect(inverted.ok).toBe(false);
+    if (!inverted.ok) expect(inverted.errors.pgyFansRange).toBeTruthy();
+
+    const percent = validateKeywordTask({
+      ...valid,
+      pgyInteractMin: "0",
+      pgyInteractMax: "150",
+    });
+    expect(percent.ok).toBe(false);
+    if (!percent.ok) expect(percent.errors.pgyInteractRange).toMatch(/100/);
+  });
 });
 
 describe("收藏夹 page markup", () => {
   it("puts 关键词找号 under the 母婴 tab and omits 任务类型", async () => {
-    const html = await readFile(path.join(root, "../public/index.html"), "utf8");
+    const html = await pageHtml();
     expect(html).toContain("母婴");
     expect(html).toContain("关键词找号");
     expect(html).toContain("创建监控任务");
@@ -107,5 +162,38 @@ describe("收藏夹 page markup", () => {
     const btnIdx = html.indexOf("关键词找号");
     expect(muyingIdx).toBeGreaterThan(-1);
     expect(btnIdx).toBeGreaterThan(muyingIdx);
+  });
+
+  it("shows 笔记数据筛选 like range and next-step meaning", async () => {
+    const html = await pageHtml();
+    const drawer = html.slice(html.indexOf("创建监控任务"));
+    expect(drawer).toContain("笔记数据筛选");
+    expect(drawer).toContain("点赞量");
+    expect(drawer).toContain('name="noteLikeMin"');
+    expect(drawer).toContain('name="noteLikeMax"');
+    expect(drawer).toMatch(/仅点赞量落在该区间内的笔记会进入下一步/);
+  });
+
+  it("groups compact 蒲公英 range filters and collapses the rest", async () => {
+    const html = await pageHtml();
+    const drawer = html.slice(html.indexOf("创建监控任务"));
+    expect(drawer).toContain("蒲公英数据筛选");
+    expect(drawer).toContain("达人基础信息");
+    expect(drawer).toContain("达人粉丝");
+    expect(drawer).toContain("达人商单数据");
+    expect(drawer).toContain("达人日常笔记数据");
+    expect(drawer).toContain("达人粉丝数");
+    expect(drawer).toContain("报价");
+    expect(drawer).toContain("近30天全流量商单 CPE");
+    expect(drawer).toContain("曝光");
+    expect(drawer).toContain("阅读");
+    expect(drawer).toContain("互动率");
+    expect(drawer).toContain("完播率");
+    expect(drawer).toContain("更多筛选");
+    expect(drawer).toMatch(/id="pgy-more-filters"[^>]*class="[^"]*fav-hidden/);
+    expect(drawer).not.toContain("曝光来源-搜索");
+    expect(drawer).not.toContain("阅读来源-个人");
+    const drawerCheckboxes = drawer.match(/a3-checkbox-input/g) ?? [];
+    expect(drawerCheckboxes.length).toBe(0);
   });
 });

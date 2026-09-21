@@ -269,7 +269,7 @@ button { font-family: inherit; }
 .fav-hidden { display: none !important; }
 
 .fav-drawer {
-  width: 640px;
+  width: 680px;
   max-width: 96vw;
 }
 
@@ -357,6 +357,62 @@ button { font-family: inherit; }
 }
 
 .fav-duration .a3-input { padding-right: 36px; }
+
+.fav-filter-section {
+  margin: 4px 0 20px;
+  padding: 16px;
+  border: 1px solid var(--a3-border);
+  border-radius: var(--a3-radius);
+  background: var(--a3-bg-body);
+}
+
+.fav-section-head {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--a3-text-primary);
+}
+
+.fav-filter-group {
+  margin-top: 14px;
+}
+
+.fav-filter-group-title {
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--a3-border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--a3-text-secondary);
+}
+
+.fav-form-item-tight { margin-bottom: 0; }
+
+.fav-hint-tight { margin-top: 6px; }
+
+.fav-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fav-range .a3-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.fav-range-sep {
+  color: var(--a3-text-disabled);
+  flex: none;
+}
+
+.fav-range-unit {
+  color: var(--a3-text-secondary);
+  font-size: 13px;
+  flex: none;
+}
+
+.fav-more-filters { margin-top: 8px; }
 
 @media (max-width: 720px) {
   .fav-form-row { grid-template-columns: 1fr; }

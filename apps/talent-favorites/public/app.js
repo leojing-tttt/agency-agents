@@ -104,19 +104,7 @@ function closeDrawer() {
 }
 
 function readForm() {
-  const form = $("#keyword-task-form");
-  const data = new FormData(form);
-  return {
-    name: data.get("name"),
-    brandId: data.get("brandId"),
-    lineId: data.get("lineId"),
-    keywordsText: data.get("keywordsText"),
-    noteCount: data.get("noteCount"),
-    cycle: data.get("cycle"),
-    durationDays: data.get("durationDays"),
-    sortBy: data.get("sortBy"),
-    publishTime: data.get("publishTime"),
-  };
+  return Object.fromEntries(new FormData($("#keyword-task-form")).entries());
 }
 
 function clearErrors() {
@@ -143,12 +131,21 @@ function showErrors(errors) {
     if (box) box.textContent = message;
     const input = fieldMap[field] && $(fieldMap[field]);
     if (input) input.classList.add("fav-input-error");
+    $$(`[data-range="${field}"] .a3-input`).forEach((el) => el.classList.add("fav-input-error"));
   }
 }
 
 function syncDurationVisibility() {
   const daily = $('input[name="cycle"]:checked')?.value === "daily";
   $("#duration-block").classList.toggle("fav-hidden", !daily);
+}
+
+function setMoreFiltersOpen(open) {
+  const panel = $("#pgy-more-filters");
+  const toggle = $("#pgy-more-toggle");
+  panel.classList.toggle("fav-hidden", !open);
+  toggle.setAttribute("aria-expanded", String(open));
+  toggle.querySelector("i").className = open ? "fas fa-angle-up" : "fas fa-angle-down";
 }
 
 function syncLineSelect() {
@@ -169,6 +166,7 @@ function resetForm() {
   $("#name-count").textContent = "0";
   syncLineSelect();
   syncDurationVisibility();
+  setMoreFiltersOpen(false);
   clearErrors();
 }
 
@@ -211,6 +209,10 @@ $("#task-brand").addEventListener("change", syncLineSelect);
 
 $$('input[name="cycle"]').forEach((radio) => {
   radio.addEventListener("change", syncDurationVisibility);
+});
+
+$("#pgy-more-toggle").addEventListener("click", () => {
+  setMoreFiltersOpen($("#pgy-more-filters").classList.contains("fav-hidden"));
 });
 
 $("#keyword-task-form").addEventListener("submit", (event) => {
