@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>达人收藏夹 · A3 达人系统</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/a3-components.css" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="a3-page">
+  <header class="fav-top a3-flex-between a3-bg-card">
+    <div class="a3-flex" style="align-items:center">
+      <span class="fav-logo">A³</span>
+      <nav class="fav-nav">
+        <span class="fav-nav-item"><i class="fas fa-robot"></i> AI 中心</span>
+        <span class="fav-nav-item"><i class="fas fa-chart-pie"></i> 业财系统</span>
+        <span class="fav-nav-item active"><i class="fas fa-user-group"></i> 达人系统</span>
+        <span class="fav-nav-item"><i class="fas fa-file-lines"></i> 内容系统</span>
+        <span class="fav-nav-item"><i class="fas fa-bullseye"></i> 投流系统</span>
+        <span class="fav-nav-item"><i class="fas fa-chart-column"></i> 数据中心</span>
+        <span class="fav-nav-item"><i class="fas fa-user-gear"></i> 用户管理</span>
+      </nav>
+    </div>
+    <div class="fav-top-actions">
+      <button type="button" class="a3-btn a3-btn-text a3-btn-sm"><i class="fas fa-rotate"></i> 刷新</button>
+      <button type="button" class="a3-btn a3-btn-text a3-btn-sm"><i class="fas fa-wrench"></i> 工具</button>
+      <button type="button" class="a3-btn a3-btn-text a3-btn-sm"><i class="fas fa-puzzle-piece"></i> A3插件下载</button>
+      <span class="a3-avatar a3-avatar-sm">荆</span>
+      <span>荆雷</span>
+    </div>
+  </header>
+
+  <div class="a3-flex fav-shell">
+    <aside class="fav-sider a3-bg-card">
+      <div class="fav-sider-group">
+        <span><i class="far fa-square a3-mr-8"></i>选号广场</span>
+        <i class="fas fa-angle-down a3-text-disabled"></i>
+      </div>
+      <ul class="a3-menu">
+        <li class="a3-menu-item"><i class="fas fa-star"></i> 精选达人库</li>
+        <li class="a3-menu-item active"><i class="far fa-folder"></i> 达人收藏夹</li>
+      </ul>
+      <div class="a3-menu-item"><i class="fas fa-building"></i> MCN库</div>
+      <div class="fav-sider-group">
+        <span>任务管理</span>
+        <i class="fas fa-angle-right a3-text-disabled"></i>
+      </div>
+      <div class="fav-sider-group">
+        <span>RPA控制台</span>
+        <i class="fas fa-angle-right a3-text-disabled"></i>
+      </div>
+      <div class="fav-sider-group">
+        <span>系统监控管理</span>
+        <i class="fas fa-angle-right a3-text-disabled"></i>
+      </div>
+    </aside>
+
+    <main class="fav-main a3-flex-1">
+      <section class="fav-panel">
+        <h1 class="fav-title">收藏夹</h1>
+
+        <div class="fav-folder-row">
+          <div class="fav-folders" role="tablist">
+            <button type="button" class="fav-folder active" data-tab="muying" role="tab" aria-selected="true">
+              <span class="fav-plat fav-plat-xhs">RED</span>
+              母婴
+              <i class="fas fa-caret-down"></i>
+            </button>
+            <button type="button" class="fav-folder" data-tab="default" role="tab" aria-selected="false">
+              <span class="fav-plat fav-plat-tt">♪</span>
+              默认收藏夹
+              <i class="fas fa-caret-down"></i>
+            </button>
+          </div>
+          <div class="fav-search-row">
+            <div class="a3-input-wrapper a3-input-search">
+              <input class="a3-input" type="search" placeholder="请输入达人昵称/机构名称" />
+              <i class="fas fa-magnifying-glass a3-input-suffix"></i>
+            </div>
+            <button type="button" class="a3-btn a3-btn-default"><i class="fas fa-filter"></i> 筛选</button>
+            <button type="button" class="a3-btn a3-btn-default">应用模板</button>
+            <div class="a3-select-wrapper" style="max-width:120px">
+              <select class="a3-select" aria-label="模板">
+                <option>默认模板</option>
+              </select>
+              <i class="fas fa-caret-down a3-select-arrow"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="fav-keyword-row" id="keyword-find-row">
+          <button type="button" class="a3-btn a3-btn-primary" id="keyword-find-btn">
+            <i class="fas fa-magnifying-glass"></i>
+            关键词找号
+          </button>
+        </div>
+
+        <div class="fav-toolbar">
+          <div class="fav-toolbar-left">
+            <span class="fav-selected">已选择 0/20 条数据</span>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">导入</button>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">导出</button>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">更新数据</button>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">数据更新任务</button>
+          </div>
+          <div class="fav-toolbar-right">
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">加入达人库</button>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">拓展相似达人</button>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">群发brief</button>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">一键建联</button>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">批量转移</button>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm">批量删除</button>
+          </div>
+        </div>
+
+        <div class="fav-table-wrap a3-table-wrapper">
+          <table class="a3-table">
+            <thead>
+              <tr>
+                <th><label class="a3-checkbox"><input class="a3-checkbox-input" type="checkbox" /></label></th>
+                <th>昵称</th>
+                <th>达人链接</th>
+                <th>询单码</th>
+                <th>微信号</th>
+                <th>手机号</th>
+                <th>更新时效</th>
+                <th>来源</th>
+                <th>达人ID</th>
+                <th>图文报价</th>
+                <th>视频报价</th>
+                <th>内容类型标签</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="creator-rows"></tbody>
+          </table>
+        </div>
+
+        <div class="fav-foot">
+          <span>共 20 条数据</span>
+          <div class="a3-pagination" style="padding:0">
+            <span class="a3-pagination-item disabled"><i class="fas fa-angle-left"></i></span>
+            <span class="a3-pagination-item active">1</span>
+            <span class="a3-pagination-item">2</span>
+            <span class="a3-pagination-item"><i class="fas fa-angle-right"></i></span>
+          </div>
+          <div class="a3-select-wrapper" style="max-width:96px">
+            <select class="a3-select" aria-label="每页条数">
+              <option>10条/页</option>
+            </select>
+            <i class="fas fa-caret-down a3-select-arrow"></i>
+          </div>
+          <span class="fav-jump">跳至 <input class="a3-input" value="1" /> 页</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="a3-drawer-mask" id="task-mask"></div>
+  <aside class="a3-drawer fav-drawer" id="task-drawer" aria-hidden="true">
+    <div class="a3-drawer-header">
+      <span>创建监控任务</span>
+      <button type="button" class="a3-modal-close" id="task-close" aria-label="关闭">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <form class="a3-drawer-body" id="keyword-task-form" novalidate>
+      <div class="fav-form-item">
+        <div class="fav-label-row">
+          <label class="fav-req" for="task-name">任务名称</label>
+          <span class="fav-counter"><span id="name-count">0</span> / 50</span>
+        </div>
+        <input
+          id="task-name"
+          name="name"
+          class="a3-input"
+          maxlength="50"
+          placeholder="例如：高洁丝霸屏监控任务"
+          autocomplete="off"
+        />
+        <div class="fav-field-error" data-error="name"></div>
+      </div>
+
+      <div class="fav-form-row">
+        <div class="fav-form-item">
+          <div class="fav-label-row"><label class="fav-req" for="task-brand">品牌</label></div>
+          <div class="a3-select-wrapper">
+            <select id="task-brand" name="brandId" class="a3-select">
+              <option value="">请选择品牌</option>
+            </select>
+            <i class="fas fa-caret-down a3-select-arrow"></i>
+          </div>
+          <div class="fav-field-error" data-error="brandId"></div>
+        </div>
+        <div class="fav-form-item">
+          <div class="fav-label-row"><label for="task-line">品线</label></div>
+          <div class="a3-select-wrapper">
+            <select id="task-line" name="lineId" class="a3-select" disabled>
+              <option value="">请先选择品牌</option>
+            </select>
+            <i class="fas fa-caret-down a3-select-arrow"></i>
+          </div>
+          <div class="fav-field-error" data-error="lineId"></div>
+        </div>
+      </div>
+
+      <div class="fav-form-item">
+        <div class="fav-label-row">
+          <label class="fav-req" for="task-keywords">
+            监控关键词
+            <span class="fav-label-extra">每行 1 条关键词，按回车键换行或使用中文 “，” 分隔</span>
+          </label>
+        </div>
+        <textarea
+          id="task-keywords"
+          name="keywordsText"
+          class="a3-textarea"
+          placeholder="输入关键词后换回车，每个词会独立监控&#10;纯棉卫生巾&#10;敏感肌经期&#10;好奇小森林&#10;…"
+        ></textarea>
+        <p class="fav-hint">
+          <i class="fas fa-circle-info"></i>
+          输入多个词将分别抓取每个词下的笔记；不支持输入链接，含链接将无法提交
+        </p>
+        <div class="fav-field-error" data-error="keywordsText"></div>
+      </div>
+
+      <div class="fav-form-row">
+        <div class="fav-form-item">
+          <div class="fav-label-row"><label class="fav-req" for="task-count">采集笔记数量</label></div>
+          <input id="task-count" name="noteCount" class="a3-input" type="number" min="1" max="500" value="30" />
+          <div class="fav-field-error" data-error="noteCount"></div>
+        </div>
+        <div class="fav-form-item">
+          <div class="fav-label-row"><span class="fav-req">监控周期</span></div>
+          <div class="fav-cycle">
+            <label class="a3-radio">
+              <input class="a3-radio-input" type="radio" name="cycle" value="once" />
+              只监控1次
+            </label>
+            <label class="a3-radio">
+              <input class="a3-radio-input" type="radio" name="cycle" value="daily" checked />
+              日更新
+            </label>
+          </div>
+          <div class="fav-field-error" data-error="cycle"></div>
+
+          <div id="duration-block" class="a3-mt-16">
+            <div class="fav-label-row"><label class="fav-req" for="task-duration">持续更新</label></div>
+            <div class="a3-input-wrapper fav-duration">
+              <input id="task-duration" name="durationDays" class="a3-input" type="number" min="1" max="365" value="7" />
+              <span class="fav-suffix">天</span>
+            </div>
+            <p class="fav-hint">
+              <i class="far fa-clock"></i>
+              系统将于每日凌晨 08:00 自动拉取新笔记
+            </p>
+            <div class="fav-field-error" data-error="durationDays"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fav-form-row">
+        <div class="fav-form-item">
+          <div class="fav-label-row"><label class="fav-req" for="task-sort">排序依据</label></div>
+          <div class="a3-select-wrapper">
+            <select id="task-sort" name="sortBy" class="a3-select"></select>
+            <i class="fas fa-caret-down a3-select-arrow"></i>
+          </div>
+          <div class="fav-field-error" data-error="sortBy"></div>
+        </div>
+        <div class="fav-form-item">
+          <div class="fav-label-row"><label class="fav-req" for="task-publish">发布时间</label></div>
+          <div class="a3-select-wrapper">
+            <select id="task-publish" name="publishTime" class="a3-select"></select>
+            <i class="fas fa-caret-down a3-select-arrow"></i>
+          </div>
+          <div class="fav-field-error" data-error="publishTime"></div>
+        </div>
+      </div>
+
+      <section class="fav-filter-section" id="note-filter-section">
+        <h3 class="fav-section-head">笔记数据筛选</h3>
+        <p class="fav-hint">
+          <i class="fas fa-circle-info"></i>
+          仅点赞量落在该区间内的笔记会进入下一步；区间外笔记不会进入采集与找号。
+        </p>
+        <div class="fav-form-item fav-form-item-tight">
+          <div class="fav-label-row"><label for="note-like-min">点赞量</label></div>
+          <div class="fav-range" data-range="noteLikeRange" role="group" aria-label="点赞量区间">
+            <input id="note-like-min" name="noteLikeMin" class="a3-input" type="number" min="0" placeholder="最小" />
+            <span class="fav-range-sep">–</span>
+            <input id="note-like-max" name="noteLikeMax" class="a3-input" type="number" min="0" placeholder="最大" />
+          </div>
+          <div class="fav-field-error" data-error="noteLikeRange"></div>
+        </div>
+      </section>
+
+      <section class="fav-filter-section" id="pgy-filter-section">
+        <h3 class="fav-section-head">蒲公英数据筛选</h3>
+        <p class="fav-hint">
+          <i class="fas fa-circle-info"></i>
+          按达人蒲公英指标收窄候选；未填的区间不限制。商单指标均为近 30 天全流量图文+视频。
+        </p>
+
+        <div class="fav-filter-group">
+          <h4 class="fav-filter-group-title">达人基础信息</h4>
+          <div class="fav-form-item fav-form-item-tight">
+            <div class="fav-label-row"><label for="pgy-quote-min">报价</label></div>
+            <div class="fav-range" data-range="pgyQuoteRange" role="group" aria-label="报价区间">
+              <input id="pgy-quote-min" name="pgyQuoteMin" class="a3-input" type="number" min="0" placeholder="最小" />
+              <span class="fav-range-sep">–</span>
+              <input id="pgy-quote-max" name="pgyQuoteMax" class="a3-input" type="number" min="0" placeholder="最大" />
+            </div>
+            <p class="fav-hint fav-hint-tight">图文报价、视频报价均按此区间筛选</p>
+            <div class="fav-field-error" data-error="pgyQuoteRange"></div>
+          </div>
+        </div>
+
+        <div class="fav-filter-group">
+          <h4 class="fav-filter-group-title">达人粉丝</h4>
+          <div class="fav-form-item fav-form-item-tight">
+            <div class="fav-label-row"><label for="pgy-fans-min">达人粉丝数</label></div>
+            <div class="fav-range" data-range="pgyFansRange" role="group" aria-label="达人粉丝数区间">
+              <input id="pgy-fans-min" name="pgyFansMin" class="a3-input" type="number" min="0" placeholder="最小" />
+              <span class="fav-range-sep">–</span>
+              <input id="pgy-fans-max" name="pgyFansMax" class="a3-input" type="number" min="0" placeholder="最大" />
+            </div>
+            <div class="fav-field-error" data-error="pgyFansRange"></div>
+          </div>
+        </div>
+
+        <div class="fav-filter-group">
+          <h4 class="fav-filter-group-title">达人商单数据</h4>
+          <div class="fav-form-row">
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-cpe-min">近30天全流量商单 CPE</label></div>
+              <div class="fav-range" data-range="pgyCpeRange" role="group" aria-label="近30天全流量商单 CPE 区间">
+                <input id="pgy-cpe-min" name="pgyCpeMin" class="a3-input" type="number" min="0" step="0.01" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-cpe-max" name="pgyCpeMax" class="a3-input" type="number" min="0" step="0.01" placeholder="最大" />
+              </div>
+              <div class="fav-field-error" data-error="pgyCpeRange"></div>
+            </div>
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-expose-min">商单曝光</label></div>
+              <div class="fav-range" data-range="pgyExposeRange" role="group" aria-label="商单曝光区间">
+                <input id="pgy-expose-min" name="pgyExposeMin" class="a3-input" type="number" min="0" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-expose-max" name="pgyExposeMax" class="a3-input" type="number" min="0" placeholder="最大" />
+              </div>
+              <div class="fav-field-error" data-error="pgyExposeRange"></div>
+            </div>
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-read-min">商单阅读</label></div>
+              <div class="fav-range" data-range="pgyReadRange" role="group" aria-label="商单阅读区间">
+                <input id="pgy-read-min" name="pgyReadMin" class="a3-input" type="number" min="0" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-read-max" name="pgyReadMax" class="a3-input" type="number" min="0" placeholder="最大" />
+              </div>
+              <div class="fav-field-error" data-error="pgyReadRange"></div>
+            </div>
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-interact-min">商单互动率</label></div>
+              <div class="fav-range fav-range-pct" data-range="pgyInteractRange" role="group" aria-label="商单互动率区间">
+                <input id="pgy-interact-min" name="pgyInteractMin" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-interact-max" name="pgyInteractMax" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最大" />
+                <span class="fav-range-unit">%</span>
+              </div>
+              <div class="fav-field-error" data-error="pgyInteractRange"></div>
+            </div>
+            <div class="fav-form-item">
+              <div class="fav-label-row"><label for="pgy-complete-min">商单完播率</label></div>
+              <div class="fav-range fav-range-pct" data-range="pgyCompleteRange" role="group" aria-label="商单完播率区间">
+                <input id="pgy-complete-min" name="pgyCompleteMin" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最小" />
+                <span class="fav-range-sep">–</span>
+                <input id="pgy-complete-max" name="pgyCompleteMax" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最大" />
+                <span class="fav-range-unit">%</span>
+              </div>
+              <div class="fav-field-error" data-error="pgyCompleteRange"></div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="a3-btn a3-btn-text"
+          id="pgy-more-toggle"
+          aria-expanded="false"
+          aria-controls="pgy-more-filters"
+        >
+          <i class="fas fa-angle-down"></i>
+          更多筛选
+        </button>
+        <div id="pgy-more-filters" class="fav-more-filters fav-hidden">
+          <div class="fav-filter-group">
+            <h4 class="fav-filter-group-title">达人日常笔记数据</h4>
+            <div class="fav-form-row">
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-daily-read-min">日常笔记阅读</label></div>
+                <div class="fav-range" data-range="pgyDailyReadRange" role="group" aria-label="日常笔记阅读区间">
+                  <input id="pgy-daily-read-min" name="pgyDailyReadMin" class="a3-input" type="number" min="0" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-daily-read-max" name="pgyDailyReadMax" class="a3-input" type="number" min="0" placeholder="最大" />
+                </div>
+                <div class="fav-field-error" data-error="pgyDailyReadRange"></div>
+              </div>
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-daily-interact-min">日常笔记互动率</label></div>
+                <div class="fav-range fav-range-pct" data-range="pgyDailyInteractRange" role="group" aria-label="日常笔记互动率区间">
+                  <input id="pgy-daily-interact-min" name="pgyDailyInteractMin" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-daily-interact-max" name="pgyDailyInteractMax" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最大" />
+                  <span class="fav-range-unit">%</span>
+                </div>
+                <div class="fav-field-error" data-error="pgyDailyInteractRange"></div>
+              </div>
+            </div>
+          </div>
+          <div class="fav-filter-group">
+            <h4 class="fav-filter-group-title">更多商单指标</h4>
+            <div class="fav-form-row">
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-like-est-min">商单预估点赞</label></div>
+                <div class="fav-range" data-range="pgyLikeEstRange" role="group" aria-label="商单预估点赞区间">
+                  <input id="pgy-like-est-min" name="pgyLikeEstMin" class="a3-input" type="number" min="0" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-like-est-max" name="pgyLikeEstMax" class="a3-input" type="number" min="0" placeholder="最大" />
+                </div>
+                <div class="fav-field-error" data-error="pgyLikeEstRange"></div>
+              </div>
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-read3s-min">商单3秒阅读率</label></div>
+                <div class="fav-range fav-range-pct" data-range="pgyRead3sRange" role="group" aria-label="商单3秒阅读率区间">
+                  <input id="pgy-read3s-min" name="pgyRead3sMin" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-read3s-max" name="pgyRead3sMax" class="a3-input" type="number" min="0" max="100" step="0.1" placeholder="最大" />
+                  <span class="fav-range-unit">%</span>
+                </div>
+                <div class="fav-field-error" data-error="pgyRead3sRange"></div>
+              </div>
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-cpv-min">商单 CPV</label></div>
+                <div class="fav-range" data-range="pgyCpvRange" role="group" aria-label="商单 CPV 区间">
+                  <input id="pgy-cpv-min" name="pgyCpvMin" class="a3-input" type="number" min="0" step="0.01" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-cpv-max" name="pgyCpvMax" class="a3-input" type="number" min="0" step="0.01" placeholder="最大" />
+                </div>
+                <div class="fav-field-error" data-error="pgyCpvRange"></div>
+              </div>
+              <div class="fav-form-item">
+                <div class="fav-label-row"><label for="pgy-cpm-min">商单 CPM</label></div>
+                <div class="fav-range" data-range="pgyCpmRange" role="group" aria-label="商单 CPM 区间">
+                  <input id="pgy-cpm-min" name="pgyCpmMin" class="a3-input" type="number" min="0" step="0.01" placeholder="最小" />
+                  <span class="fav-range-sep">–</span>
+                  <input id="pgy-cpm-max" name="pgyCpmMax" class="a3-input" type="number" min="0" step="0.01" placeholder="最大" />
+                </div>
+                <div class="fav-field-error" data-error="pgyCpmRange"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </form>
+    <div class="a3-drawer-footer">
+      <button type="button" class="a3-btn a3-btn-default" id="task-cancel">取消</button>
+      <button type="submit" form="keyword-task-form" class="a3-btn a3-btn-primary" id="task-submit">确定</button>
+    </div>
+  </aside>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
