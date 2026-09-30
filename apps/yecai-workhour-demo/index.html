@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>业财系统 · 中台工时归集</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #14181f;
+      --ink-2: #1e2630;
+      --paper: #f3efe6;
+      --paper-dim: #d8d2c4;
+      --sea: #1f6f78;
+      --sea-bright: #2a9aa3;
+      --ember: #d9773a;
+      --ember-deep: #b85a22;
+      --ok: #2f9e6b;
+      --line: rgba(243, 239, 230, 0.14);
+      --mist: rgba(243, 239, 230, 0.06);
+      --font-display: "DM Serif Display", "Songti SC", serif;
+      --font-body: "Manrope", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--font-body);
+      color: var(--paper);
+      background: var(--ink);
+      overflow-x: hidden;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    button { cursor: pointer; border: 0; background: none; }
+
+    .field {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 55% at 85% 0%, rgba(42, 154, 163, 0.22), transparent 55%),
+        radial-gradient(ellipse 60% 45% at 0% 100%, rgba(217, 119, 58, 0.12), transparent 50%),
+        linear-gradient(160deg, #0e1218 0%, #14181f 45%, #1a232c 100%);
+    }
+    .field::after {
+      content: "";
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 60L60 0M30 60L60 30M0 30L30 0' stroke='%23f3efe6' stroke-opacity='0.03' fill='none'/%3E%3C/svg%3E");
+      opacity: 0.9;
+      animation: grain 20s linear infinite;
+    }
+    @keyframes grain {
+      from { transform: translate(0,0); }
+      to { transform: translate(-60px, -60px); }
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes tally {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    .app { position: relative; z-index: 1; min-height: 100vh; }
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: block; animation: rise 0.5s var(--ease) both; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1080px; margin: 0 auto; padding: 1.1rem 1.4rem;
+    }
+    .mark { font-weight: 700; letter-spacing: 0.02em; font-size: 0.95rem; }
+    .mark em { font-style: normal; color: var(--sea-bright); }
+    .dots { display: flex; gap: 0.4rem; }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--line);
+      transition: background .25s, transform .25s;
+    }
+    .dot.on { background: var(--sea-bright); transform: scale(1.3); }
+
+    .hero {
+      min-height: calc(100vh - 4rem);
+      max-width: 1080px; margin: 0 auto;
+      padding: 1rem 1.4rem 3.5rem;
+      display: grid; align-content: center;
+      position: relative;
+    }
+    .hero-anchor {
+      position: absolute; right: -2%; top: 18%;
+      width: min(48vw, 460px); aspect-ratio: 1.1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 40% 35%, rgba(243,239,230,0.18), transparent 42%),
+        radial-gradient(circle at 70% 70%, rgba(217,119,58,0.28), transparent 48%),
+        linear-gradient(150deg, rgba(42,154,163,0.55), rgba(31,111,120,0.15));
+      border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%;
+      animation: rise 1.2s var(--ease) both;
+      filter: blur(0.2px);
+      box-shadow: inset 0 0 60px rgba(243,239,230,0.08);
+    }
+    .brand {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 8.5vw, 5.6rem);
+      line-height: 0.98; margin: 0 0 1rem; letter-spacing: -0.02em;
+      max-width: 9ch;
+    }
+    .brand span { display: block; color: var(--sea-bright); font-size: 0.72em; }
+    .lede {
+      max-width: 34ch; color: var(--paper-dim);
+      font-size: clamp(1.02rem, 2vw, 1.2rem); line-height: 1.55; margin: 0 0 1.8rem;
+    }
+    .cta { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .btn-primary {
+      background: var(--ember); color: #1a120c; font-weight: 700;
+      padding: 0.85rem 1.35rem; border-radius: 999px;
+      transition: transform .2s var(--ease), background .2s;
+    }
+    .btn-primary:hover { background: #e6894a; transform: translateY(-1px); }
+    .btn-ghost {
+      border: 1px solid var(--line); color: var(--paper-dim);
+      padding: 0.8rem 1.2rem; border-radius: 999px;
+    }
+    .btn-ghost:hover { color: var(--paper); border-color: var(--paper-dim); }
+
+    .shell {
+      max-width: 1080px; margin: 0 auto; padding: 0 1.3rem 2.4rem;
+    }
+    .panel-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      margin: 0 0 0.4rem; letter-spacing: -0.01em;
+    }
+    .panel-sub {
+      margin: 0 0 1.4rem; color: var(--paper-dim);
+      max-width: 52ch; line-height: 1.5; font-size: 0.98rem;
+    }
+
+    .week-bar {
+      display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
+      margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line);
+    }
+    .week-bar label { font-size: 0.85rem; color: var(--paper-dim); }
+    .week-bar strong { font-variant-numeric: tabular-nums; }
+
+    .entry-grid { display: grid; gap: 0.85rem; }
+    .entry {
+      display: grid; gap: 0.65rem;
+      padding: 1rem 0; border-bottom: 1px solid var(--line);
+      animation: rise .4s var(--ease) both;
+    }
+    @media (min-width: 720px) {
+      .entry {
+        grid-template-columns: 1.2fr 1fr 1fr 90px auto;
+        align-items: end;
+      }
+    }
+    .field-label {
+      display: block; font-size: 0.72rem; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--paper-dim); margin-bottom: 0.35rem;
+    }
+    select, .hours-input {
+      width: 100%;
+      background: var(--mist); border: 1px solid var(--line);
+      border-radius: 10px; padding: 0.65rem 0.75rem; outline: none;
+    }
+    select:focus, .hours-input:focus { border-color: var(--sea-bright); }
+    .hours-input { font-variant-numeric: tabular-nums; }
+    .entry-remove {
+      color: var(--paper-dim); font-size: 0.85rem; padding: 0.65rem 0.4rem;
+    }
+    .entry-remove:hover { color: #e07060; }
+    .sum-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-top: 1rem; font-size: 0.95rem;
+    }
+    .sum-row .warn { color: #e07060; }
+    .sum-row .ok { color: var(--ok); }
+
+    .alloc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+    .alloc-item {
+      display: grid; gap: 0.35rem;
+      padding: 1rem 0; border-bottom: 1px solid var(--line);
+      animation: rise .4s var(--ease) both;
+    }
+    @media (min-width: 720px) {
+      .alloc-item { grid-template-columns: 1.4fr 1fr 80px; align-items: center; gap: 1rem; }
+    }
+    .bar {
+      height: 6px; background: rgba(243,239,230,0.08); border-radius: 99px; overflow: hidden;
+    }
+    .bar > i {
+      display: block; height: 100%; background: linear-gradient(90deg, var(--sea-bright), var(--ember));
+      transform-origin: left; animation: tally .8s var(--ease) both; border-radius: 99px;
+    }
+    .alloc-meta { font-size: 0.85rem; color: var(--paper-dim); }
+    .alloc-hrs { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ember); text-align: right; }
+
+    .confirm-card {
+      padding: 1.1rem 0; border-bottom: 1px solid var(--line);
+    }
+    .confirm-card h3 { margin: 0 0 0.35rem; font-size: 1.05rem; }
+    .confirm-card p { margin: 0; color: var(--paper-dim); font-size: 0.92rem; line-height: 1.45; }
+    .locked {
+      display: inline-block; margin-left: 0.4rem;
+      font-size: 0.72rem; padding: 0.12rem 0.4rem; border-radius: 4px;
+      background: rgba(47,158,107,0.2); color: var(--ok);
+    }
+
+    .report-grid {
+      display: grid; gap: 1.5rem;
+    }
+    @media (min-width: 800px) {
+      .report-grid { grid-template-columns: 1.3fr 0.9fr; }
+    }
+    .role-row {
+      display: grid; grid-template-columns: 72px 1fr 56px;
+      gap: 0.75rem; align-items: center;
+      padding: 0.55rem 0; border-bottom: 1px solid var(--line);
+      font-size: 0.92rem;
+    }
+    .privacy-note {
+      margin-top: 1rem; padding: 0.9rem 0;
+      border-top: 1px solid var(--line);
+      font-size: 0.88rem; color: var(--paper-dim); line-height: 1.5;
+    }
+    .privacy-note strong { color: var(--ember); font-weight: 600; }
+
+    .footer-nav {
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.7rem;
+      margin-top: 1.6rem; padding-top: 1rem; border-top: 1px solid var(--line);
+    }
+    .hint { margin-top: 0.85rem; font-size: 0.82rem; color: var(--paper-dim); opacity: 0.9; }
+
+    @media (max-width: 720px) {
+      .hero-anchor { opacity: 0.35; width: 70vw; top: auto; bottom: 6%; right: -18%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="field" aria-hidden="true"></div>
+  <div class="app">
+    <header class="topbar">
+      <div class="mark">业财<em>系统</em></div>
+      <div class="dots" id="dots" aria-label="演示进度"></div>
+    </header>
+
+    <!-- Hero -->
+    <section class="screen active" data-screen="hero" id="screen-hero">
+      <div class="hero">
+        <div class="hero-anchor" aria-hidden="true"></div>
+        <h1 class="brand">业财系统<span>中台工时归集</span></h1>
+        <p class="lede">中台只填品牌品线与业务组——项目归属交给系统自动归集，算清每个项目耗费多少人力。</p>
+        <div class="cta">
+          <button class="btn-primary" type="button" data-go="fill">开始周填报</button>
+          <button class="btn-ghost" type="button" data-go="alloc">看自动归集</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 1: Fill -->
+    <section class="screen" data-screen="fill" id="screen-fill">
+      <div class="shell">
+        <h2 class="panel-title">步骤 1 · 周填报</h2>
+        <p class="panel-sub">中台 / 设计策划只填「品牌品线 + 业务组」工时，不判断项目或执行单归属。枚举来自主数据，禁止自由录入。</p>
+        <div class="week-bar">
+          <label>填报周</label>
+          <strong>2026-W39（9/22–9/28）</strong>
+          <label style="margin-left:auto">角色</label>
+          <strong>媒介 · 林可</strong>
+        </div>
+        <div class="entry-grid" id="entry-grid"></div>
+        <button class="btn-ghost" type="button" id="add-row" style="margin-top:0.85rem">+ 添加一行</button>
+        <div class="sum-row">
+          <span>本周合计</span>
+          <span id="hours-sum">0 / 40 小时</span>
+        </div>
+        <div class="footer-nav">
+          <button class="btn-ghost" type="button" data-go="hero">返回</button>
+          <button class="btn-primary" type="button" id="submit-fill">提交 · 进入归集</button>
+        </div>
+        <p class="hint">口径：分摊不挂钩绩效；填不动的环节由规则兜底。</p>
+      </div>
+    </section>
+
+    <!-- Step 2: Alloc -->
+    <section class="screen" data-screen="alloc" id="screen-alloc">
+      <div class="shell">
+        <h2 class="panel-title">步骤 2 · 系统自动归集</h2>
+        <p class="panel-sub">按「品牌品线 → 项目 → 业务组参与的执行单」链路拆分；默认按执行单付款金额等比例分摊。</p>
+        <ul class="alloc-list" id="alloc-list"></ul>
+        <div class="footer-nav">
+          <button class="btn-ghost" type="button" data-go="fill">改填报</button>
+          <button class="btn-primary" type="button" data-go="confirm">送 Leader 确认</button>
+        </div>
+        <p class="hint">匹配依据待确认：派单记录 / 执行单角色字段（见方案风险项）。</p>
+      </div>
+    </section>
+
+    <!-- Step 3: Confirm -->
+    <section class="screen" data-screen="confirm" id="screen-confirm">
+      <div class="shell">
+        <h2 class="panel-title">步骤 3 · Leader 确认锁定</h2>
+        <p class="panel-sub">业务 leader 审核划分结果；确认后锁定，纳入项目与品牌品线人力耗费统计。</p>
+        <div id="confirm-list"></div>
+        <div class="footer-nav">
+          <button class="btn-ghost" type="button" data-go="alloc">返回归集</button>
+          <button class="btn-primary" type="button" id="lock-btn">确认并锁定本周</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Report -->
+    <section class="screen" data-screen="report" id="screen-report">
+      <div class="shell">
+        <h2 class="panel-title">终点 · 人效视图</h2>
+        <p class="panel-sub">输出项目 / 品牌品线人力耗费，并按角色拆分投入。业务线只见人天，不见金额化人力成本。</p>
+        <div class="report-grid">
+          <div>
+            <h3 style="margin:0 0 0.75rem;font-size:1rem;color:var(--paper-dim);font-weight:600;">项目 · 投入人天（业务线可见）</h3>
+            <div id="project-report"></div>
+          </div>
+          <div>
+            <h3 style="margin:0 0 0.75rem;font-size:1rem;color:var(--paper-dim);font-weight:600;">角色拆分 · 青禾·精华水</h3>
+            <div id="role-report"></div>
+            <div class="privacy-note">
+              <strong>薪酬保密：</strong>金额化人力成本（工时 × 内部人效单价）仅财务与负责人可见。当前视图以业务线身份登录——字段级权限已隐藏成本列。
+            </div>
+          </div>
+        </div>
+        <div class="footer-nav">
+          <button class="btn-ghost" type="button" data-go="confirm">返回确认</button>
+          <button class="btn-primary" type="button" data-go="hero">回到首页</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const SCREENS = ["hero", "fill", "alloc", "confirm", "report"];
+    const BRANDS = ["青禾·精华水", "青禾·面膜", "北境智造·主机", "星澜茶·瓶装"];
+    const GROUPS = ["华东投放组", "内容策划组", "媒介采买组", "设计策略组"];
+
+    const state = {
+      rows: [
+        { brand: "青禾·精华水", group: "华东投放组", hours: 16 },
+        { brand: "青禾·精华水", group: "内容策划组", hours: 8 },
+        { brand: "北境智造·主机", group: "媒介采买组", hours: 12 },
+      ],
+      locked: false,
+    };
+
+    const dots = document.getElementById("dots");
+    SCREENS.forEach((id, i) => {
+      const d = document.createElement("button");
+      d.type = "button";
+      d.className = "dot" + (i === 0 ? " on" : "");
+      d.title = id;
+      d.addEventListener("click", () => go(id));
+      dots.appendChild(d);
+    });
+
+    function go(id) {
+      document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.dataset.screen === id));
+      [...dots.children].forEach((d, i) => d.classList.toggle("on", SCREENS[i] === id));
+      if (id === "fill") renderFill();
+      if (id === "alloc") renderAlloc();
+      if (id === "confirm") renderConfirm();
+      if (id === "report") renderReport();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => go(b.dataset.go)));
+
+    function renderFill() {
+      const grid = document.getElementById("entry-grid");
+      grid.innerHTML = "";
+      state.rows.forEach((row, idx) => {
+        const el = document.createElement("div");
+        el.className = "entry";
+        el.style.animationDelay = idx * 0.05 + "s";
+        el.innerHTML = `
+          <div>
+            <span class="field-label">品牌品线</span>
+            <select data-k="brand" data-i="${idx}">${BRANDS.map((b) => `<option ${b===row.brand?"selected":""}>${b}</option>`).join("")}</select>
+          </div>
+          <div>
+            <span class="field-label">业务组</span>
+            <select data-k="group" data-i="${idx}">${GROUPS.map((g) => `<option ${g===row.group?"selected":""}>${g}</option>`).join("")}</select>
+          </div>
+          <div>
+            <span class="field-label">工时（小时）</span>
+            <input class="hours-input" type="number" min="0" max="40" step="0.5" value="${row.hours}" data-k="hours" data-i="${idx}" />
+          </div>
+          <div></div>
+          <button type="button" class="entry-remove" data-rm="${idx}">删除</button>
+        `;
+        grid.appendChild(el);
+      });
+      grid.querySelectorAll("select, input").forEach((inp) => {
+        inp.addEventListener("change", () => {
+          const i = +inp.dataset.i;
+          const k = inp.dataset.k;
+          state.rows[i][k] = k === "hours" ? Number(inp.value) : inp.value;
+          updateSum();
+        });
+      });
+      grid.querySelectorAll("[data-rm]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.rows.splice(+btn.dataset.rm, 1);
+          renderFill();
+        });
+      });
+      updateSum();
+    }
+
+    function updateSum() {
+      const total = state.rows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+      const el = document.getElementById("hours-sum");
+      el.textContent = `${total} / 40 小时`;
+      el.className = total > 40 ? "warn" : total >= 32 ? "ok" : "";
+    }
+
+    document.getElementById("add-row").addEventListener("click", () => {
+      state.rows.push({ brand: BRANDS[0], group: GROUPS[0], hours: 4 });
+      renderFill();
+    });
+
+    document.getElementById("submit-fill").addEventListener("click", () => {
+      const total = state.rows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+      if (!state.rows.length) return alert("请至少填报一行工时");
+      if (total <= 0) return alert("合计工时需大于 0");
+      go("alloc");
+    });
+
+    /** Deterministic mock allocation: brand+group → projects/orders */
+    function buildAllocations() {
+      const catalog = {
+        "青禾·精华水|华东投放组": [
+          { project: "青禾精华 Q3 种草", order: "ZX-东投-0918", amount: 280000, weight: 0.62 },
+          { project: "青禾精华 会员日", order: "ZX-东投-0922", amount: 120000, weight: 0.38 },
+        ],
+        "青禾·精华水|内容策划组": [
+          { project: "青禾精华 Q3 种草", order: "ZX-策划-0901", amount: 90000, weight: 1 },
+        ],
+        "北境智造·主机|媒介采买组": [
+          { project: "北境主机 双11 预热", order: "ZX-媒介-0915", amount: 450000, weight: 0.7 },
+          { project: "北境主机 渠道专项", order: "ZX-媒介-0920", amount: 150000, weight: 0.3 },
+        ],
+      };
+      const fallback = [{ project: "未匹配项目（待 Leader 调整）", order: "—", amount: 0, weight: 1 }];
+      const out = [];
+      state.rows.forEach((r) => {
+        const key = `${r.brand}|${r.group}`;
+        const parts = catalog[key] || fallback;
+        parts.forEach((p) => {
+          out.push({
+            brand: r.brand,
+            group: r.group,
+            project: p.project,
+            order: p.order,
+            hours: Math.round(r.hours * p.weight * 10) / 10,
+            pct: Math.round(p.weight * 100),
+          });
+        });
+      });
+      return out;
+    }
+
+    function renderAlloc() {
+      const list = document.getElementById("alloc-list");
+      const rows = buildAllocations();
+      list.innerHTML = "";
+      rows.forEach((r, i) => {
+        const li = document.createElement("li");
+        li.className = "alloc-item";
+        li.style.animationDelay = i * 0.06 + "s";
+        li.innerHTML = `
+          <div>
+            <strong>${r.project}</strong>
+            <div class="alloc-meta">${r.brand} · ${r.group} → 执行单 ${r.order}</div>
+          </div>
+          <div>
+            <div class="bar"><i style="width:${r.pct}%;animation-delay:${i*0.06}s"></i></div>
+            <div class="alloc-meta">金额权重 ${r.pct}%</div>
+          </div>
+          <div class="alloc-hrs">${r.hours}h</div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function renderConfirm() {
+      const box = document.getElementById("confirm-list");
+      const rows = buildAllocations();
+      const byProject = {};
+      rows.forEach((r) => {
+        byProject[r.project] = (byProject[r.project] || 0) + r.hours;
+      });
+      box.innerHTML = Object.entries(byProject).map(([p, h]) => `
+        <div class="confirm-card">
+          <h3>${p}${state.locked ? '<span class="locked">已锁定</span>' : ""}</h3>
+          <p>归集工时 ${h} 小时 · 来源中台周填报 · 分摊规则：执行单金额等比例</p>
+        </div>
+      `).join("");
+      document.getElementById("lock-btn").textContent = state.locked ? "已锁定 · 查看人效" : "确认并锁定本周";
+    }
+
+    document.getElementById("lock-btn").addEventListener("click", () => {
+      state.locked = true;
+      go("report");
+    });
+
+    function renderReport() {
+      const rows = buildAllocations();
+      const byProject = {};
+      rows.forEach((r) => { byProject[r.project] = (byProject[r.project] || 0) + r.hours; });
+      const proj = document.getElementById("project-report");
+      proj.innerHTML = Object.entries(byProject).map(([p, h]) => {
+        const days = (h / 8).toFixed(1);
+        const pct = Math.min(100, Math.round((h / 40) * 100));
+        return `<div class="role-row"><span>人天</span><div><strong>${p}</strong><div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div></div><span>${days}</span></div>`;
+      }).join("");
+
+      const roleEl = document.getElementById("role-report");
+      const roles = [
+        { name: "媒介", days: 2.0 },
+        { name: "投手", days: 1.5 },
+        { name: "策划", days: 1.0 },
+        { name: "设计", days: 0.5 },
+      ];
+      roleEl.innerHTML = roles.map((r) => {
+        const pct = Math.round((r.days / 5) * 100);
+        return `<div class="role-row"><span>${r.name}</span><div class="bar"><i style="width:${pct}%"></i></div><span>${r.days}d</span></div>`;
+      }).join("");
+    }
+  </script>
+</body>
+</html>
