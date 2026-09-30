@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>业财 · 液态系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0b1c24;
+      --ink-soft: #1a3340;
+      --foam: #e8f4f2;
+      --foam-dim: #c5ddd8;
+      --tide: #0e6b6a;
+      --tide-bright: #1aa39a;
+      --amber: #e8a54b;
+      --amber-deep: #c4782a;
+      --mist: rgba(232, 244, 242, 0.08);
+      --line: rgba(232, 244, 242, 0.16);
+      --danger: #e07060;
+      --ok: #3ecf8e;
+      --font-display: "Fraunces", Georgia, serif;
+      --font-body: "Outfit", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--font-body);
+      color: var(--foam);
+      background: var(--ink);
+      overflow-x: hidden;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; border: 0; background: none; color: inherit; }
+    a { color: inherit; }
+
+    /* Atmospheric field */
+    .field {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 90% 60% at 70% 10%, rgba(26, 163, 154, 0.28), transparent 55%),
+        radial-gradient(ellipse 70% 50% at 10% 80%, rgba(232, 165, 75, 0.12), transparent 50%),
+        linear-gradient(165deg, #06141a 0%, #0b1c24 40%, #0f2a32 100%);
+    }
+    .field::before {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(14, 107, 106, 0.35) 0%, transparent 35%),
+        radial-gradient(circle at 80% 60%, rgba(26, 163, 154, 0.2) 0%, transparent 40%);
+      animation: drift 18s ease-in-out infinite alternate;
+    }
+    .wave-layer {
+      position: absolute;
+      left: -10%;
+      right: -10%;
+      bottom: -8%;
+      height: 42%;
+      opacity: 0.35;
+      background:
+        radial-gradient(ellipse 120% 80% at 50% 100%, rgba(26, 163, 154, 0.45), transparent 70%);
+      animation: swell 9s ease-in-out infinite alternate;
+      filter: blur(2px);
+    }
+    @keyframes drift {
+      from { transform: translate(-2%, -1%) scale(1); }
+      to { transform: translate(3%, 2%) scale(1.06); }
+    }
+    @keyframes swell {
+      from { transform: translateY(0) scaleX(1); }
+      to { transform: translateY(-18px) scaleX(1.04); }
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes liquidPulse {
+      0%, 100% { transform: scale(1); filter: blur(0); }
+      50% { transform: scale(1.04); filter: blur(0.3px); }
+    }
+    @keyframes flowDash {
+      to { stroke-dashoffset: -40; }
+    }
+
+    .app { position: relative; z-index: 1; min-height: 100vh; }
+
+    /* Screens */
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: block; animation: rise 0.55s var(--ease) both; }
+
+    /* Top nav — light, brand stays in hero */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 1.5rem;
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+    .topbar-mark {
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      font-size: 0.92rem;
+      color: var(--foam-dim);
+    }
+    .topbar-mark span { color: var(--tide-bright); }
+    .step-rail {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+    }
+    .step-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--line);
+      transition: background 0.3s, transform 0.3s;
+    }
+    .step-dot.on {
+      background: var(--tide-bright);
+      transform: scale(1.35);
+    }
+
+    /* Hero */
+    .hero {
+      min-height: calc(100vh - 4rem);
+      display: grid;
+      align-content: center;
+      padding: 1rem 1.5rem 4rem;
+      max-width: 1120px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .hero-visual {
+      position: absolute;
+      right: -4%;
+      top: 12%;
+      width: min(52vw, 520px);
+      aspect-ratio: 1;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    .liquid-orb {
+      width: 100%;
+      height: 100%;
+      border-radius: 46% 54% 48% 52% / 52% 44% 56% 48%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(232, 244, 242, 0.35), transparent 40%),
+        radial-gradient(circle at 70% 65%, rgba(232, 165, 75, 0.35), transparent 45%),
+        linear-gradient(145deg, rgba(26, 163, 154, 0.75), rgba(14, 107, 106, 0.35) 55%, rgba(11, 28, 36, 0.2));
+      animation: liquidPulse 6s ease-in-out infinite;
+      box-shadow: 0 0 80px rgba(26, 163, 154, 0.25);
+    }
+    .brand {
+      font-family: var(--font-display);
+      font-size: clamp(3.2rem, 9vw, 6.2rem);
+      font-weight: 700;
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      margin: 0 0 1.2rem;
+      max-width: 12ch;
+    }
+    .brand em {
+      font-style: normal;
+      color: var(--tide-bright);
+      display: block;
+    }
+    .lede {
+      font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+      color: var(--foam-dim);
+      max-width: 32ch;
+      line-height: 1.55;
+      margin: 0 0 2rem;
+    }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 0.85rem; align-items: center; }
+    .btn-primary {
+      background: var(--amber);
+      color: var(--ink);
+      font-weight: 600;
+      padding: 0.85rem 1.4rem;
+      border-radius: 999px;
+      transition: transform 0.2s var(--ease), background 0.2s;
+    }
+    .btn-primary:hover { background: #f0b45e; transform: translateY(-1px); }
+    .btn-ghost {
+      border: 1px solid var(--line);
+      padding: 0.8rem 1.25rem;
+      border-radius: 999px;
+      color: var(--foam-dim);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--foam-dim); color: var(--foam); }
+
+    /* Workspace shell */
+    .shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 1.25rem 2.5rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    @media (min-width: 900px) {
+      .shell.with-side {
+        grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+        align-items: start;
+      }
+    }
+
+    .panel-title {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.02em;
+    }
+    .panel-sub {
+      margin: 0 0 1.25rem;
+      color: var(--foam-dim);
+      font-size: 0.95rem;
+      max-width: 48ch;
+      line-height: 1.5;
+    }
+
+    .thread {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: 52vh;
+      padding-bottom: 1rem;
+    }
+    .bubble {
+      max-width: min(560px, 92%);
+      padding: 0.95rem 1.1rem;
+      border-radius: 1.15rem;
+      line-height: 1.55;
+      font-size: 0.98rem;
+      animation: rise 0.4s var(--ease) both;
+    }
+    .bubble.agent {
+      align-self: flex-start;
+      background: rgba(14, 107, 106, 0.28);
+      border: 1px solid rgba(26, 163, 154, 0.35);
+      border-bottom-left-radius: 0.35rem;
+    }
+    .bubble.user {
+      align-self: flex-end;
+      background: rgba(232, 165, 75, 0.16);
+      border: 1px solid rgba(232, 165, 75, 0.35);
+      border-bottom-right-radius: 0.35rem;
+    }
+    .bubble .who {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--foam-dim);
+      margin-bottom: 0.35rem;
+    }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.85rem; }
+    .chip {
+      border: 1px solid var(--line);
+      background: var(--mist);
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      color: var(--foam);
+      transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    }
+    .chip:hover, .chip:focus-visible {
+      background: rgba(26, 163, 154, 0.25);
+      border-color: var(--tide-bright);
+      outline: none;
+      transform: translateY(-1px);
+    }
+    .chip.used {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .composer {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: auto;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--line);
+    }
+    .composer input {
+      flex: 1;
+      background: rgba(232, 244, 242, 0.06);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.85rem 1.1rem;
+      color: var(--foam);
+      outline: none;
+    }
+    .composer input:focus { border-color: var(--tide-bright); }
+    .composer .send {
+      background: var(--tide-bright);
+      color: var(--ink);
+      font-weight: 600;
+      padding: 0 1.15rem;
+      border-radius: 999px;
+    }
+
+    /* Morph / flow panel */
+    .flow-panel {
+      border-top: 1px solid var(--line);
+      padding-top: 1rem;
+    }
+    .flow-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .flow-node text {
+      fill: var(--foam);
+      font-family: var(--font-body);
+      font-size: 13px;
+    }
+    .flow-label {
+      fill: var(--foam-dim) !important;
+      font-size: 11px !important;
+    }
+    .morph-list {
+      list-style: none;
+      margin: 1rem 0 0;
+      padding: 0;
+      display: grid;
+      gap: 0.65rem;
+    }
+    .morph-list li {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.75rem;
+      align-items: baseline;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.92rem;
+      animation: rise 0.45s var(--ease) both;
+    }
+    .morph-list .tag {
+      color: var(--tide-bright);
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+    }
+    .morph-list .amt { font-variant-numeric: tabular-nums; color: var(--amber); font-weight: 600; }
+
+    /* Rules */
+    .rule-stack { display: grid; gap: 0.85rem; }
+    .rule {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .rule h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .rule p { margin: 0; color: var(--foam-dim); font-size: 0.9rem; line-height: 1.45; }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 0.75rem;
+    }
+    .toggle {
+      width: 46px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--ink-soft);
+      border: 1px solid var(--line);
+      position: relative;
+      transition: background 0.25s;
+      flex: none;
+    }
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--foam-dim);
+      transition: transform 0.25s var(--ease), background 0.25s;
+    }
+    .toggle.on { background: rgba(26, 163, 154, 0.45); border-color: var(--tide-bright); }
+    .toggle.on::after { transform: translateX(20px); background: var(--tide-bright); }
+
+    /* Audit */
+    .audit-trail {
+      display: grid;
+      gap: 0;
+    }
+    .audit-row {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--line);
+      animation: rise 0.4s var(--ease) both;
+    }
+    .audit-row time {
+      font-size: 0.8rem;
+      color: var(--foam-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .audit-row strong { display: block; margin-bottom: 0.25rem; }
+    .audit-row span { color: var(--foam-dim); font-size: 0.9rem; line-height: 1.45; }
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      margin-left: 0.4rem;
+      vertical-align: middle;
+    }
+    .badge.ok { background: rgba(62, 207, 142, 0.2); color: var(--ok); }
+    .badge.warn { background: rgba(232, 165, 75, 0.2); color: var(--amber); }
+
+    .footer-nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1.75rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .note {
+      margin-top: 1rem;
+      font-size: 0.82rem;
+      color: var(--foam-dim);
+      opacity: 0.85;
+    }
+
+    @media (max-width: 720px) {
+      .hero-visual { opacity: 0.35; width: 70vw; top: auto; bottom: 8%; right: -15%; }
+      .brand { max-width: 10ch; }
+      .audit-row { grid-template-columns: 1fr; gap: 0.25rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="field" aria-hidden="true">
+    <div class="wave-layer"></div>
+  </div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-mark">业财 · <span>液态</span></div>
+      <div class="step-rail" id="step-rail" aria-label="演示进度"></div>
+    </header>
+
+    <!-- 0 Hero -->
+    <section class="screen active" data-screen="hero" id="screen-hero">
+      <div class="hero">
+        <div class="hero-visual" aria-hidden="true"><div class="liquid-orb"></div></div>
+        <h1 class="brand">业财<em>液态系统</em></h1>
+        <p class="lede">业务事件像水流进容器——财务含义随形而变，不必等到月末才凝固。</p>
+        <div class="cta-row">
+          <button class="btn-primary" type="button" data-go="thread">开始体验液态对话</button>
+          <button class="btn-ghost" type="button" data-go="morph">直接看事件→凭证</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1 Conversation -->
+    <section class="screen" data-screen="thread" id="screen-thread">
+      <div class="shell">
+        <div>
+          <h2 class="panel-title">把业务丢进液面</h2>
+          <p class="panel-sub">对话是脸。点选一笔业务事件，液态系统当场解读成财务含义——不是填八个模块。</p>
+          <div class="thread" id="thread"></div>
+          <div class="composer">
+            <input id="composer-input" type="text" placeholder="或自己描述一笔业务…" autocomplete="off" />
+            <button class="send" type="button" id="composer-send">发送</button>
+          </div>
+          <div class="footer-nav">
+            <button class="btn-ghost" type="button" data-go="hero">返回</button>
+            <button class="btn-primary" type="button" data-go="morph">看液态变形</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 Morph -->
+    <section class="screen" data-screen="morph" id="screen-morph">
+      <div class="shell with-side">
+        <div>
+          <h2 class="panel-title">事件 → 凭证 · 现金 · 成本</h2>
+          <p class="panel-sub">同一笔业务在液态里同时展开三层含义，实时连动，而不是事后对账硬拼。</p>
+          <div class="flow-panel">
+            <svg class="flow-svg" viewBox="0 0 560 220" role="img" aria-label="业务事件流向财务含义">
+              <defs>
+                <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#1aa39a" />
+                  <stop offset="100%" stop-color="#e8a54b" />
+                </linearGradient>
+              </defs>
+              <path d="M120 110 C 200 110, 220 50, 300 50" fill="none" stroke="url(#g1)" stroke-width="2" stroke-dasharray="6 6" style="animation: flowDash 1.2s linear infinite" />
+              <path d="M120 110 C 200 110, 220 110, 300 110" fill="none" stroke="url(#g1)" stroke-width="2" stroke-dasharray="6 6" style="animation: flowDash 1.4s linear infinite" />
+              <path d="M120 110 C 200 110, 220 170, 300 170" fill="none" stroke="url(#g1)" stroke-width="2" stroke-dasharray="6 6" style="animation: flowDash 1.6s linear infinite" />
+              <g class="flow-node">
+                <ellipse cx="90" cy="110" rx="72" ry="42" fill="rgba(26,163,154,0.25)" stroke="#1aa39a" />
+                <text x="90" y="106" text-anchor="middle">销售出库</text>
+                <text class="flow-label" x="90" y="124" text-anchor="middle">业务事件</text>
+              </g>
+              <g class="flow-node">
+                <ellipse cx="400" cy="50" rx="78" ry="36" fill="rgba(232,165,75,0.18)" stroke="#e8a54b" />
+                <text x="400" y="46" text-anchor="middle">应收确认</text>
+                <text class="flow-label" x="400" y="64" text-anchor="middle">¥128,600</text>
+              </g>
+              <g class="flow-node">
+                <ellipse cx="400" cy="110" rx="78" ry="36" fill="rgba(232,165,75,0.18)" stroke="#e8a54b" />
+                <text x="400" y="106" text-anchor="middle">成本结转</text>
+                <text class="flow-label" x="400" y="124" text-anchor="middle">¥71,200</text>
+              </g>
+              <g class="flow-node">
+                <ellipse cx="400" cy="170" rx="78" ry="36" fill="rgba(232,165,75,0.18)" stroke="#e8a54b" />
+                <text x="400" y="166" text-anchor="middle">现金流预估</text>
+                <text class="flow-label" x="400" y="184" text-anchor="middle">T+15 到账</text>
+              </g>
+            </svg>
+          </div>
+          <ul class="morph-list" id="morph-list"></ul>
+          <div class="footer-nav">
+            <button class="btn-ghost" type="button" data-go="thread">回到对话</button>
+            <button class="btn-primary" type="button" data-go="rules">调整液态规则</button>
+          </div>
+        </div>
+        <aside>
+          <h2 class="panel-title" style="font-size:1.2rem">此刻液面</h2>
+          <p class="panel-sub">毛利率 44.6% · 渠道：华东直销 · 税码：一般计税</p>
+          <p class="note">演示数据来自虚构客户「青禾供应链」出库单 OH-2026-0930-18。</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 3 Rules -->
+    <section class="screen" data-screen="rules" id="screen-rules">
+      <div class="shell">
+        <div>
+          <h2 class="panel-title">规则随形 · 不写死流水线</h2>
+          <p class="panel-sub">液态规则像容器壁：业务一变，财务形状跟着改。点开关，看对话里的解读如何重写。</p>
+          <div class="rule-stack" id="rule-stack"></div>
+          <div id="rule-feedback" class="bubble agent" style="margin-top:1.25rem;display:none"></div>
+          <div class="footer-nav">
+            <button class="btn-ghost" type="button" data-go="morph">返回变形</button>
+            <button class="btn-primary" type="button" data-go="audit">查看审计轨迹</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 Audit -->
+    <section class="screen" data-screen="audit" id="screen-audit">
+      <div class="shell">
+        <div>
+          <h2 class="panel-title">每滴水都留痕</h2>
+          <p class="panel-sub">可追溯不是另一套系统——它嵌在液态流里。从事件到凭证到规则变更，一条链说清。</p>
+          <div class="audit-trail" id="audit-trail"></div>
+          <div class="footer-nav">
+            <button class="btn-ghost" type="button" data-go="rules">返回规则</button>
+            <button class="btn-primary" type="button" data-go="hero">回到首页</button>
+          </div>
+          <p class="note">飞书背景文档当前需登录未能读取正文；本演示结合仓库业财相关 Agent 材料与「对话即产品脸」原则综合设计，待文档开放后可校准术语与流程。</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const SCREENS = ["hero", "thread", "morph", "rules", "audit"];
+    const rail = document.getElementById("step-rail");
+    SCREENS.forEach((id, i) => {
+      const d = document.createElement("button");
+      d.className = "step-dot" + (i === 0 ? " on" : "");
+      d.type = "button";
+      d.title = id;
+      d.setAttribute("aria-label", "跳到 " + id);
+      d.addEventListener("click", () => go(id));
+      rail.appendChild(d);
+    });
+
+    function go(id) {
+      document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.dataset.screen === id));
+      [...rail.children].forEach((dot, i) => dot.classList.toggle("on", SCREENS[i] === id));
+      if (id === "thread" && !threadBooted) bootThread();
+      if (id === "morph") renderMorph();
+      if (id === "rules" && !rulesBooted) bootRules();
+      if (id === "audit") renderAudit();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    document.querySelectorAll("[data-go]").forEach((btn) => {
+      btn.addEventListener("click", () => go(btn.getAttribute("data-go")));
+    });
+
+    /* —— Thread —— */
+    const threadEl = document.getElementById("thread");
+    let threadBooted = false;
+    let selectedEvent = null;
+
+    const EVENTS = [
+      {
+        id: "outbound",
+        label: "销售出库 · 青禾供应链",
+        user: "今天华东仓出库了一批货：出库单 OH-2026-0930-18，金额 128,600，客户青禾供应链，账期 15 天。",
+        agent: "收到。这滴业务已经落进液面：\n• 收入侧 → 确认应收 ¥128,600（含税）\n• 成本侧 → 结转存货成本 ¥71,200\n• 现金侧 → 预计 T+15 回款，不影响今日现金池\n毛利约 44.6%。要不要我把凭证草稿推给你确认？",
+      },
+      {
+        id: "contract",
+        label: "框架合同生效",
+        user: "和「北境智造」签了年度框架，首年保底 420 万，按季度结算。",
+        agent: "合同事件已液态展开：\n• 不立刻全额入账——按履约进度确认\n• 挂起履约义务义务池 ¥4,200,000\n• 触发信用额度占用与坏账准备测算\n需要我按「业财一体」把履约节点绑到出库单吗？",
+      },
+      {
+        id: "expense",
+        label: "市场投放报销",
+        user: "品牌部投了 86,000 的短视频投放，发票已到，要挂 Q3 市场费用。",
+        agent: "费用事件入液：\n• 费用科目 → 销售费用-推广费 ¥86,000\n• 税项 → 进项税额待认证\n• 预算 → 命中「品牌增长」池，剩余额度 214,000\n是否按项目维度分摊到「青禾渠道拉新」？",
+      },
+    ];
+
+    function addBubble(role, text, extra) {
+      const b = document.createElement("div");
+      b.className = "bubble " + role;
+      const who = document.createElement("span");
+      who.className = "who";
+      who.textContent = role === "agent" ? "液态 · 业财 Agent" : "你 · 业务财务";
+      b.appendChild(who);
+      text.split("\n").forEach((line, idx) => {
+        if (idx > 0) b.appendChild(document.createElement("br"));
+        b.appendChild(document.createTextNode(line));
+      });
+      if (extra) b.appendChild(extra);
+      threadEl.appendChild(b);
+      b.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function bootThread() {
+      threadBooted = true;
+      threadEl.innerHTML = "";
+      addBubble("agent", "我是业财液态系统。把业务事件丢进来——订单、出库、合同、费用——我会让财务含义随形流动。选一笔试试：");
+      const chips = document.createElement("div");
+      chips.className = "chip-row";
+      EVENTS.forEach((ev) => {
+        const c = document.createElement("button");
+        c.type = "button";
+        c.className = "chip";
+        c.textContent = ev.label;
+        c.addEventListener("click", () => {
+          if (c.classList.contains("used")) return;
+          c.classList.add("used");
+          playEvent(ev);
+        });
+        chips.appendChild(c);
+      });
+      threadEl.lastChild.appendChild(chips);
+    }
+
+    function playEvent(ev) {
+      selectedEvent = ev;
+      addBubble("user", ev.user);
+      setTimeout(() => {
+        const extra = document.createElement("div");
+        extra.className = "chip-row";
+        const next = document.createElement("button");
+        next.type = "button";
+        next.className = "chip";
+        next.textContent = "查看液态变形 →";
+        next.addEventListener("click", () => go("morph"));
+        extra.appendChild(next);
+        addBubble("agent", ev.agent, extra);
+      }, 480);
+    }
+
+    document.getElementById("composer-send").addEventListener("click", sendCustom);
+    document.getElementById("composer-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendCustom();
+    });
+
+    function sendCustom() {
+      const input = document.getElementById("composer-input");
+      const v = input.value.trim();
+      if (!v) return;
+      input.value = "";
+      addBubble("user", v);
+      setTimeout(() => {
+        addBubble(
+          "agent",
+          "已把你的描述当作一滴新业务：先做意图识别（收入 / 成本 / 费用 / 资金），再按当前液态规则展开科目与现金流影响。完整凭证映射可在「液态变形」里展开。"
+        );
+      }, 420);
+    }
+
+    /* —— Morph —— */
+    function renderMorph() {
+      const list = document.getElementById("morph-list");
+      const rows = [
+        { tag: "凭证", text: "借：应收账款｜贷：主营业务收入 / 应交税费", amt: "128,600" },
+        { tag: "成本", text: "借：主营业务成本｜贷：库存商品", amt: "71,200" },
+        { tag: "现金", text: "不计入今日资金池 · 挂账龄桶 0–30 天", amt: "T+15" },
+        { tag: "分析", text: "渠道毛利写入华东直销看板 · 供 FP&A 滚动预测", amt: "44.6%" },
+      ];
+      list.innerHTML = "";
+      rows.forEach((r, i) => {
+        const li = document.createElement("li");
+        li.style.animationDelay = i * 0.08 + "s";
+        li.innerHTML = `<span class="tag">${r.tag}</span><span>${r.text}</span><span class="amt">${r.amt}</span>`;
+        list.appendChild(li);
+      });
+    }
+
+    /* —— Rules —— */
+    let rulesBooted = false;
+    const RULES = [
+      {
+        id: "rev",
+        title: "出库即确认收入",
+        desc: "开启后，销售出库事件立刻液态确收；关闭则等待签收回单。",
+        on: true,
+        feedback: "规则壁已改：出库事件将等待「客户签收」才展开应收。当前挂起出库单 3 笔。",
+      },
+      {
+        id: "cost",
+        title: "加权平均即时结转",
+        desc: "成本随出库液态结转；关闭则月末批次结转。",
+        on: true,
+        feedback: "成本结转改回月末批次。今日出库只影响存货数量，不写成本凭证。",
+      },
+      {
+        id: "tax",
+        title: "价税分离自动拆算",
+        desc: "按客户税码拆分销项；跨境客户走免税通道。",
+        on: true,
+        feedback: "价税分离已暂停演示——金额将以含税总额暂挂，待税务复核。",
+      },
+    ];
+
+    function bootRules() {
+      rulesBooted = true;
+      const stack = document.getElementById("rule-stack");
+      stack.innerHTML = "";
+      RULES.forEach((rule) => {
+        const el = document.createElement("div");
+        el.className = "rule";
+        el.innerHTML = `<h3>${rule.title}</h3><p>${rule.desc}</p>`;
+        const row = document.createElement("div");
+        row.className = "toggle-row";
+        const label = document.createElement("span");
+        label.style.fontSize = "0.85rem";
+        label.style.color = "var(--foam-dim)";
+        label.textContent = rule.on ? "当前：开启" : "当前：关闭";
+        const tog = document.createElement("button");
+        tog.type = "button";
+        tog.className = "toggle" + (rule.on ? " on" : "");
+        tog.setAttribute("aria-pressed", String(rule.on));
+        tog.addEventListener("click", () => {
+          rule.on = !rule.on;
+          tog.classList.toggle("on", rule.on);
+          tog.setAttribute("aria-pressed", String(rule.on));
+          label.textContent = rule.on ? "当前：开启" : "当前：关闭";
+          const fb = document.getElementById("rule-feedback");
+          fb.style.display = "block";
+          fb.innerHTML = `<span class="who">液态 · 业财 Agent</span>${rule.on ? "已恢复：" + rule.title + "。液面形状回到默认容器。" : rule.feedback}`;
+          window.__ruleTouches = (window.__ruleTouches || 0) + 1;
+        });
+        row.appendChild(label);
+        row.appendChild(tog);
+        el.appendChild(row);
+        stack.appendChild(el);
+      });
+    }
+
+    /* —— Audit —— */
+    function renderAudit() {
+      const trail = document.getElementById("audit-trail");
+      const touches = window.__ruleTouches || 0;
+      const items = [
+        { t: "09:41:02", title: "业务事件入液", detail: "销售出库 OH-2026-0930-18 · 来源 WMS", badge: "ok", badgeText: "已校验" },
+        { t: "09:41:03", title: "液态展开 · 凭证草稿", detail: "生成应收 + 成本结转两套分录，等待确认", badge: "warn", badgeText: "待确认" },
+        { t: "09:42:18", title: "规则壁触摸", detail: touches ? `演示中调整规则 ${touches} 次，均写入变更日志` : "尚未改规则（可在上一屏试用开关）", badge: "ok", badgeText: "可追溯" },
+        { t: "09:43:01", title: "审计链哈希", detail: "event→entry→rule 链 SHA 摘要已锚定，可供内审抽查", badge: "ok", badgeText: "完整" },
+      ];
+      trail.innerHTML = "";
+      items.forEach((it, i) => {
+        const row = document.createElement("div");
+        row.className = "audit-row";
+        row.style.animationDelay = i * 0.07 + "s";
+        row.innerHTML = `<time>${it.t}</time><div><strong>${it.title}<span class="badge ${it.badge}">${it.badgeText}</span></strong><span>${it.detail}</span></div>`;
+        trail.appendChild(row);
+      });
+    }
+  </script>
+</body>
+</html>
