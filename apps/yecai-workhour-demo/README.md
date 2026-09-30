@@ -1,6 +1,6 @@
-# 业财系统 · 中台工时归集 — Product Demo
+# 业财系统 · 工时归集 — In-product console demo
 
-Interactive demo for 业财系统 人效 feature: 中台及设计策划（策略）部门工时归集.
+Light B-end 业财控制台原型（非营销页）。
 
 ## Open
 
@@ -14,4 +14,9 @@ Or open `index.html` directly.
 
 ## Screens
 
-Hero → 周填报（品牌品线+业务组）→ 系统自动归集 → Leader 确认 → 人效报表（人天隔离）
+1. 周填报（品牌+品线+业务组+业务类型）
+2. 我的填报（无拆分）
+3. Leader 归集确认（左下角切换身份）
+4. 项目人力报表
+5. 品牌品线人力报表
+6. 主数据来源说明（只读）

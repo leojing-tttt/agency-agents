@@ -3,408 +3,573 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>业财系统 · 中台工时归集</title>
+  <title>业财系统 · 工时归集</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --ink: #14181f;
-      --ink-2: #1e2630;
-      --paper: #f3efe6;
-      --paper-dim: #d8d2c4;
-      --sea: #1f6f78;
-      --sea-bright: #2a9aa3;
-      --ember: #d9773a;
-      --ember-deep: #b85a22;
-      --ok: #2f9e6b;
-      --line: rgba(243, 239, 230, 0.14);
-      --mist: rgba(243, 239, 230, 0.06);
-      --font-display: "DM Serif Display", "Songti SC", serif;
-      --font-body: "Manrope", "PingFang SC", "Hiragino Sans GB", sans-serif;
-      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --bg: #f0f2f5;
+      --side: #001529;
+      --side-hover: #000c17;
+      --side-active: #1677ff;
+      --card: #ffffff;
+      --text: #1f1f1f;
+      --text-2: #595959;
+      --text-3: #8c8c8c;
+      --border: #f0f0f0;
+      --border-2: #d9d9d9;
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --success: #52c41a;
+      --warning: #faad14;
+      --danger: #ff4d4f;
+      --header-h: 48px;
+      --side-w: 220px;
+      --radius: 6px;
+      --font: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; }
+    html, body { margin: 0; height: 100%; }
     body {
-      font-family: var(--font-body);
-      color: var(--paper);
-      background: var(--ink);
-      overflow-x: hidden;
+      font-family: var(--font);
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
     }
-    button, input, select { font: inherit; color: inherit; }
-    button { cursor: pointer; border: 0; background: none; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    a { color: var(--primary); text-decoration: none; }
 
-    .field {
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background:
-        radial-gradient(ellipse 80% 55% at 85% 0%, rgba(42, 154, 163, 0.22), transparent 55%),
-        radial-gradient(ellipse 60% 45% at 0% 100%, rgba(217, 119, 58, 0.12), transparent 50%),
-        linear-gradient(160deg, #0e1218 0%, #14181f 45%, #1a232c 100%);
-    }
-    .field::after {
-      content: "";
-      position: absolute; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 60L60 0M30 60L60 30M0 30L30 0' stroke='%23f3efe6' stroke-opacity='0.03' fill='none'/%3E%3C/svg%3E");
-      opacity: 0.9;
-      animation: grain 20s linear infinite;
-    }
-    @keyframes grain {
-      from { transform: translate(0,0); }
-      to { transform: translate(-60px, -60px); }
-    }
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes tally {
-      from { transform: scaleX(0); }
-      to { transform: scaleX(1); }
-    }
+    .layout { display: flex; min-height: 100vh; }
 
-    .app { position: relative; z-index: 1; min-height: 100vh; }
-    .screen { display: none; min-height: 100vh; }
-    .screen.active { display: block; animation: rise 0.5s var(--ease) both; }
-
-    .topbar {
-      display: flex; align-items: center; justify-content: space-between;
-      max-width: 1080px; margin: 0 auto; padding: 1.1rem 1.4rem;
+    /* Side nav */
+    .sider {
+      width: var(--side-w);
+      background: var(--side);
+      color: rgba(255,255,255,0.75);
+      flex: none;
+      display: flex;
+      flex-direction: column;
     }
-    .mark { font-weight: 700; letter-spacing: 0.02em; font-size: 0.95rem; }
-    .mark em { font-style: normal; color: var(--sea-bright); }
-    .dots { display: flex; gap: 0.4rem; }
-    .dot {
-      width: 7px; height: 7px; border-radius: 50%; background: var(--line);
-      transition: background .25s, transform .25s;
+    .logo {
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    .dot.on { background: var(--sea-bright); transform: scale(1.3); }
-
-    .hero {
-      min-height: calc(100vh - 4rem);
-      max-width: 1080px; margin: 0 auto;
-      padding: 1rem 1.4rem 3.5rem;
-      display: grid; align-content: center;
-      position: relative;
+    .logo-mark {
+      width: 28px; height: 28px; border-radius: 4px;
+      background: var(--primary);
+      display: grid; place-items: center;
+      font-size: 12px; font-weight: 700;
     }
-    .hero-anchor {
-      position: absolute; right: -2%; top: 18%;
-      width: min(48vw, 460px); aspect-ratio: 1.1;
-      pointer-events: none;
-      background:
-        radial-gradient(circle at 40% 35%, rgba(243,239,230,0.18), transparent 42%),
-        radial-gradient(circle at 70% 70%, rgba(217,119,58,0.28), transparent 48%),
-        linear-gradient(150deg, rgba(42,154,163,0.55), rgba(31,111,120,0.15));
-      border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%;
-      animation: rise 1.2s var(--ease) both;
-      filter: blur(0.2px);
-      box-shadow: inset 0 0 60px rgba(243,239,230,0.08);
+    .menu { padding: 12px 0; flex: 1; }
+    .menu-group {
+      padding: 8px 16px 4px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
     }
-    .brand {
-      font-family: var(--font-display);
-      font-size: clamp(3rem, 8.5vw, 5.6rem);
-      line-height: 0.98; margin: 0 0 1rem; letter-spacing: -0.02em;
-      max-width: 9ch;
+    .menu-item {
+      display: block; width: 100%; text-align: left;
+      border: 0; background: transparent;
+      color: inherit; padding: 10px 16px 10px 24px;
+      transition: background .15s, color .15s;
     }
-    .brand span { display: block; color: var(--sea-bright); font-size: 0.72em; }
-    .lede {
-      max-width: 34ch; color: var(--paper-dim);
-      font-size: clamp(1.02rem, 2vw, 1.2rem); line-height: 1.55; margin: 0 0 1.8rem;
+    .menu-item:hover { color: #fff; background: var(--side-hover); }
+    .menu-item.active {
+      color: #fff;
+      background: var(--side-active);
     }
-    .cta { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-    .btn-primary {
-      background: var(--ember); color: #1a120c; font-weight: 700;
-      padding: 0.85rem 1.35rem; border-radius: 999px;
-      transition: transform .2s var(--ease), background .2s;
+    .role-switch {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 12px;
     }
-    .btn-primary:hover { background: #e6894a; transform: translateY(-1px); }
-    .btn-ghost {
-      border: 1px solid var(--line); color: var(--paper-dim);
-      padding: 0.8rem 1.2rem; border-radius: 999px;
-    }
-    .btn-ghost:hover { color: var(--paper); border-color: var(--paper-dim); }
-
-    .shell {
-      max-width: 1080px; margin: 0 auto; padding: 0 1.3rem 2.4rem;
-    }
-    .panel-title {
-      font-family: var(--font-display);
-      font-size: clamp(1.5rem, 3vw, 2rem);
-      margin: 0 0 0.4rem; letter-spacing: -0.01em;
-    }
-    .panel-sub {
-      margin: 0 0 1.4rem; color: var(--paper-dim);
-      max-width: 52ch; line-height: 1.5; font-size: 0.98rem;
-    }
-
-    .week-bar {
-      display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
-      margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line);
-    }
-    .week-bar label { font-size: 0.85rem; color: var(--paper-dim); }
-    .week-bar strong { font-variant-numeric: tabular-nums; }
-
-    .entry-grid { display: grid; gap: 0.85rem; }
-    .entry {
-      display: grid; gap: 0.65rem;
-      padding: 1rem 0; border-bottom: 1px solid var(--line);
-      animation: rise .4s var(--ease) both;
-    }
-    @media (min-width: 720px) {
-      .entry {
-        grid-template-columns: 1.2fr 1fr 1fr 90px auto;
-        align-items: end;
-      }
-    }
-    .field-label {
-      display: block; font-size: 0.72rem; letter-spacing: 0.06em;
-      text-transform: uppercase; color: var(--paper-dim); margin-bottom: 0.35rem;
-    }
-    select, .hours-input {
+    .role-switch label { display: block; color: rgba(255,255,255,0.35); margin-bottom: 6px; }
+    .role-switch select {
       width: 100%;
-      background: var(--mist); border: 1px solid var(--line);
-      border-radius: 10px; padding: 0.65rem 0.75rem; outline: none;
-    }
-    select:focus, .hours-input:focus { border-color: var(--sea-bright); }
-    .hours-input { font-variant-numeric: tabular-nums; }
-    .entry-remove {
-      color: var(--paper-dim); font-size: 0.85rem; padding: 0.65rem 0.4rem;
-    }
-    .entry-remove:hover { color: #e07060; }
-    .sum-row {
-      display: flex; justify-content: space-between; align-items: baseline;
-      margin-top: 1rem; font-size: 0.95rem;
-    }
-    .sum-row .warn { color: #e07060; }
-    .sum-row .ok { color: var(--ok); }
-
-    .alloc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
-    .alloc-item {
-      display: grid; gap: 0.35rem;
-      padding: 1rem 0; border-bottom: 1px solid var(--line);
-      animation: rise .4s var(--ease) both;
-    }
-    @media (min-width: 720px) {
-      .alloc-item { grid-template-columns: 1.4fr 1fr 80px; align-items: center; gap: 1rem; }
-    }
-    .bar {
-      height: 6px; background: rgba(243,239,230,0.08); border-radius: 99px; overflow: hidden;
-    }
-    .bar > i {
-      display: block; height: 100%; background: linear-gradient(90deg, var(--sea-bright), var(--ember));
-      transform-origin: left; animation: tally .8s var(--ease) both; border-radius: 99px;
-    }
-    .alloc-meta { font-size: 0.85rem; color: var(--paper-dim); }
-    .alloc-hrs { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ember); text-align: right; }
-
-    .confirm-card {
-      padding: 1.1rem 0; border-bottom: 1px solid var(--line);
-    }
-    .confirm-card h3 { margin: 0 0 0.35rem; font-size: 1.05rem; }
-    .confirm-card p { margin: 0; color: var(--paper-dim); font-size: 0.92rem; line-height: 1.45; }
-    .locked {
-      display: inline-block; margin-left: 0.4rem;
-      font-size: 0.72rem; padding: 0.12rem 0.4rem; border-radius: 4px;
-      background: rgba(47,158,107,0.2); color: var(--ok);
+      background: #0a2137;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      padding: 6px 8px;
     }
 
-    .report-grid {
-      display: grid; gap: 1.5rem;
+    /* Main */
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .header {
+      height: var(--header-h);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
     }
-    @media (min-width: 800px) {
-      .report-grid { grid-template-columns: 1.3fr 0.9fr; }
-    }
-    .role-row {
-      display: grid; grid-template-columns: 72px 1fr 56px;
-      gap: 0.75rem; align-items: center;
-      padding: 0.55rem 0; border-bottom: 1px solid var(--line);
-      font-size: 0.92rem;
-    }
-    .privacy-note {
-      margin-top: 1rem; padding: 0.9rem 0;
-      border-top: 1px solid var(--line);
-      font-size: 0.88rem; color: var(--paper-dim); line-height: 1.5;
-    }
-    .privacy-note strong { color: var(--ember); font-weight: 600; }
+    .breadcrumb { color: var(--text-2); font-size: 13px; }
+    .breadcrumb b { color: var(--text); font-weight: 500; }
+    .user-chip { color: var(--text-2); font-size: 13px; }
+    .content { padding: 16px 20px 32px; flex: 1; }
 
-    .footer-nav {
-      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.7rem;
-      margin-top: 1.6rem; padding-top: 1rem; border-top: 1px solid var(--line);
-    }
-    .hint { margin-top: 0.85rem; font-size: 0.82rem; color: var(--paper-dim); opacity: 0.9; }
+    .page { display: none; }
+    .page.active { display: block; animation: fade .2s ease; }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
-    @media (max-width: 720px) {
-      .hero-anchor { opacity: 0.35; width: 70vw; top: auto; bottom: 6%; right: -18%; }
+    .page-title {
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .page-desc {
+      margin: 0 0 16px;
+      color: var(--text-3);
+      font-size: 13px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+      margin-bottom: 12px;
+    }
+    .field { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+    .field label { font-size: 12px; color: var(--text-2); }
+    .field select, .field input {
+      height: 32px;
+      border: 1px solid var(--border-2);
+      border-radius: 4px;
+      padding: 0 8px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+    .field select:focus, .field input:focus { border-color: var(--primary); }
+
+    .btn {
+      height: 32px; padding: 0 14px; border-radius: 4px;
+      border: 1px solid var(--border-2); background: #fff; color: var(--text);
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-primary {
+      background: var(--primary); border-color: var(--primary); color: #fff;
+    }
+    .btn-primary:hover { background: var(--primary-hover); color: #fff; border-color: var(--primary-hover); }
+    .btn-success {
+      background: var(--success); border-color: var(--success); color: #fff;
+    }
+    .btn-success:hover { filter: brightness(1.05); color: #fff; }
+    .btn-link { border: 0; background: none; color: var(--primary); height: auto; padding: 0 4px; }
+    .btn-link.danger { color: var(--danger); }
+
+    table.data {
+      width: 100%; border-collapse: collapse;
+    }
+    table.data th, table.data td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 13px;
+    }
+    table.data th {
+      background: #fafafa;
+      color: var(--text-2);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    table.data tr:hover td { background: #fafafa; }
+    table.data select, table.data input {
+      width: 100%; min-width: 100px;
+      height: 30px;
+      border: 1px solid var(--border-2);
+      border-radius: 4px;
+      padding: 0 6px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 0 7px;
+      font-size: 12px;
+      line-height: 20px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+    }
+    .tag-blue { color: var(--primary); background: #e6f4ff; border-color: #91caff; }
+    .tag-green { color: #389e0d; background: #f6ffed; border-color: #b7eb8f; }
+    .tag-gold { color: #d48806; background: #fffbe6; border-color: #ffe58f; }
+    .tag-default { color: var(--text-2); background: #fafafa; border-color: var(--border-2); }
+
+    .alert {
+      background: #e6f4ff;
+      border: 1px solid #91caff;
+      color: #0958d9;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .alert.warn {
+      background: #fffbe6;
+      border-color: #ffe58f;
+      color: #ad6800;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .stat .label { color: var(--text-3); font-size: 12px; }
+    .stat .value { font-size: 22px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+    .footer-actions {
+      display: flex; gap: 8px; justify-content: flex-end;
+      margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .sum-line { color: var(--text-2); font-size: 13px; margin-right: auto; align-self: center; }
+    .sum-line strong { color: var(--text); }
+
+    .empty { text-align: center; color: var(--text-3); padding: 32px; }
+
+    @media (max-width: 860px) {
+      .sider { width: 56px; }
+      .logo span, .menu-group, .role-switch label { display: none; }
+      .menu-item { padding: 10px; text-align: center; font-size: 11px; }
+      .role-switch select { font-size: 11px; }
     }
   </style>
 </head>
 <body>
-  <div class="field" aria-hidden="true"></div>
-  <div class="app">
-    <header class="topbar">
-      <div class="mark">业财<em>系统</em></div>
-      <div class="dots" id="dots" aria-label="演示进度"></div>
-    </header>
-
-    <!-- Hero -->
-    <section class="screen active" data-screen="hero" id="screen-hero">
-      <div class="hero">
-        <div class="hero-anchor" aria-hidden="true"></div>
-        <h1 class="brand">业财系统<span>中台工时归集</span></h1>
-        <p class="lede">中台只填品牌品线与业务组——项目归属交给系统自动归集，算清每个项目耗费多少人力。</p>
-        <div class="cta">
-          <button class="btn-primary" type="button" data-go="fill">开始周填报</button>
-          <button class="btn-ghost" type="button" data-go="alloc">看自动归集</button>
-        </div>
+  <div class="layout">
+    <aside class="sider">
+      <div class="logo">
+        <div class="logo-mark">业财</div>
+        <span>业财系统</span>
       </div>
-    </section>
-
-    <!-- Step 1: Fill -->
-    <section class="screen" data-screen="fill" id="screen-fill">
-      <div class="shell">
-        <h2 class="panel-title">步骤 1 · 周填报</h2>
-        <p class="panel-sub">中台 / 设计策划只填「品牌品线 + 业务组」工时，不判断项目或执行单归属。枚举来自主数据，禁止自由录入。</p>
-        <div class="week-bar">
-          <label>填报周</label>
-          <strong>2026-W39（9/22–9/28）</strong>
-          <label style="margin-left:auto">角色</label>
-          <strong>媒介 · 林可</strong>
-        </div>
-        <div class="entry-grid" id="entry-grid"></div>
-        <button class="btn-ghost" type="button" id="add-row" style="margin-top:0.85rem">+ 添加一行</button>
-        <div class="sum-row">
-          <span>本周合计</span>
-          <span id="hours-sum">0 / 40 小时</span>
-        </div>
-        <div class="footer-nav">
-          <button class="btn-ghost" type="button" data-go="hero">返回</button>
-          <button class="btn-primary" type="button" id="submit-fill">提交 · 进入归集</button>
-        </div>
-        <p class="hint">口径：分摊不挂钩绩效；填不动的环节由规则兜底。</p>
+      <nav class="menu">
+        <div class="menu-group">人效 / 工时</div>
+        <button type="button" class="menu-item active" data-page="fill">周填报</button>
+        <button type="button" class="menu-item" data-page="mine">我的填报</button>
+        <button type="button" class="menu-item" data-page="leader" id="nav-leader">待我确认</button>
+        <div class="menu-group">报表</div>
+        <button type="button" class="menu-item" data-page="project">项目人力</button>
+        <button type="button" class="menu-item" data-page="brand">品牌品线人力</button>
+        <div class="menu-group">说明</div>
+        <button type="button" class="menu-item" data-page="master">主数据来源</button>
+      </nav>
+      <div class="role-switch">
+        <label>演示身份切换</label>
+        <select id="role-select">
+          <option value="filler">填报人 · 林可（媒介）</option>
+          <option value="leader">Leader · 周衡（华东投放组）</option>
+          <option value="finance">财务 · 沈岚</option>
+        </select>
       </div>
-    </section>
+    </aside>
 
-    <!-- Step 2: Alloc -->
-    <section class="screen" data-screen="alloc" id="screen-alloc">
-      <div class="shell">
-        <h2 class="panel-title">步骤 2 · 系统自动归集</h2>
-        <p class="panel-sub">按「品牌品线 → 项目 → 业务组参与的执行单」链路拆分；默认按执行单付款金额等比例分摊。</p>
-        <ul class="alloc-list" id="alloc-list"></ul>
-        <div class="footer-nav">
-          <button class="btn-ghost" type="button" data-go="fill">改填报</button>
-          <button class="btn-primary" type="button" data-go="confirm">送 Leader 确认</button>
-        </div>
-        <p class="hint">匹配依据待确认：派单记录 / 执行单角色字段（见方案风险项）。</p>
-      </div>
-    </section>
+    <div class="main">
+      <header class="header">
+        <div class="breadcrumb">人效 / 工时 / <b id="crumb">周填报</b></div>
+        <div class="user-chip" id="user-chip">林可 · 媒介</div>
+      </header>
+      <div class="content">
 
-    <!-- Step 3: Confirm -->
-    <section class="screen" data-screen="confirm" id="screen-confirm">
-      <div class="shell">
-        <h2 class="panel-title">步骤 3 · Leader 确认锁定</h2>
-        <p class="panel-sub">业务 leader 审核划分结果；确认后锁定，纳入项目与品牌品线人力耗费统计。</p>
-        <div id="confirm-list"></div>
-        <div class="footer-nav">
-          <button class="btn-ghost" type="button" data-go="alloc">返回归集</button>
-          <button class="btn-primary" type="button" id="lock-btn">确认并锁定本周</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Report -->
-    <section class="screen" data-screen="report" id="screen-report">
-      <div class="shell">
-        <h2 class="panel-title">终点 · 人效视图</h2>
-        <p class="panel-sub">输出项目 / 品牌品线人力耗费，并按角色拆分投入。业务线只见人天，不见金额化人力成本。</p>
-        <div class="report-grid">
-          <div>
-            <h3 style="margin:0 0 0.75rem;font-size:1rem;color:var(--paper-dim);font-weight:600;">项目 · 投入人天（业务线可见）</h3>
-            <div id="project-report"></div>
-          </div>
-          <div>
-            <h3 style="margin:0 0 0.75rem;font-size:1rem;color:var(--paper-dim);font-weight:600;">角色拆分 · 青禾·精华水</h3>
-            <div id="role-report"></div>
-            <div class="privacy-note">
-              <strong>薪酬保密：</strong>金额化人力成本（工时 × 内部人效单价）仅财务与负责人可见。当前视图以业务线身份登录——字段级权限已隐藏成本列。
+        <!-- 1 Fill -->
+        <section class="page active" id="page-fill">
+          <h1 class="page-title">周工时填报</h1>
+          <p class="page-desc">全员按周填报。维度：品牌、品线、业务组、业务类型（执行单类型）。选项来自既有主数据，禁止自由录入。</p>
+          <div class="card">
+            <div class="toolbar">
+              <div class="field">
+                <label>填报周</label>
+                <select id="fill-week">
+                  <option>2026-W39（09/22–09/28）</option>
+                  <option>2026-W38（09/15–09/21）</option>
+                </select>
+              </div>
+            </div>
+            <table class="data" id="fill-table">
+              <thead>
+                <tr>
+                  <th style="width:18%">品牌</th>
+                  <th style="width:16%">品线</th>
+                  <th style="width:18%">业务组</th>
+                  <th style="width:18%">业务类型</th>
+                  <th style="width:12%">工时(小时)</th>
+                  <th style="width:8%">操作</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div class="footer-actions">
+              <span class="sum-line">本周合计 <strong id="fill-sum">0</strong> / 40 小时</span>
+              <button type="button" class="btn" id="add-row">+ 添加行</button>
+              <button type="button" class="btn" id="save-draft">暂存</button>
+              <button type="button" class="btn btn-primary" id="submit-fill">提交</button>
             </div>
           </div>
-        </div>
-        <div class="footer-nav">
-          <button class="btn-ghost" type="button" data-go="confirm">返回确认</button>
-          <button class="btn-primary" type="button" data-go="hero">回到首页</button>
-        </div>
+        </section>
+
+        <!-- 2 Mine -->
+        <section class="page" id="page-mine">
+          <h1 class="page-title">我的填报记录</h1>
+          <p class="page-desc">仅展示本人已填工时与提交状态。拆分归属结果对填报人不可见。</p>
+          <div class="alert">权限提示：归集拆分结果仅各业务组 Leader 可见，本页不展示项目/执行单分摊。</div>
+          <div class="card" style="padding:0;overflow:auto">
+            <table class="data" id="mine-table">
+              <thead>
+                <tr>
+                  <th>填报周</th>
+                  <th>品牌</th>
+                  <th>品线</th>
+                  <th>业务组</th>
+                  <th>业务类型</th>
+                  <th>工时(h)</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 3 Leader -->
+        <section class="page" id="page-leader">
+          <h1 class="page-title">归集拆分与确认</h1>
+          <p class="page-desc">按业务组查看系统拆分到项目 / 执行单的结果，确认后锁定纳入人效统计。</p>
+          <div class="alert warn" id="leader-gate">当前身份不是业务组 Leader。请在左下角切换为「Leader · 周衡」后查看。</div>
+          <div id="leader-body" style="display:none">
+            <div class="stat-row">
+              <div class="stat"><div class="label">业务组</div><div class="value" style="font-size:16px;margin-top:8px">华东投放组</div></div>
+              <div class="stat"><div class="label">待确认工时</div><div class="value" id="leader-hours">0h</div></div>
+              <div class="stat"><div class="label">涉及项目</div><div class="value" id="leader-projects">0</div></div>
+              <div class="stat"><div class="label">状态</div><div class="value" style="font-size:16px;margin-top:8px" id="leader-status">待确认</div></div>
+            </div>
+            <div class="card" style="padding:0;overflow:auto">
+              <table class="data" id="leader-table">
+                <thead>
+                  <tr>
+                    <th>填报人</th>
+                    <th>品牌 / 品线</th>
+                    <th>业务类型</th>
+                    <th>填报工时</th>
+                    <th>归集项目</th>
+                    <th>执行单</th>
+                    <th>分摊权重</th>
+                    <th>分摊工时</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="footer-actions">
+              <button type="button" class="btn btn-success" id="lock-btn">确认并锁定本周</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4 Project report -->
+        <section class="page" id="page-project">
+          <h1 class="page-title">项目人力耗费</h1>
+          <p class="page-desc">按项目汇总投入人天。业务线默认只见人天；财务身份可见金额化人力成本列。</p>
+          <div class="card">
+            <div class="toolbar">
+              <div class="field">
+                <label>周期</label>
+                <select><option>2026-W39</option><option>2026-Q3</option></select>
+              </div>
+              <div class="field">
+                <label>项目</label>
+                <select><option>全部</option><option>青禾精华 Q3 种草</option><option>北境主机 双11 预热</option></select>
+              </div>
+              <button type="button" class="btn">查询</button>
+              <button type="button" class="btn">导出</button>
+            </div>
+            <table class="data" id="project-table">
+              <thead>
+                <tr>
+                  <th>项目</th>
+                  <th>品牌品线</th>
+                  <th>业务类型汇总</th>
+                  <th>投入人天</th>
+                  <th class="cost-col">人力成本(元)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 5 Brand report -->
+        <section class="page" id="page-brand">
+          <h1 class="page-title">品牌品线人力耗费</h1>
+          <p class="page-desc">按品牌、品线汇总投入人天，支持角色/业务类型拆分查看。</p>
+          <div class="card">
+            <div class="toolbar">
+              <div class="field">
+                <label>周期</label>
+                <select><option>2026-W39</option><option>2026-Q3</option></select>
+              </div>
+              <div class="field">
+                <label>品牌</label>
+                <select id="brand-filter"><option>全部</option></select>
+              </div>
+              <button type="button" class="btn">查询</button>
+            </div>
+            <table class="data" id="brand-table">
+              <thead>
+                <tr>
+                  <th>品牌</th>
+                  <th>品线</th>
+                  <th>投入人天</th>
+                  <th>媒介</th>
+                  <th>投放</th>
+                  <th>策划</th>
+                  <th class="cost-col">人力成本(元)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Master note -->
+        <section class="page" id="page-master">
+          <h1 class="page-title">主数据来源（只读说明）</h1>
+          <p class="page-desc">品牌品线、业务组、业务类型已在业财主数据中维护。填报页仅下拉引用，本演示不提供 CRUD。</p>
+          <div class="alert">业务类型 = 现有执行单类型主数据。</div>
+          <div class="card" style="padding:0;overflow:auto">
+            <table class="data">
+              <thead><tr><th>类型</th><th>示例枚举（mock）</th><th>维护位置</th></tr></thead>
+              <tbody>
+                <tr><td>品牌</td><td id="md-brands"></td><td>既有主数据 · 品牌品线</td></tr>
+                <tr><td>品线</td><td id="md-lines"></td><td>既有主数据 · 品牌品线</td></tr>
+                <tr><td>业务组</td><td id="md-groups"></td><td>既有主数据 · 组织/业务组</td></tr>
+                <tr><td>业务类型</td><td id="md-types"></td><td>既有主数据 · 执行单类型</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
       </div>
-    </section>
+    </div>
   </div>
 
   <script>
-    const SCREENS = ["hero", "fill", "alloc", "confirm", "report"];
-    const BRANDS = ["青禾·精华水", "青禾·面膜", "北境智造·主机", "星澜茶·瓶装"];
+    /* —— Master data (existing) —— */
+    const BRANDS = ["青禾", "北境智造", "星澜茶"];
+    const LINES = {
+      "青禾": ["精华水", "面膜", "防晒"],
+      "北境智造": ["主机", "配件"],
+      "星澜茶": ["瓶装", "礼盒"],
+    };
     const GROUPS = ["华东投放组", "内容策划组", "媒介采买组", "设计策略组"];
+    const BIZ_TYPES = ["信息流投放", "内容种草", "媒介采买", "设计制作", "策略策划"]; // = 执行单类型
 
-    const state = {
-      rows: [
-        { brand: "青禾·精华水", group: "华东投放组", hours: 16 },
-        { brand: "青禾·精华水", group: "内容策划组", hours: 8 },
-        { brand: "北境智造·主机", group: "媒介采买组", hours: 12 },
-      ],
-      locked: false,
+    const TITLES = {
+      fill: "周填报",
+      mine: "我的填报",
+      leader: "待我确认",
+      project: "项目人力",
+      brand: "品牌品线人力",
+      master: "主数据来源",
     };
 
-    const dots = document.getElementById("dots");
-    SCREENS.forEach((id, i) => {
-      const d = document.createElement("button");
-      d.type = "button";
-      d.className = "dot" + (i === 0 ? " on" : "");
-      d.title = id;
-      d.addEventListener("click", () => go(id));
-      dots.appendChild(d);
+    const state = {
+      role: "filler",
+      locked: false,
+      rows: [
+        { brand: "青禾", line: "精华水", group: "华东投放组", type: "信息流投放", hours: 16 },
+        { brand: "青禾", line: "精华水", group: "内容策划组", type: "内容种草", hours: 8 },
+        { brand: "北境智造", line: "主机", group: "媒介采买组", type: "媒介采买", hours: 12 },
+      ],
+      submitted: false,
+    };
+
+    const roleMeta = {
+      filler: { name: "林可 · 媒介", showCost: false },
+      leader: { name: "周衡 · 华东投放组 Leader", showCost: false },
+      finance: { name: "沈岚 · 财务", showCost: true },
+    };
+
+    /* —— Navigation —— */
+    function go(page) {
+      document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + page));
+      document.querySelectorAll(".menu-item").forEach((m) => m.classList.toggle("active", m.dataset.page === page));
+      document.getElementById("crumb").textContent = TITLES[page];
+      if (page === "fill") renderFill();
+      if (page === "mine") renderMine();
+      if (page === "leader") renderLeader();
+      if (page === "project") renderProject();
+      if (page === "brand") renderBrand();
+      if (page === "master") renderMaster();
+    }
+    document.querySelectorAll(".menu-item").forEach((m) => m.addEventListener("click", () => go(m.dataset.page)));
+
+    document.getElementById("role-select").addEventListener("change", (e) => {
+      state.role = e.target.value;
+      document.getElementById("user-chip").textContent = roleMeta[state.role].name;
+      document.querySelectorAll(".cost-col").forEach((el) => {
+        el.style.display = roleMeta[state.role].showCost ? "" : "none";
+      });
+      const active = document.querySelector(".menu-item.active");
+      go(active ? active.dataset.page : "fill");
     });
 
-    function go(id) {
-      document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.dataset.screen === id));
-      [...dots.children].forEach((d, i) => d.classList.toggle("on", SCREENS[i] === id));
-      if (id === "fill") renderFill();
-      if (id === "alloc") renderAlloc();
-      if (id === "confirm") renderConfirm();
-      if (id === "report") renderReport();
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    /* —— Fill —— */
+    function opts(list, selected) {
+      return list.map((v) => `<option ${v === selected ? "selected" : ""}>${v}</option>`).join("");
     }
-    document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => go(b.dataset.go)));
 
     function renderFill() {
-      const grid = document.getElementById("entry-grid");
-      grid.innerHTML = "";
-      state.rows.forEach((row, idx) => {
-        const el = document.createElement("div");
-        el.className = "entry";
-        el.style.animationDelay = idx * 0.05 + "s";
-        el.innerHTML = `
-          <div>
-            <span class="field-label">品牌品线</span>
-            <select data-k="brand" data-i="${idx}">${BRANDS.map((b) => `<option ${b===row.brand?"selected":""}>${b}</option>`).join("")}</select>
-          </div>
-          <div>
-            <span class="field-label">业务组</span>
-            <select data-k="group" data-i="${idx}">${GROUPS.map((g) => `<option ${g===row.group?"selected":""}>${g}</option>`).join("")}</select>
-          </div>
-          <div>
-            <span class="field-label">工时（小时）</span>
-            <input class="hours-input" type="number" min="0" max="40" step="0.5" value="${row.hours}" data-k="hours" data-i="${idx}" />
-          </div>
-          <div></div>
-          <button type="button" class="entry-remove" data-rm="${idx}">删除</button>
+      const tbody = document.querySelector("#fill-table tbody");
+      tbody.innerHTML = "";
+      state.rows.forEach((row, i) => {
+        const lines = LINES[row.brand] || [];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><select data-i="${i}" data-k="brand">${opts(BRANDS, row.brand)}</select></td>
+          <td><select data-i="${i}" data-k="line">${opts(lines, row.line)}</select></td>
+          <td><select data-i="${i}" data-k="group">${opts(GROUPS, row.group)}</select></td>
+          <td><select data-i="${i}" data-k="type">${opts(BIZ_TYPES, row.type)}</select></td>
+          <td><input type="number" min="0" max="40" step="0.5" value="${row.hours}" data-i="${i}" data-k="hours" /></td>
+          <td><button type="button" class="btn-link danger" data-rm="${i}">删除</button></td>
         `;
-        grid.appendChild(el);
+        tbody.appendChild(tr);
       });
-      grid.querySelectorAll("select, input").forEach((inp) => {
-        inp.addEventListener("change", () => {
-          const i = +inp.dataset.i;
-          const k = inp.dataset.k;
-          state.rows[i][k] = k === "hours" ? Number(inp.value) : inp.value;
-          updateSum();
+      tbody.querySelectorAll("select, input").forEach((el) => {
+        el.addEventListener("change", () => {
+          const i = +el.dataset.i;
+          const k = el.dataset.k;
+          if (k === "hours") state.rows[i].hours = Number(el.value);
+          else state.rows[i][k] = el.value;
+          if (k === "brand") {
+            state.rows[i].line = (LINES[el.value] || [])[0] || "";
+            renderFill();
+          } else updateSum();
         });
       });
-      grid.querySelectorAll("[data-rm]").forEach((btn) => {
+      tbody.querySelectorAll("[data-rm]").forEach((btn) => {
         btn.addEventListener("click", () => {
           state.rows.splice(+btn.dataset.rm, 1);
           renderFill();
@@ -414,125 +579,191 @@
     }
 
     function updateSum() {
-      const total = state.rows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
-      const el = document.getElementById("hours-sum");
-      el.textContent = `${total} / 40 小时`;
-      el.className = total > 40 ? "warn" : total >= 32 ? "ok" : "";
+      const t = state.rows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+      document.getElementById("fill-sum").textContent = t;
     }
 
     document.getElementById("add-row").addEventListener("click", () => {
-      state.rows.push({ brand: BRANDS[0], group: GROUPS[0], hours: 4 });
+      state.rows.push({ brand: "青禾", line: "精华水", group: "华东投放组", type: "信息流投放", hours: 4 });
       renderFill();
     });
-
+    document.getElementById("save-draft").addEventListener("click", () => {
+      alert("已暂存（演示）");
+    });
     document.getElementById("submit-fill").addEventListener("click", () => {
-      const total = state.rows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
-      if (!state.rows.length) return alert("请至少填报一行工时");
-      if (total <= 0) return alert("合计工时需大于 0");
-      go("alloc");
+      const t = state.rows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+      if (!state.rows.length || t <= 0) return alert("请填写有效工时");
+      state.submitted = true;
+      state.locked = false;
+      alert("提交成功。可在「我的填报」查看；拆分结果仅业务组 Leader 可见。");
+      go("mine");
     });
 
-    /** Deterministic mock allocation: brand+group → projects/orders */
-    function buildAllocations() {
+    /* —— Mine (no split) —— */
+    function renderMine() {
+      const tbody = document.querySelector("#mine-table tbody");
+      if (!state.submitted && !state.rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">暂无提交记录</td></tr>`;
+        return;
+      }
+      const status = state.locked
+        ? '<span class="tag tag-green">已锁定</span>'
+        : state.submitted
+          ? '<span class="tag tag-blue">已提交</span>'
+          : '<span class="tag tag-default">草稿</span>';
+      const week = "2026-W39";
+      tbody.innerHTML = state.rows.map((r) => `
+        <tr>
+          <td>${week}</td>
+          <td>${r.brand}</td>
+          <td>${r.line}</td>
+          <td>${r.group}</td>
+          <td>${r.type}</td>
+          <td>${r.hours}</td>
+          <td>${status}</td>
+        </tr>
+      `).join("");
+    }
+
+    /* —— Leader split —— */
+    function buildSplits() {
+      // Only rows for 华东投放组 (demo leader scope)
+      const east = state.rows.filter((r) => r.group === "华东投放组");
       const catalog = {
-        "青禾·精华水|华东投放组": [
-          { project: "青禾精华 Q3 种草", order: "ZX-东投-0918", amount: 280000, weight: 0.62 },
-          { project: "青禾精华 会员日", order: "ZX-东投-0922", amount: 120000, weight: 0.38 },
-        ],
-        "青禾·精华水|内容策划组": [
-          { project: "青禾精华 Q3 种草", order: "ZX-策划-0901", amount: 90000, weight: 1 },
-        ],
-        "北境智造·主机|媒介采买组": [
-          { project: "北境主机 双11 预热", order: "ZX-媒介-0915", amount: 450000, weight: 0.7 },
-          { project: "北境主机 渠道专项", order: "ZX-媒介-0920", amount: 150000, weight: 0.3 },
+        "青禾|精华水|信息流投放": [
+          { project: "青禾精华 Q3 种草", order: "ZX-东投-0918", w: 0.62 },
+          { project: "青禾精华 会员日", order: "ZX-东投-0922", w: 0.38 },
         ],
       };
-      const fallback = [{ project: "未匹配项目（待 Leader 调整）", order: "—", amount: 0, weight: 1 }];
       const out = [];
-      state.rows.forEach((r) => {
-        const key = `${r.brand}|${r.group}`;
-        const parts = catalog[key] || fallback;
+      east.forEach((r) => {
+        const key = `${r.brand}|${r.line}|${r.type}`;
+        const parts = catalog[key] || [{ project: "待匹配项目", order: "—", w: 1 }];
         parts.forEach((p) => {
           out.push({
-            brand: r.brand,
-            group: r.group,
+            person: "林可",
+            brand: r.brand + " / " + r.line,
+            type: r.type,
+            filled: r.hours,
             project: p.project,
             order: p.order,
-            hours: Math.round(r.hours * p.weight * 10) / 10,
-            pct: Math.round(p.weight * 100),
+            pct: Math.round(p.w * 100) + "%",
+            hours: Math.round(r.hours * p.w * 10) / 10,
           });
         });
       });
+      // Also show other fillers in group (mock)
+      if (east.length) {
+        out.push({
+          person: "陈屿",
+          brand: "青禾 / 精华水",
+          type: "信息流投放",
+          filled: 10,
+          project: "青禾精华 Q3 种草",
+          order: "ZX-东投-0918",
+          pct: "100%",
+          hours: 10,
+        });
+      }
       return out;
     }
 
-    function renderAlloc() {
-      const list = document.getElementById("alloc-list");
-      const rows = buildAllocations();
-      list.innerHTML = "";
-      rows.forEach((r, i) => {
-        const li = document.createElement("li");
-        li.className = "alloc-item";
-        li.style.animationDelay = i * 0.06 + "s";
-        li.innerHTML = `
-          <div>
-            <strong>${r.project}</strong>
-            <div class="alloc-meta">${r.brand} · ${r.group} → 执行单 ${r.order}</div>
-          </div>
-          <div>
-            <div class="bar"><i style="width:${r.pct}%;animation-delay:${i*0.06}s"></i></div>
-            <div class="alloc-meta">金额权重 ${r.pct}%</div>
-          </div>
-          <div class="alloc-hrs">${r.hours}h</div>
-        `;
-        list.appendChild(li);
-      });
-    }
-
-    function renderConfirm() {
-      const box = document.getElementById("confirm-list");
-      const rows = buildAllocations();
-      const byProject = {};
-      rows.forEach((r) => {
-        byProject[r.project] = (byProject[r.project] || 0) + r.hours;
-      });
-      box.innerHTML = Object.entries(byProject).map(([p, h]) => `
-        <div class="confirm-card">
-          <h3>${p}${state.locked ? '<span class="locked">已锁定</span>' : ""}</h3>
-          <p>归集工时 ${h} 小时 · 来源中台周填报 · 分摊规则：执行单金额等比例</p>
-        </div>
-      `).join("");
-      document.getElementById("lock-btn").textContent = state.locked ? "已锁定 · 查看人效" : "确认并锁定本周";
+    function renderLeader() {
+      const isLeader = state.role === "leader";
+      document.getElementById("leader-gate").style.display = isLeader ? "none" : "block";
+      document.getElementById("leader-body").style.display = isLeader ? "block" : "none";
+      if (!isLeader) return;
+      const splits = buildSplits();
+      const hours = splits.reduce((s, r) => s + r.hours, 0);
+      const projects = new Set(splits.map((r) => r.project));
+      document.getElementById("leader-hours").textContent = hours + "h";
+      document.getElementById("leader-projects").textContent = projects.size;
+      document.getElementById("leader-status").textContent = state.locked ? "已锁定" : "待确认";
+      document.getElementById("lock-btn").disabled = state.locked;
+      document.getElementById("lock-btn").textContent = state.locked ? "本周已锁定" : "确认并锁定本周";
+      document.querySelector("#leader-table tbody").innerHTML = splits.map((r) => `
+        <tr>
+          <td>${r.person}</td>
+          <td>${r.brand}</td>
+          <td>${r.type}</td>
+          <td>${r.filled}</td>
+          <td>${r.project}</td>
+          <td>${r.order}</td>
+          <td>${r.pct}</td>
+          <td>${r.hours}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="8" class="empty">本组本周暂无待确认工时</td></tr>`;
     }
 
     document.getElementById("lock-btn").addEventListener("click", () => {
       state.locked = true;
-      go("report");
+      alert("已确认锁定。工时纳入项目与品牌品线人力统计。");
+      renderLeader();
     });
 
-    function renderReport() {
-      const rows = buildAllocations();
-      const byProject = {};
-      rows.forEach((r) => { byProject[r.project] = (byProject[r.project] || 0) + r.hours; });
-      const proj = document.getElementById("project-report");
-      proj.innerHTML = Object.entries(byProject).map(([p, h]) => {
-        const days = (h / 8).toFixed(1);
-        const pct = Math.min(100, Math.round((h / 40) * 100));
-        return `<div class="role-row"><span>人天</span><div><strong>${p}</strong><div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div></div><span>${days}</span></div>`;
-      }).join("");
-
-      const roleEl = document.getElementById("role-report");
-      const roles = [
-        { name: "媒介", days: 2.0 },
-        { name: "投手", days: 1.5 },
-        { name: "策划", days: 1.0 },
-        { name: "设计", days: 0.5 },
+    /* —— Reports —— */
+    function renderProject() {
+      const showCost = roleMeta[state.role].showCost;
+      document.querySelectorAll("#project-table .cost-col").forEach((el) => {
+        el.style.display = showCost ? "" : "none";
+      });
+      const rows = [
+        { project: "青禾精华 Q3 种草", brand: "青禾 / 精华水", types: "信息流投放、内容种草", days: 4.2, cost: 16800 },
+        { project: "青禾精华 会员日", brand: "青禾 / 精华水", types: "信息流投放", days: 1.1, cost: 4400 },
+        { project: "北境主机 双11 预热", brand: "北境智造 / 主机", types: "媒介采买", days: 2.5, cost: 12500 },
       ];
-      roleEl.innerHTML = roles.map((r) => {
-        const pct = Math.round((r.days / 5) * 100);
-        return `<div class="role-row"><span>${r.name}</span><div class="bar"><i style="width:${pct}%"></i></div><span>${r.days}d</span></div>`;
-      }).join("");
+      document.querySelector("#project-table tbody").innerHTML = rows.map((r) => `
+        <tr>
+          <td>${r.project}</td>
+          <td>${r.brand}</td>
+          <td>${r.types}</td>
+          <td>${r.days}</td>
+          <td class="cost-col" style="display:${showCost ? "" : "none"}">${r.cost.toLocaleString()}</td>
+        </tr>
+      `).join("");
     }
+
+    function renderBrand() {
+      const showCost = roleMeta[state.role].showCost;
+      document.querySelectorAll("#brand-table .cost-col").forEach((el) => {
+        el.style.display = showCost ? "" : "none";
+      });
+      const bf = document.getElementById("brand-filter");
+      if (bf.options.length <= 1) {
+        BRANDS.forEach((b) => {
+          const o = document.createElement("option");
+          o.textContent = b;
+          bf.appendChild(o);
+        });
+      }
+      const rows = [
+        { brand: "青禾", line: "精华水", days: 5.3, media: 1.2, buy: 2.5, plan: 1.6, cost: 21200 },
+        { brand: "青禾", line: "面膜", days: 1.0, media: 0.3, buy: 0.4, plan: 0.3, cost: 4000 },
+        { brand: "北境智造", line: "主机", days: 2.5, media: 0.5, buy: 1.8, plan: 0.2, cost: 12500 },
+      ];
+      document.querySelector("#brand-table tbody").innerHTML = rows.map((r) => `
+        <tr>
+          <td>${r.brand}</td>
+          <td>${r.line}</td>
+          <td>${r.days}</td>
+          <td>${r.media}</td>
+          <td>${r.buy}</td>
+          <td>${r.plan}</td>
+          <td class="cost-col" style="display:${showCost ? "" : "none"}">${r.cost.toLocaleString()}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderMaster() {
+      document.getElementById("md-brands").textContent = BRANDS.join("、");
+      document.getElementById("md-lines").textContent = Object.entries(LINES).map(([b, ls]) => `${b}→${ls.join("/")}`).join("；");
+      document.getElementById("md-groups").textContent = GROUPS.join("、");
+      document.getElementById("md-types").textContent = BIZ_TYPES.join("、") + "（=执行单类型）";
+    }
+
+    // init
+    renderFill();
+    document.querySelectorAll(".cost-col").forEach((el) => { el.style.display = "none"; });
   </script>
 </body>
 </html>
