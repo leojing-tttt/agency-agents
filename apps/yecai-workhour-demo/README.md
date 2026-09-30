@@ -1,6 +1,6 @@
-# 业财系统 · 工时归集 — In-product console demo
+# 业财系统 · 工时归集 — A3 SaaS UI console demo
 
-Light B-end 业财控制台原型（非营销页）。
+Uses **A3 SaaS UI** from `apps/campaign-agent/public/a3-components.css`（《A3 SaaS UI 规范 Skill》样式库）：玫瑰红主色、`a3-*` 组件类、Font Awesome。
 
 ## Open
 
@@ -10,13 +10,8 @@ npx --yes serve -l 5178 .
 # http://localhost:5178/
 ```
 
-Or open `index.html` directly.
+## Skill / design source
 
-## Screens
-
-1. 周填报（品牌+品线+业务组+业务类型）
-2. 我的填报（无拆分）
-3. Leader 归集确认（左下角切换身份）
-4. 项目人力报表
-5. 品牌品线人力报表
-6. 主数据来源说明（只读）
+- `/workspace/apps/campaign-agent/public/a3-components.css`（规范来源标注：《A3 SaaS UI 规范 Skill》）
+- Pattern reference: `/workspace/apps/campaign-agent/public/index.html`
+- User preference: A3 UI via A3-saas-ui / `@tencent-adm/ui-design-guide`（registry 不可用时以仓库 vendored CSS 为准）
