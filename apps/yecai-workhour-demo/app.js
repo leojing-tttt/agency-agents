@@ -9,6 +9,11 @@ const LINES = {
   岚屿家居: ["香氛", "床品", "餐厨"],
 };
 const GROUPS = ["华东投放组", "华南投放组", "内容策划组", "媒介采买组", "设计策略组", "品牌运营组"];
+/** 填报对比页专用业务组（营销一部–九部）；旧周填报仍用 GROUPS */
+const MARKETING_DEPTS = [
+  "营销一部", "营销二部", "营销三部", "营销四部", "营销五部",
+  "营销六部", "营销七部", "营销八部", "营销九部",
+];
 const BIZ_TYPES = ["信息流投放", "内容种草", "媒介采买", "设计制作", "策略策划", "达人合作", "直播运营"];
 
 const WEEK_LABELS = {
@@ -32,6 +37,25 @@ const FILL_BY_WEEK = {
     { brand: "澄光护肤", line: "精华", group: "华南投放组", type: "信息流投放", hours: 7 },
     { brand: "北境智造", line: "主机", group: "媒介采买组", type: "媒介采买", hours: 9 },
     { brand: "岚屿家居", line: "香氛", group: "设计策略组", type: "设计制作", hours: 6 },
+  ],
+};
+
+/** 填报对比页底稿：业务组=营销一部–九部，维度 业务组→品牌品线→业务类型（合计 40h） */
+const FILL_CMP_BY_WEEK = {
+  "2026-W39": [
+    { group: "营销一部", brand: "青禾", line: "精华水", type: "信息流投放", hours: 12 },
+    { group: "营销一部", brand: "青禾", line: "防晒", type: "达人合作", hours: 4 },
+    { group: "营销三部", brand: "北境智造", line: "主机", type: "媒介采买", hours: 8 },
+    { group: "营销五部", brand: "星澜茶", line: "礼盒", type: "内容种草", hours: 6 },
+    { group: "营销七部", brand: "澄光护肤", line: "精华", type: "策略策划", hours: 5 },
+    { group: "营销九部", brand: "岚屿家居", line: "香氛", type: "设计制作", hours: 5 },
+  ],
+  "2026-W38": [
+    { group: "营销二部", brand: "青禾", line: "面膜", type: "信息流投放", hours: 10 },
+    { group: "营销四部", brand: "北境智造", line: "配件", type: "媒介采买", hours: 9 },
+    { group: "营销六部", brand: "星澜茶", line: "瓶装", type: "内容种草", hours: 8 },
+    { group: "营销八部", brand: "澄光护肤", line: "面霜", type: "直播运营", hours: 7 },
+    { group: "营销一部", brand: "岚屿家居", line: "床品", type: "设计制作", hours: 6 },
   ],
 };
 
@@ -118,6 +142,7 @@ const BRAND_REPORT = [
 
 const TITLES = {
   fill: "周填报",
+  "fill-cmp": "填报对比",
   mine: "我的填报",
   leader: "待我确认",
   project: "项目人力",
@@ -129,12 +154,18 @@ function cloneRows(week) {
   return FILL_BY_WEEK[week].map((r) => ({ ...r }));
 }
 
+function cloneCmpRows(week) {
+  return FILL_CMP_BY_WEEK[week].map((r) => ({ ...r }));
+}
+
 const state = {
   role: "filler",
   locked: false,
   submitted: true,
   week: "2026-W39",
   rows: cloneRows("2026-W39"),
+  cmpWeek: "2026-W39",
+  cmpRows: cloneCmpRows("2026-W39"),
   /** 我的填报：多周历史；W39 与当前填报同步 */
   history: [
     {
@@ -182,11 +213,14 @@ function go(page) {
   document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => m.classList.toggle("active", m.dataset.page === page));
   document.getElementById("crumb").textContent = TITLES[page];
   if (page === "fill") renderFill();
+  if (page === "fill-cmp") renderFillCmp();
   if (page === "mine") renderMine();
   if (page === "leader") renderLeader();
   if (page === "project") renderProject();
   if (page === "brand") renderBrand();
   if (page === "master") renderMaster();
+  if (page === "fill-cmp") location.hash = "fill-cmp";
+  else if (location.hash === "#fill-cmp") history.replaceState(null, "", location.pathname + location.search);
 }
 
 document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => {
@@ -280,6 +314,94 @@ document.getElementById("submit-fill").addEventListener("click", () => {
   syncHistoryCurrentWeek();
   toast("success", "提交成功。拆分结果仅业务组 Leader 可见。");
   go("mine");
+});
+
+function groupOpts(selected) {
+  const placeholder = `<option value="" ${selected ? "" : "selected"} disabled>请先选择业务组</option>`;
+  return placeholder + MARKETING_DEPTS.map((v) =>
+    `<option value="${v}" ${v === selected ? "selected" : ""}>${v}</option>`
+  ).join("");
+}
+
+function dimOpts(list, selected, enabled) {
+  if (!enabled) {
+    return `<option value="" selected disabled>请先选择业务组</option>`;
+  }
+  return opts(list, selected);
+}
+
+function updateCmpSum() {
+  document.getElementById("fill-cmp-sum").textContent =
+    state.cmpRows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+}
+
+function renderFillCmp() {
+  const tbody = document.querySelector("#fill-cmp-table tbody");
+  tbody.innerHTML = "";
+  state.cmpRows.forEach((row, i) => {
+    const hasGroup = Boolean(row.group);
+    const lines = LINES[row.brand] || [];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="group">${groupOpts(row.group)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
+      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="brand" ${hasGroup ? "" : "disabled"}>${dimOpts(BRANDS, row.brand, hasGroup)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
+      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="line" ${hasGroup ? "" : "disabled"}>${dimOpts(lines, row.line, hasGroup)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
+      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="type" ${hasGroup ? "" : "disabled"}>${dimOpts(BIZ_TYPES, row.type, hasGroup)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
+      <td><div class="a3-input-wrapper"><input class="a3-input" type="number" min="0" max="40" step="0.5" value="${row.hours}" data-i="${i}" data-k="hours" ${hasGroup ? "" : "disabled"} /></div></td>
+      <td><button type="button" class="a3-btn a3-btn-text a3-table-link" style="color:var(--a3-danger)" data-rm="${i}">删除</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll("select, input").forEach((el) => {
+    el.addEventListener("change", () => {
+      const i = +el.dataset.i;
+      const k = el.dataset.k;
+      if (k === "hours") state.cmpRows[i].hours = Number(el.value);
+      else state.cmpRows[i][k] = el.value;
+      if (k === "group") {
+        // 选完业务组后才开放后续维度；保留已有品牌或给默认
+        if (!state.cmpRows[i].brand) {
+          state.cmpRows[i].brand = BRANDS[0];
+          state.cmpRows[i].line = LINES[BRANDS[0]][0];
+          state.cmpRows[i].type = BIZ_TYPES[0];
+        }
+        renderFillCmp();
+      } else if (k === "brand") {
+        state.cmpRows[i].line = (LINES[el.value] || [])[0] || "";
+        renderFillCmp();
+      } else updateCmpSum();
+    });
+  });
+  tbody.querySelectorAll("[data-rm]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.cmpRows.splice(+btn.dataset.rm, 1);
+      renderFillCmp();
+    });
+  });
+  updateCmpSum();
+}
+
+document.getElementById("fill-cmp-week").addEventListener("change", (e) => {
+  const week = e.target.value.startsWith("2026-W38") ? "2026-W38" : "2026-W39";
+  if (week === state.cmpWeek) return;
+  FILL_CMP_BY_WEEK[state.cmpWeek] = state.cmpRows.map((r) => ({ ...r }));
+  state.cmpWeek = week;
+  state.cmpRows = cloneCmpRows(week);
+  renderFillCmp();
+});
+
+document.getElementById("add-cmp-row").addEventListener("click", () => {
+  state.cmpRows.push({ group: "", brand: "", line: "", type: "", hours: 0 });
+  renderFillCmp();
+});
+document.getElementById("save-cmp-draft").addEventListener("click", () => toast("info", "已暂存（对比方案）"));
+document.getElementById("submit-cmp-fill").addEventListener("click", () => {
+  const incomplete = state.cmpRows.some((r) => !r.group || !r.brand || !r.line || !r.type);
+  if (incomplete) return toast("warning", "请先为每行选择业务组，再完善品牌品线与业务类型");
+  const t = state.cmpRows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+  if (!state.cmpRows.length || t <= 0) return toast("warning", "请填写有效工时");
+  FILL_CMP_BY_WEEK[state.cmpWeek] = state.cmpRows.map((r) => ({ ...r }));
+  toast("success", "对比方案已提交（演示）。可切回「周填报」对照旧维度。");
 });
 
 function statusTag(status) {
@@ -420,9 +542,11 @@ document.getElementById("brand-filter").addEventListener("change", () => {
 function renderMaster() {
   document.getElementById("md-brands").textContent = BRANDS.join("、");
   document.getElementById("md-lines").textContent = Object.entries(LINES).map(([b, ls]) => `${b}→${ls.join("/")}`).join("；");
-  document.getElementById("md-groups").textContent = GROUPS.join("、");
+  document.getElementById("md-groups").textContent =
+    "周填报：" + GROUPS.join("、") + "；填报对比：" + MARKETING_DEPTS.join("、");
   document.getElementById("md-types").textContent = BIZ_TYPES.join("、") + "（=执行单类型）";
 }
 
-renderFill();
 document.querySelectorAll(".cost-col").forEach((el) => { el.style.display = "none"; });
+if (location.hash === "#fill-cmp") go("fill-cmp");
+else renderFill();

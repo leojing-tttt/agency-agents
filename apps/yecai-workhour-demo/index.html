@@ -18,6 +18,7 @@
       <ul class="a3-menu">
         <li class="a3-menu-group-title">人效 / 工时</li>
         <li class="a3-menu-item active" data-page="fill"><i class="fas fa-pen-to-square"></i><span>周填报</span></li>
+        <li class="a3-menu-item" data-page="fill-cmp"><i class="fas fa-table-columns"></i><span>填报对比</span></li>
         <li class="a3-menu-item" data-page="mine"><i class="fas fa-list"></i><span>我的填报</span></li>
         <li class="a3-menu-item" data-page="leader"><i class="fas fa-clipboard-check"></i><span>待我确认</span></li>
         <li class="a3-menu-group-title">报表</li>
@@ -97,6 +98,57 @@
                 <button type="button" class="a3-btn a3-btn-default" id="add-row"><i class="fas fa-plus"></i> 添加行</button>
                 <button type="button" class="a3-btn a3-btn-default" id="save-draft">暂存</button>
                 <button type="button" class="a3-btn a3-btn-primary" id="submit-fill"><i class="fas fa-paper-plane"></i> 提交</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 1b Fill compare: 业务组=营销一部…九部，维度顺序 业务组→品牌品线→业务类型 -->
+        <section class="page" id="page-fill-cmp">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">填报工时对比</h1>
+            <p class="a3-text-secondary a3-mt-4">与「周填报」对照的方案页。维度顺序：业务组（营销一部–九部）→ 品牌 / 品线 → 业务类型（= 执行单类型）→ 工时。先选营销部门，再填品牌品线与业务类型。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16">
+            <i class="fas fa-info-circle"></i>
+            <span>对比说明：本页业务组枚举为营销一部…营销九部；原「周填报」仍使用华东投放组等旧列表，二者并存便于对照。</span>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-body">
+              <div class="yc-toolbar a3-mb-16">
+                <div class="yc-field">
+                  <label class="a3-text-secondary">填报周</label>
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="fill-cmp-week">
+                      <option>2026-W39（09/22–09/28）</option>
+                      <option>2026-W38（09/15–09/21）</option>
+                    </select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="a3-table-wrapper">
+                <table class="a3-table" id="fill-cmp-table">
+                  <thead>
+                    <tr>
+                      <th>业务组</th>
+                      <th>品牌</th>
+                      <th>品线</th>
+                      <th>业务类型</th>
+                      <th>工时(小时)</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
+              <span class="a3-text-secondary">本周合计 <b class="a3-text-primary" id="fill-cmp-sum">0</b> / 40 小时</span>
+              <div class="a3-flex" style="gap:8px">
+                <button type="button" class="a3-btn a3-btn-default" id="add-cmp-row"><i class="fas fa-plus"></i> 添加行</button>
+                <button type="button" class="a3-btn a3-btn-default" id="save-cmp-draft">暂存</button>
+                <button type="button" class="a3-btn a3-btn-primary" id="submit-cmp-fill"><i class="fas fa-paper-plane"></i> 提交</button>
               </div>
             </div>
           </div>
