@@ -1,16 +1,45 @@
 /* 业财工时归集 demo — A3 SaaS UI
- * 执行单类型两级枚举来源：
- * agency-agents/system/a3-talent-libary-master-…/CreateExecutionOrder/store.ts + type.ts
+ * 执行单类型两级：CreateExecutionOrder/store.ts + type.ts
+ * 品牌品线：CRM BrandDTO (brandName + productLines[]) + 品牌→品线级联
  */
 
-const BRANDS = ["青禾", "北境智造", "星澜茶", "澄光护肤", "岚屿家居"];
-const LINES = {
-  青禾: ["精华水", "面膜", "防晒", "洁面"],
-  北境智造: ["主机", "配件", "智能音箱"],
-  星澜茶: ["瓶装", "礼盒", "即饮"],
-  澄光护肤: ["精华", "面霜", "眼霜"],
-  岚屿家居: ["香氛", "床品", "餐厨"],
-};
+/**
+ * 品牌品线主数据（BrandDTO 形态）
+ * 结构来源：
+ * - system/…/src/api/v3/globals.d.ts → BrandDTO { brandName, productLines }
+ * - system/…/src/pages/opinion/utils/productLineSelect.ts（品牌→品线级联）
+ * - system/…/src/pages/oa/resource/brand/components/AddBrand.tsx（品线挂在品牌下）
+ * - system/…/src/pages/opinion/tracking/task/components/create.tsx（示例：高洁丝 / 卫生巾）
+ * 枚举值来自 A3 品牌/产品知识库（与业财客户品牌一致）：
+ * - A3AI/小红书种草素人文知识库_开发交付版_v1.0/03_产品知识/{好奇,高洁丝,康王,拜耳,霞湖世家}/
+ */
+const BRAND_LINE_MASTER = [
+  {
+    brandName: "好奇",
+    productLines: ["小森林", "深睡大师", "X系列", "屁屁面膜", "小桃裤", "小龙裤", "小黑洞"],
+  },
+  {
+    brandName: "高洁丝",
+    productLines: ["卫生巾", "蔓越莓益生力", "海岛奢宠纯棉", "阳光烘烘抑菌纯棉"],
+  },
+  {
+    brandName: "康王",
+    productLines: ["酮康唑洗发水"],
+  },
+  {
+    brandName: "拜耳",
+    productLines: ["One A Day高纯水晶鱼油", "氨糖液体钙", "心肝宝", "时光片Pro"],
+  },
+  {
+    brandName: "霞湖世家",
+    productLines: ["80支液氨棉T恤", "120支液氨棉T恤", "200支液氨棉T恤"],
+  },
+];
+
+const BRANDS = BRAND_LINE_MASTER.map((b) => b.brandName);
+const LINES = Object.fromEntries(
+  BRAND_LINE_MASTER.map((b) => [b.brandName, b.productLines.slice()]),
+);
 
 /** 业务组：营销一部–九部（全站统一） */
 const GROUPS = [
@@ -66,80 +95,80 @@ function subLabel(type, sub) {
 /** 周填报 mock：rows 含 group/brand/line/type/sub/pct，每周合计 100 */
 const FILL_BY_WEEK = {
   "2026-W39": [
-    { group: "营销一部", brand: "青禾", line: "精华水", type: "INTERNAL_KOL", sub: "KOL", pct: 25 },
-    { group: "营销一部", brand: "青禾", line: "防晒", type: "INTERNAL_DSP", sub: "INFLUENCER_PLATFORM_PAYMENT", pct: 15 },
-    { group: "营销三部", brand: "北境智造", line: "主机", type: "HARD_AD", sub: "HARD_AD_PRICING", pct: 20 },
-    { group: "营销五部", brand: "星澜茶", line: "礼盒", type: "GEO", sub: "", pct: 15 },
-    { group: "营销七部", brand: "澄光护肤", line: "精华", type: "PUBLIC_OPINION", sub: "", pct: 12 },
-    { group: "营销九部", brand: "岚屿家居", line: "香氛", type: "OTHER", sub: "", pct: 13 },
+    { group: "营销一部", brand: "好奇", line: "小森林", type: "INTERNAL_KOL", sub: "KOL", pct: 25 },
+    { group: "营销一部", brand: "好奇", line: "深睡大师", type: "INTERNAL_DSP", sub: "INFLUENCER_PLATFORM_PAYMENT", pct: 15 },
+    { group: "营销三部", brand: "高洁丝", line: "卫生巾", type: "HARD_AD", sub: "HARD_AD_PRICING", pct: 20 },
+    { group: "营销五部", brand: "拜耳", line: "心肝宝", type: "GEO", sub: "", pct: 15 },
+    { group: "营销七部", brand: "康王", line: "酮康唑洗发水", type: "PUBLIC_OPINION", sub: "", pct: 12 },
+    { group: "营销九部", brand: "霞湖世家", line: "120支液氨棉T恤", type: "OTHER", sub: "", pct: 13 },
   ],
   "2026-W38": [
-    { group: "营销二部", brand: "青禾", line: "面膜", type: "INTERNAL_KOL", sub: "COMMON_KOL", pct: 30 },
-    { group: "营销四部", brand: "北境智造", line: "配件", type: "INTERNAL_DSP", sub: "INFLUENCER_EXTERNAL_ORDER", pct: 25 },
-    { group: "营销六部", brand: "星澜茶", line: "瓶装", type: "SELF_MEDIA", sub: "", pct: 20 },
-    { group: "营销八部", brand: "澄光护肤", line: "面霜", type: "CUSTOMER_RELATIONSHIP", sub: "", pct: 15 },
-    { group: "营销一部", brand: "岚屿家居", line: "床品", type: "HARD_AD", sub: "HARD_AD_MEDIA_PHOTO", pct: 10 },
+    { group: "营销二部", brand: "好奇", line: "小桃裤", type: "INTERNAL_KOL", sub: "COMMON_KOL", pct: 30 },
+    { group: "营销四部", brand: "高洁丝", line: "海岛奢宠纯棉", type: "INTERNAL_DSP", sub: "INFLUENCER_EXTERNAL_ORDER", pct: 25 },
+    { group: "营销六部", brand: "拜耳", line: "氨糖液体钙", type: "SELF_MEDIA", sub: "", pct: 20 },
+    { group: "营销八部", brand: "霞湖世家", line: "80支液氨棉T恤", type: "CUSTOMER_RELATIONSHIP", sub: "", pct: 15 },
+    { group: "营销一部", brand: "好奇", line: "屁屁面膜", type: "HARD_AD", sub: "HARD_AD_MEDIA_PHOTO", pct: 10 },
   ],
 };
 
 /** Leader 归集：品牌|品线|type → 项目权重 */
 const SPLIT_CATALOG = {
-  "青禾|精华水|INTERNAL_KOL": [
-    { project: "青禾精华 Q3 种草", order: "ZX-一部-0918", w: 0.6 },
-    { project: "青禾精华 会员日", order: "ZX-一部-0922", w: 0.4 },
+  "好奇|小森林|INTERNAL_KOL": [
+    { project: "好奇小森林 Q3 种草", order: "ZX-一部-0918", w: 0.6 },
+    { project: "好奇小森林 会员日", order: "ZX-一部-0922", w: 0.4 },
   ],
-  "青禾|防晒|INTERNAL_DSP": [
-    { project: "青禾防晒 日化战役", order: "ZX-一部-0908", w: 0.7 },
-    { project: "青禾防晒 达人联投", order: "ZX-一部-0912", w: 0.3 },
+  "好奇|深睡大师|INTERNAL_DSP": [
+    { project: "好奇深睡 日化战役", order: "ZX-一部-0908", w: 0.7 },
+    { project: "好奇深睡 达人联投", order: "ZX-一部-0912", w: 0.3 },
   ],
-  "岚屿家居|床品|HARD_AD": [
-    { project: "岚屿床品 硬广档", order: "ZX-一部-0830", w: 1 },
+  "好奇|屁屁面膜|HARD_AD": [
+    { project: "好奇屁屁面膜 硬广档", order: "ZX-一部-0830", w: 1 },
   ],
 };
 
 const TEAM_DEPT1_EXTRAS = [
   {
-    person: "陈屿", brand: "青禾", line: "精华水", type: "INTERNAL_KOL", sub: "KOL", filled: 20,
-    parts: [{ project: "青禾精华 Q3 种草", order: "ZX-一部-0918", w: 1 }],
+    person: "陈屿", brand: "好奇", line: "小森林", type: "INTERNAL_KOL", sub: "KOL", filled: 20,
+    parts: [{ project: "好奇小森林 Q3 种草", order: "ZX-一部-0918", w: 1 }],
   },
   {
-    person: "苏晚", brand: "青禾", line: "防晒", type: "INTERNAL_DSP", sub: "INFLUENCER_PLATFORM_PAYMENT", filled: 10,
+    person: "苏晚", brand: "好奇", line: "深睡大师", type: "INTERNAL_DSP", sub: "INFLUENCER_PLATFORM_PAYMENT", filled: 10,
     parts: [
-      { project: "青禾防晒 日化战役", order: "ZX-一部-0908", w: 0.5 },
-      { project: "青禾防晒 达人联投", order: "ZX-一部-0912", w: 0.5 },
+      { project: "好奇深睡 日化战役", order: "ZX-一部-0908", w: 0.5 },
+      { project: "好奇深睡 达人联投", order: "ZX-一部-0912", w: 0.5 },
     ],
   },
 ];
 
 const PROJECT_REPORT = [
-  { project: "青禾精华 Q3 种草", brand: "青禾 / 精华水", types: "KOL（一口价）", days: 6.8, cost: 27200 },
-  { project: "青禾精华 会员日", brand: "青禾 / 精华水", types: "KOL（一口价）", days: 1.8, cost: 7200 },
-  { project: "青禾防晒 日化战役", brand: "青禾 / 防晒", types: "投流 / 平台付款", days: 2.4, cost: 9600 },
-  { project: "青禾防晒 达人联投", brand: "青禾 / 防晒", types: "投流 / 平台付款", days: 1.1, cost: 4400 },
-  { project: "北境主机 双11 预热", brand: "北境智造 / 主机", types: "硬广 / 定价类广告", days: 4.5, cost: 22500 },
-  { project: "星澜茶 中秋礼盒", brand: "星澜茶 / 礼盒", types: "GEO", days: 3.2, cost: 12800 },
-  { project: "澄光秋冬焕肤", brand: "澄光护肤 / 精华", types: "舆情", days: 2.8, cost: 11200 },
-  { project: "岚屿香氛 门店联名", brand: "岚屿家居 / 香氛", types: "策划与比稿费用", days: 1.5, cost: 6000 },
+  { project: "好奇小森林 Q3 种草", brand: "好奇 / 小森林", types: "KOL（一口价）", days: 6.8, cost: 27200 },
+  { project: "好奇小森林 会员日", brand: "好奇 / 小森林", types: "KOL（一口价）", days: 1.8, cost: 7200 },
+  { project: "好奇深睡 日化战役", brand: "好奇 / 深睡大师", types: "投流 / 平台付款", days: 2.4, cost: 9600 },
+  { project: "好奇深睡 达人联投", brand: "好奇 / 深睡大师", types: "投流 / 平台付款", days: 1.1, cost: 4400 },
+  { project: "高洁丝卫生巾 双11 预热", brand: "高洁丝 / 卫生巾", types: "硬广 / 定价类广告", days: 4.5, cost: 22500 },
+  { project: "拜耳心肝宝 GEO 战役", brand: "拜耳 / 心肝宝", types: "GEO", days: 3.2, cost: 12800 },
+  { project: "康王洗发水 舆情监测", brand: "康王 / 酮康唑洗发水", types: "舆情", days: 2.8, cost: 11200 },
+  { project: "霞湖世家 液氨棉种草", brand: "霞湖世家 / 120支液氨棉T恤", types: "策划与比稿费用", days: 1.5, cost: 6000 },
 ];
 
 /** 品牌品线人力：业务组 → 品牌 → 品线（媒介+投放+策划 = 人天） */
 const BRAND_REPORT = [
-  { group: "营销一部", brand: "青禾", line: "精华水", days: 5.2, media: 1.2, buy: 2.8, plan: 1.2, cost: 20800 },
-  { group: "营销一部", brand: "青禾", line: "防晒", days: 2.1, media: 0.5, buy: 1.2, plan: 0.4, cost: 8400 },
-  { group: "营销一部", brand: "岚屿家居", line: "床品", days: 1.0, media: 0.2, buy: 0.4, plan: 0.4, cost: 4000 },
-  { group: "营销二部", brand: "青禾", line: "面膜", days: 2.0, media: 0.5, buy: 0.9, plan: 0.6, cost: 8000 },
-  { group: "营销二部", brand: "澄光护肤", line: "面霜", days: 1.2, media: 0.3, buy: 0.5, plan: 0.4, cost: 4800 },
-  { group: "营销三部", brand: "北境智造", line: "主机", days: 3.5, media: 0.5, buy: 2.5, plan: 0.5, cost: 17500 },
-  { group: "营销三部", brand: "北境智造", line: "配件", days: 1.0, media: 0.2, buy: 0.6, plan: 0.2, cost: 5000 },
-  { group: "营销四部", brand: "北境智造", line: "配件", days: 1.6, media: 0.3, buy: 1.1, plan: 0.2, cost: 8000 },
-  { group: "营销四部", brand: "星澜茶", line: "瓶装", days: 0.8, media: 0.2, buy: 0.3, plan: 0.3, cost: 3200 },
-  { group: "营销五部", brand: "星澜茶", line: "礼盒", days: 2.4, media: 0.8, buy: 0.6, plan: 1.0, cost: 9600 },
-  { group: "营销六部", brand: "星澜茶", line: "瓶装", days: 1.5, media: 0.4, buy: 0.5, plan: 0.6, cost: 6000 },
-  { group: "营销七部", brand: "澄光护肤", line: "精华", days: 2.8, media: 0.7, buy: 1.2, plan: 0.9, cost: 11200 },
-  { group: "营销八部", brand: "澄光护肤", line: "面霜", days: 1.0, media: 0.2, buy: 0.4, plan: 0.4, cost: 4000 },
-  { group: "营销八部", brand: "青禾", line: "洁面", days: 0.8, media: 0.2, buy: 0.3, plan: 0.3, cost: 3200 },
-  { group: "营销九部", brand: "岚屿家居", line: "香氛", days: 1.5, media: 0.3, buy: 0.5, plan: 0.7, cost: 6000 },
-  { group: "营销九部", brand: "岚屿家居", line: "餐厨", days: 0.6, media: 0.1, buy: 0.2, plan: 0.3, cost: 2400 },
+  { group: "营销一部", brand: "好奇", line: "小森林", days: 5.2, media: 1.2, buy: 2.8, plan: 1.2, cost: 20800 },
+  { group: "营销一部", brand: "好奇", line: "深睡大师", days: 2.1, media: 0.5, buy: 1.2, plan: 0.4, cost: 8400 },
+  { group: "营销一部", brand: "好奇", line: "屁屁面膜", days: 1.0, media: 0.2, buy: 0.4, plan: 0.4, cost: 4000 },
+  { group: "营销二部", brand: "好奇", line: "小桃裤", days: 2.0, media: 0.5, buy: 0.9, plan: 0.6, cost: 8000 },
+  { group: "营销二部", brand: "高洁丝", line: "蔓越莓益生力", days: 1.2, media: 0.3, buy: 0.5, plan: 0.4, cost: 4800 },
+  { group: "营销三部", brand: "高洁丝", line: "卫生巾", days: 3.5, media: 0.5, buy: 2.5, plan: 0.5, cost: 17500 },
+  { group: "营销三部", brand: "高洁丝", line: "海岛奢宠纯棉", days: 1.0, media: 0.2, buy: 0.6, plan: 0.2, cost: 5000 },
+  { group: "营销四部", brand: "高洁丝", line: "阳光烘烘抑菌纯棉", days: 1.6, media: 0.3, buy: 1.1, plan: 0.2, cost: 8000 },
+  { group: "营销四部", brand: "拜耳", line: "氨糖液体钙", days: 0.8, media: 0.2, buy: 0.3, plan: 0.3, cost: 3200 },
+  { group: "营销五部", brand: "拜耳", line: "心肝宝", days: 2.4, media: 0.8, buy: 0.6, plan: 1.0, cost: 9600 },
+  { group: "营销六部", brand: "拜耳", line: "时光片Pro", days: 1.5, media: 0.4, buy: 0.5, plan: 0.6, cost: 6000 },
+  { group: "营销七部", brand: "康王", line: "酮康唑洗发水", days: 2.8, media: 0.7, buy: 1.2, plan: 0.9, cost: 11200 },
+  { group: "营销八部", brand: "霞湖世家", line: "80支液氨棉T恤", days: 1.0, media: 0.2, buy: 0.4, plan: 0.4, cost: 4000 },
+  { group: "营销八部", brand: "好奇", line: "小龙裤", days: 0.8, media: 0.2, buy: 0.3, plan: 0.3, cost: 3200 },
+  { group: "营销九部", brand: "霞湖世家", line: "120支液氨棉T恤", days: 1.5, media: 0.3, buy: 0.5, plan: 0.7, cost: 6000 },
+  { group: "营销九部", brand: "霞湖世家", line: "200支液氨棉T恤", days: 0.6, media: 0.1, buy: 0.2, plan: 0.3, cost: 2400 },
 ];
 
 const TITLES = {
@@ -738,8 +767,11 @@ document.getElementById("brand-filter").addEventListener("change", () => {
 document.getElementById("brand-query").addEventListener("click", () => renderBrand());
 
 function renderMaster() {
-  document.getElementById("md-brands").textContent = BRANDS.join("、");
-  document.getElementById("md-lines").textContent = Object.entries(LINES).map(([b, ls]) => `${b}→${ls.join("/")}`).join("；");
+  document.getElementById("md-brands").textContent =
+    BRANDS.join("、") + "（CRM BrandDTO.brandName；知识库品牌）";
+  document.getElementById("md-lines").textContent =
+    Object.entries(LINES).map(([b, ls]) => `${b}→${ls.join("/")}`).join("；") +
+    "（BrandDTO.productLines；品牌→品线级联同 productLineSelect.ts）";
   document.getElementById("md-groups").textContent = GROUPS.join("、");
   const typeText = EXECUTE_TYPES.map((t) => {
     const subs = EXECUTE_SUBTYPES[t.value] || [];
