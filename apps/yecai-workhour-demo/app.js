@@ -306,9 +306,7 @@ function subSelectHtml(type, selected) {
 
 function syncAdminMenus() {
   const isAdmin = state.role === "admin";
-  document.querySelectorAll(".admin-only").forEach((el) => {
-    el.style.display = isAdmin ? "" : "none";
-  });
+  document.body.classList.toggle("yc-role-admin", isAdmin);
 }
 
 function go(page) {

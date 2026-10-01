@@ -143,7 +143,9 @@ body {
   font-size: 12px;
 }
 
-.admin-only { display: none; }
+.admin-only { display: none !important; }
+body.yc-role-admin .admin-only { display: list-item !important; }
+body.yc-role-admin .a3-menu-group-title.admin-only { display: block !important; }
 
 .a3-card-title {
   font-weight: 600;
