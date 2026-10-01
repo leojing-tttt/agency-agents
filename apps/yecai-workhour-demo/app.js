@@ -122,15 +122,24 @@ const PROJECT_REPORT = [
   { project: "岚屿香氛 门店联名", brand: "岚屿家居 / 香氛", types: "策划与比稿费用", days: 1.5, cost: 6000 },
 ];
 
+/** 品牌品线人力：业务组 → 品牌 → 品线（媒介+投放+策划 = 人天） */
 const BRAND_REPORT = [
-  { brand: "青禾", line: "精华水", days: 9.8, media: 2.1, buy: 5.2, plan: 2.5, cost: 39200 },
-  { brand: "青禾", line: "防晒", days: 3.5, media: 0.8, buy: 2.0, plan: 0.7, cost: 14000 },
-  { brand: "青禾", line: "面膜", days: 2.0, media: 0.5, buy: 0.9, plan: 0.6, cost: 8000 },
-  { brand: "北境智造", line: "主机", days: 4.5, media: 0.6, buy: 3.2, plan: 0.7, cost: 22500 },
-  { brand: "北境智造", line: "配件", days: 1.6, media: 0.3, buy: 1.1, plan: 0.2, cost: 8000 },
-  { brand: "星澜茶", line: "礼盒", days: 2.4, media: 0.8, buy: 0.6, plan: 1.0, cost: 9600 },
-  { brand: "澄光护肤", line: "精华", days: 2.8, media: 0.7, buy: 1.2, plan: 0.9, cost: 11200 },
-  { brand: "岚屿家居", line: "香氛", days: 1.5, media: 0.3, buy: 0.5, plan: 0.7, cost: 6000 },
+  { group: "营销一部", brand: "青禾", line: "精华水", days: 5.2, media: 1.2, buy: 2.8, plan: 1.2, cost: 20800 },
+  { group: "营销一部", brand: "青禾", line: "防晒", days: 2.1, media: 0.5, buy: 1.2, plan: 0.4, cost: 8400 },
+  { group: "营销一部", brand: "岚屿家居", line: "床品", days: 1.0, media: 0.2, buy: 0.4, plan: 0.4, cost: 4000 },
+  { group: "营销二部", brand: "青禾", line: "面膜", days: 2.0, media: 0.5, buy: 0.9, plan: 0.6, cost: 8000 },
+  { group: "营销二部", brand: "澄光护肤", line: "面霜", days: 1.2, media: 0.3, buy: 0.5, plan: 0.4, cost: 4800 },
+  { group: "营销三部", brand: "北境智造", line: "主机", days: 3.5, media: 0.5, buy: 2.5, plan: 0.5, cost: 17500 },
+  { group: "营销三部", brand: "北境智造", line: "配件", days: 1.0, media: 0.2, buy: 0.6, plan: 0.2, cost: 5000 },
+  { group: "营销四部", brand: "北境智造", line: "配件", days: 1.6, media: 0.3, buy: 1.1, plan: 0.2, cost: 8000 },
+  { group: "营销四部", brand: "星澜茶", line: "瓶装", days: 0.8, media: 0.2, buy: 0.3, plan: 0.3, cost: 3200 },
+  { group: "营销五部", brand: "星澜茶", line: "礼盒", days: 2.4, media: 0.8, buy: 0.6, plan: 1.0, cost: 9600 },
+  { group: "营销六部", brand: "星澜茶", line: "瓶装", days: 1.5, media: 0.4, buy: 0.5, plan: 0.6, cost: 6000 },
+  { group: "营销七部", brand: "澄光护肤", line: "精华", days: 2.8, media: 0.7, buy: 1.2, plan: 0.9, cost: 11200 },
+  { group: "营销八部", brand: "澄光护肤", line: "面霜", days: 1.0, media: 0.2, buy: 0.4, plan: 0.4, cost: 4000 },
+  { group: "营销八部", brand: "青禾", line: "洁面", days: 0.8, media: 0.2, buy: 0.3, plan: 0.3, cost: 3200 },
+  { group: "营销九部", brand: "岚屿家居", line: "香氛", days: 1.5, media: 0.3, buy: 0.5, plan: 0.7, cost: 6000 },
+  { group: "营销九部", brand: "岚屿家居", line: "餐厨", days: 0.6, media: 0.1, buy: 0.2, plan: 0.3, cost: 2400 },
 ];
 
 const TITLES = {
@@ -326,8 +335,8 @@ function go(page) {
   if (page === "admin-config") renderAdminConfig();
   if (page === "admin-watch") renderAdminWatch();
   if (page === "master") renderMaster();
-  const adminHashes = { "fill-cmp": "fill-cmp", "admin-config": "admin-config", "admin-watch": "admin-watch" };
-  if (adminHashes[page]) location.hash = adminHashes[page];
+  const pageHashes = { "fill-cmp": "fill-cmp", "admin-config": "admin-config", "admin-watch": "admin-watch", brand: "brand" };
+  if (pageHashes[page]) location.hash = pageHashes[page];
   else if (location.hash && location.hash !== "#") history.replaceState(null, "", location.pathname + location.search);
 }
 
@@ -688,25 +697,45 @@ function renderBrand() {
   });
   const bf = document.getElementById("brand-filter");
   if (bf.options.length <= 1) {
-    BRANDS.forEach((b) => {
+    GROUPS.forEach((g) => {
       const o = document.createElement("option");
-      o.textContent = b;
+      o.value = g;
+      o.textContent = g;
       bf.appendChild(o);
     });
   }
   const filter = bf.value;
-  const rows = filter && filter !== "全部" ? BRAND_REPORT.filter((r) => r.brand === filter) : BRAND_REPORT;
-  document.querySelector("#brand-table tbody").innerHTML = rows.map((r) => `
+  const rows = (filter ? BRAND_REPORT.filter((r) => r.group === filter) : BRAND_REPORT)
+    .slice()
+    .sort((a, b) =>
+      a.group.localeCompare(b.group, "zh") ||
+      a.brand.localeCompare(b.brand, "zh") ||
+      a.line.localeCompare(b.line, "zh")
+    );
+
+  let lastGroup = "";
+  let lastBrand = "";
+  document.querySelector("#brand-table tbody").innerHTML = rows.map((r) => {
+    const showGroup = r.group !== lastGroup;
+    const showBrand = showGroup || r.brand !== lastBrand;
+    lastGroup = r.group;
+    lastBrand = r.brand;
+    return `
     <tr>
-      <td>${r.brand}</td><td>${r.line}</td><td>${r.days}</td>
+      <td>${showGroup ? r.group : ""}</td>
+      <td>${showBrand ? r.brand : ""}</td>
+      <td>${r.line}</td>
+      <td>${r.days}</td>
       <td>${r.media}</td><td>${r.buy}</td><td>${r.plan}</td>
       <td class="cost-col" style="display:${showCost ? "" : "none"}">${r.cost.toLocaleString()}</td>
-    </tr>`).join("");
+    </tr>`;
+  }).join("") || `<tr><td colspan="8"><div class="a3-table-empty">无匹配数据</div></td></tr>`;
 }
 
 document.getElementById("brand-filter").addEventListener("change", () => {
   if (document.getElementById("page-brand").classList.contains("active")) renderBrand();
 });
+document.getElementById("brand-query").addEventListener("click", () => renderBrand());
 
 function renderMaster() {
   document.getElementById("md-brands").textContent = BRANDS.join("、");
@@ -925,5 +954,5 @@ if (bootHash === "admin-config" || bootHash === "admin-watch") {
   document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.admin.name}`;
   syncAdminMenus();
   go(bootHash);
-} else if (bootHash === "fill-cmp") go("fill-cmp");
+} else if (bootHash === "fill-cmp" || bootHash === "brand") go(bootHash);
 else renderFill();
