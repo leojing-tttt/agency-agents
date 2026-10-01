@@ -307,7 +307,7 @@ function bindRowControls(root, getRows, setRows, rerender) {
         rows[i].sub = defaultSub(el.value);
         setRows(rows);
         rerender();
-      } else if (k === "group") {
+      } else if (k === "group" || k === "pct") {
         setRows(rows);
         rerender();
       } else {
