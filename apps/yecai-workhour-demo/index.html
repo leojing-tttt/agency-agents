@@ -312,7 +312,7 @@
         <section class="page" id="page-admin-config">
           <div class="yc-title-row a3-mb-16">
             <h1 class="yc-title a3-text-primary">配置面板</h1>
-            <p class="a3-text-secondary a3-mt-4">管理员配置各营销部员工数量，以及项目人力预算（人天）。暂存写入本地草稿，保存后供填报进度面板计算应填人数。</p>
+            <p class="a3-text-secondary a3-mt-4">管理员配置各营销部员工数量，以及部门与品牌对应关系。暂存/保存写入本机；员工数供填报进度面板计算应填人数，品牌映射约束周填报品牌下拉。</p>
           </div>
           <div class="a3-alert a3-alert-info a3-mb-16" id="admin-config-gate" style="display:none">
             <i class="fas fa-lock"></i>
@@ -349,17 +349,15 @@
               </div>
             </div>
             <div class="a3-card a3-mb-16">
-              <div class="a3-card-header"><span class="a3-card-title">项目人力配置</span></div>
+              <div class="a3-card-header"><span class="a3-card-title">部门与品牌对应关系</span></div>
               <div class="a3-card-body">
-                <p class="a3-text-secondary a3-mb-16">按项目维护计划人力（人天），可对照品牌品线。保存后仅本 Demo 本地生效。</p>
+                <p class="a3-text-secondary a3-mb-16">为每个营销部勾选可服务的品牌（来自业财 BRAND_LINE_MASTER）。周填报中该部门下的品牌下拉将优先/限定为已映射品牌。</p>
                 <div class="a3-table-wrapper">
-                  <table class="a3-table" id="cfg-project-table">
+                  <table class="a3-table" id="cfg-dept-brand-table">
                     <thead>
                       <tr>
-                        <th>项目</th>
-                        <th>品牌品线</th>
-                        <th>计划人力(人天)</th>
-                        <th>备注</th>
+                        <th style="width:140px">营销部</th>
+                        <th>对应品牌</th>
                       </tr>
                     </thead>
                     <tbody></tbody>

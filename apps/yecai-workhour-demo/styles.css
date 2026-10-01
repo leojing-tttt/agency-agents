@@ -181,6 +181,40 @@ body.yc-role-admin .a3-menu-group-title.admin-only { display: block !important; 
 
 .yc-watch-stat .a3-card-body { min-height: 96px; }
 
+.yc-brand-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.yc-brand-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--a3-border);
+  border-radius: 6px;
+  background: var(--a3-bg-layout, #fafafa);
+  font-size: 13px;
+  color: var(--a3-text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.yc-brand-tag:has(input:checked) {
+  border-color: var(--a3-primary);
+  background: var(--a3-primary-light, #fff1f0);
+  color: var(--a3-primary);
+}
+
+.yc-brand-tag input { margin: 0; accent-color: var(--a3-primary); }
+
+.yc-dept-brands {
+  font-size: 12px;
+  color: var(--a3-text-secondary);
+  font-weight: 400;
+}
+
 @media (max-width: 1100px) {
   #watch-week-cards.yc-stats { grid-template-columns: repeat(2, 1fr); }
 }

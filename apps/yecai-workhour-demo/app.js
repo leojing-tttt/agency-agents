@@ -183,8 +183,8 @@ const TITLES = {
   master: "主数据来源",
 };
 
-const ADMIN_STORAGE_KEY = "yecai-workhour-admin-config-v1";
-const ADMIN_DRAFT_KEY = "yecai-workhour-admin-config-draft-v1";
+const ADMIN_STORAGE_KEY = "yecai-workhour-admin-config-v2";
+const ADMIN_DRAFT_KEY = "yecai-workhour-admin-config-draft-v2";
 
 const DEFAULT_STAFF_BY_DEPT = {
   营销一部: 12,
@@ -198,13 +198,32 @@ const DEFAULT_STAFF_BY_DEPT = {
   营销九部: 8,
 };
 
-function defaultProjectManpower() {
-  return PROJECT_REPORT.map((p) => ({
-    project: p.project,
-    brand: p.brand,
-    plannedDays: p.days,
-    note: "",
-  }));
+/** 部门 → 品牌（可多选）；默认覆盖 BRAND_LINE_MASTER */
+const DEFAULT_DEPT_BRANDS = {
+  营销一部: ["好奇"],
+  营销二部: ["好奇", "高洁丝"],
+  营销三部: ["高洁丝"],
+  营销四部: ["高洁丝", "拜耳"],
+  营销五部: ["拜耳"],
+  营销六部: ["拜耳"],
+  营销七部: ["康王"],
+  营销八部: ["霞湖世家", "好奇"],
+  营销九部: ["霞湖世家"],
+};
+
+function defaultDeptBrands() {
+  const out = {};
+  GROUPS.forEach((g) => {
+    out[g] = (DEFAULT_DEPT_BRANDS[g] || []).filter((b) => BRANDS.includes(b));
+    if (!out[g].length) out[g] = [BRANDS[0]];
+  });
+  return out;
+}
+
+function brandsForGroup(group) {
+  const mapped = (state.adminConfig?.deptBrands && state.adminConfig.deptBrands[group]) || [];
+  const valid = mapped.filter((b) => BRANDS.includes(b));
+  return valid.length ? valid : BRANDS.slice();
 }
 
 /** 填报进度面板：各周已提交人数 mock（应填 = 配置员工数） */
@@ -223,26 +242,39 @@ function cloneRows(week) {
 }
 
 function emptyRow(group) {
+  const brands = brandsForGroup(group);
+  const brand = brands[0] || BRANDS[0];
   return {
     group: group || "",
-    brand: BRANDS[0],
-    line: LINES[BRANDS[0]][0],
+    brand,
+    line: (LINES[brand] || [])[0] || "",
     type: EXECUTE_TYPES[0].value,
     sub: (EXECUTE_SUBTYPES[EXECUTE_TYPES[0].value][0] || {}).value || "",
     pct: 0,
   };
 }
 
+function normalizeAdminConfig(raw) {
+  const staffByDept = { ...DEFAULT_STAFF_BY_DEPT, ...(raw?.staffByDept || {}) };
+  const baseBrands = defaultDeptBrands();
+  const deptBrands = { ...baseBrands };
+  if (raw?.deptBrands && typeof raw.deptBrands === "object") {
+    GROUPS.forEach((g) => {
+      if (Array.isArray(raw.deptBrands[g])) {
+        const valid = raw.deptBrands[g].filter((b) => BRANDS.includes(b));
+        deptBrands[g] = valid.length ? valid : baseBrands[g];
+      }
+    });
+  }
+  return { staffByDept, deptBrands, savedAt: raw?.savedAt || null };
+}
+
 function loadAdminConfig() {
   try {
     const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return normalizeAdminConfig(JSON.parse(raw));
   } catch (_) { /* ignore */ }
-  return {
-    staffByDept: { ...DEFAULT_STAFF_BY_DEPT },
-    projectManpower: defaultProjectManpower(),
-    savedAt: null,
-  };
+  return normalizeAdminConfig(null);
 }
 
 function loadAdminDraft() {
@@ -272,13 +304,19 @@ const state = {
 
 const draftBoot = loadAdminDraft();
 if (draftBoot) {
-  state.adminConfig = {
-    staffByDept: { ...DEFAULT_STAFF_BY_DEPT, ...(draftBoot.staffByDept || {}) },
-    projectManpower: draftBoot.projectManpower || defaultProjectManpower(),
-    savedAt: state.adminConfig.savedAt,
-  };
+  state.adminConfig = normalizeAdminConfig({
+    ...state.adminConfig,
+    staffByDept: draftBoot.staffByDept,
+    deptBrands: draftBoot.deptBrands,
+  });
   state.adminDraftMeta = draftBoot.draftedAt || "草稿已恢复";
 }
+
+// 清掉旧版项目人力配置残留
+try {
+  localStorage.removeItem("yecai-workhour-admin-config-v1");
+  localStorage.removeItem("yecai-workhour-admin-config-draft-v1");
+} catch (_) { /* ignore */ }
 
 const roleMeta = {
   filler: { name: "林可 · 媒介", showCost: false },
@@ -430,7 +468,15 @@ function bindRowControls(root, getRows, setRows, rerender) {
         rows[i].sub = defaultSub(el.value);
         setRows(rows);
         rerender();
-      } else if (k === "group" || k === "pct") {
+      } else if (k === "group") {
+        const allowed = brandsForGroup(el.value);
+        if (!allowed.includes(rows[i].brand)) {
+          rows[i].brand = allowed[0] || BRANDS[0];
+          rows[i].line = (LINES[rows[i].brand] || [])[0] || "";
+        }
+        setRows(rows);
+        rerender();
+      } else if (k === "pct") {
         setRows(rows);
         rerender();
       } else {
@@ -451,6 +497,12 @@ function bindRowControls(root, getRows, setRows, rerender) {
 }
 
 function rowCellsHtml(row, i, { includeGroup }) {
+  const brandOpts = brandsForGroup(row.group);
+  const brand = brandOpts.includes(row.brand) ? row.brand : (brandOpts[0] || BRANDS[0]);
+  if (brand !== row.brand) {
+    row.brand = brand;
+    row.line = (LINES[brand] || [])[0] || "";
+  }
   const lines = LINES[row.brand] || [];
   const subDisabled = !(EXECUTE_SUBTYPES[row.type] || []).length;
   const groupCell = includeGroup
@@ -458,7 +510,7 @@ function rowCellsHtml(row, i, { includeGroup }) {
     : "";
   return `
     ${groupCell}
-    <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="brand">${opts(BRANDS, row.brand)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
+    <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="brand">${opts(brandOpts, row.brand)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
     <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="line">${opts(lines, row.line)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
     <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="type">${typeSelectHtml(row.type)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
     <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="sub" ${subDisabled ? "disabled" : ""}>${subSelectHtml(row.type, row.sub)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
@@ -486,6 +538,7 @@ function renderFill() {
   root.innerHTML = groups.map((g) => {
     const indices = state.rows.map((r, i) => (r.group === g ? i : -1)).filter((i) => i >= 0);
     const deptPct = round1(indices.reduce((s, i) => s + (Number(state.rows[i].pct) || 0), 0));
+    const mappedBrands = brandsForGroup(g).join("、");
     const rowsHtml = indices.map((i) => `<tr>${rowCellsHtml(state.rows[i], i, { includeGroup: false })}</tr>`).join("");
     return `
       <div class="yc-dept a3-card a3-mb-16" data-dept="${g}">
@@ -494,6 +547,7 @@ function renderFill() {
             <i class="fas fa-building a3-text-brand"></i>
             <strong class="a3-text-primary">${g}</strong>
             <span class="a3-tag a3-tag-default">本部门 ${deptPct}%</span>
+            <span class="yc-dept-brands">可填品牌：${mappedBrands}</span>
           </div>
           <div class="a3-flex" style="gap:8px">
             <button type="button" class="a3-btn a3-btn-default a3-btn-sm" data-add-line="${g}"><i class="fas fa-plus"></i> 添加行</button>
@@ -832,18 +886,17 @@ function renderAdminConfig() {
     </tr>
   `).join("");
 
-  document.querySelector("#cfg-project-table tbody").innerHTML = state.adminConfig.projectManpower.map((p, i) => `
-    <tr>
-      <td>${p.project}</td>
-      <td>${p.brand}</td>
-      <td><div class="a3-input-wrapper" style="max-width:120px">
-        <input class="a3-input" type="number" min="0" max="999" step="0.1" value="${p.plannedDays}" data-proj-days="${i}" />
-      </div></td>
-      <td><div class="a3-input-wrapper">
-        <input class="a3-input" type="text" placeholder="可选备注" value="${p.note || ""}" data-proj-note="${i}" />
-      </div></td>
-    </tr>
-  `).join("");
+  const mapDepts = filter ? [filter] : GROUPS;
+  document.querySelector("#cfg-dept-brand-table tbody").innerHTML = mapDepts.map((g) => {
+    const selected = new Set(state.adminConfig.deptBrands[g] || []);
+    const tags = BRANDS.map((b) => `
+      <label class="yc-brand-tag">
+        <input type="checkbox" data-dept-brand="${g}" value="${b}" ${selected.has(b) ? "checked" : ""} />
+        ${b}
+      </label>
+    `).join("");
+    return `<tr><td>${g}</td><td><div class="yc-brand-tags">${tags}</div></td></tr>`;
+  }).join("");
 
   document.querySelectorAll("[data-staff]").forEach((el) => {
     el.addEventListener("change", () => {
@@ -851,14 +904,16 @@ function renderAdminConfig() {
       updateCfgMeta();
     });
   });
-  document.querySelectorAll("[data-proj-days]").forEach((el) => {
+  document.querySelectorAll("[data-dept-brand]").forEach((el) => {
     el.addEventListener("change", () => {
-      state.adminConfig.projectManpower[+el.dataset.projDays].plannedDays = Number(el.value) || 0;
-    });
-  });
-  document.querySelectorAll("[data-proj-note]").forEach((el) => {
-    el.addEventListener("change", () => {
-      state.adminConfig.projectManpower[+el.dataset.projNote].note = el.value;
+      const dept = el.dataset.deptBrand;
+      const checked = [...document.querySelectorAll(`[data-dept-brand="${dept}"]:checked`)].map((c) => c.value);
+      state.adminConfig.deptBrands[dept] = checked.length ? checked : [BRANDS[0]];
+      if (!checked.length) {
+        const fallback = document.querySelector(`[data-dept-brand="${dept}"][value="${BRANDS[0]}"]`);
+        if (fallback) fallback.checked = true;
+        toast("warning", `${dept} 至少保留一个品牌`);
+      }
     });
   });
   updateCfgMeta();
@@ -873,7 +928,7 @@ document.getElementById("cfg-draft").addEventListener("click", () => {
   const draftedAt = new Date().toLocaleString("zh-CN", { hour12: false });
   localStorage.setItem(ADMIN_DRAFT_KEY, JSON.stringify({
     staffByDept: state.adminConfig.staffByDept,
-    projectManpower: state.adminConfig.projectManpower,
+    deptBrands: state.adminConfig.deptBrands,
     draftedAt,
   }));
   state.adminDraftMeta = draftedAt;
@@ -885,11 +940,15 @@ document.getElementById("cfg-save").addEventListener("click", () => {
   if (state.role !== "admin") return toast("warning", "仅管理员可保存");
   const savedAt = new Date().toLocaleString("zh-CN", { hour12: false });
   state.adminConfig.savedAt = savedAt;
-  localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(state.adminConfig));
+  localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({
+    staffByDept: state.adminConfig.staffByDept,
+    deptBrands: state.adminConfig.deptBrands,
+    savedAt,
+  }));
   localStorage.removeItem(ADMIN_DRAFT_KEY);
   state.adminDraftMeta = null;
   updateCfgMeta();
-  toast("success", "配置已保存，填报进度面板将使用最新应填人数");
+  toast("success", "配置已保存：员工数与部门品牌映射已生效");
 });
 
 function weekProgress(week) {
