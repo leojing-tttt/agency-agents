@@ -24,6 +24,9 @@
         <li class="a3-menu-group-title">报表</li>
         <li class="a3-menu-item" data-page="project"><i class="fas fa-diagram-project"></i><span>项目人力</span></li>
         <li class="a3-menu-item" data-page="brand"><i class="fas fa-tags"></i><span>品牌品线人力</span></li>
+        <li class="a3-menu-group-title admin-only">管理 / 配置</li>
+        <li class="a3-menu-item admin-only" data-page="admin-config"><i class="fas fa-sliders"></i><span>配置面板</span></li>
+        <li class="a3-menu-item admin-only" data-page="admin-watch"><i class="fas fa-eye"></i><span>观看面板</span></li>
         <li class="a3-menu-group-title">说明</li>
         <li class="a3-menu-item" data-page="master"><i class="fas fa-database"></i><span>主数据来源</span></li>
       </ul>
@@ -34,6 +37,7 @@
             <option value="filler">填报人 · 林可（媒介）</option>
             <option value="leader">Leader · 周衡（营销一部）</option>
             <option value="finance">财务 · 沈岚</option>
+            <option value="admin">管理员 · 顾澄</option>
           </select>
           <i class="fas fa-chevron-down a3-select-arrow"></i>
         </div>
@@ -298,6 +302,118 @@
                   </thead>
                   <tbody></tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Admin: 配置面板 -->
+        <section class="page" id="page-admin-config">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">配置面板</h1>
+            <p class="a3-text-secondary a3-mt-4">管理员配置各营销部员工数量，以及项目人力预算（人天）。暂存写入本地草稿，保存后供观看面板计算应填人数。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16" id="admin-config-gate" style="display:none">
+            <i class="fas fa-lock"></i>
+            <span>请切换身份为「管理员 · 顾澄」后编辑配置。</span>
+          </div>
+          <div id="admin-config-body">
+            <div class="a3-card a3-mb-16">
+              <div class="a3-card-header"><span class="a3-card-title">按部门配置员工数量</span></div>
+              <div class="a3-card-body">
+                <div class="yc-toolbar a3-mb-16">
+                  <div class="yc-field">
+                    <label class="a3-text-secondary">快速定位部门</label>
+                    <div class="a3-select-wrapper">
+                      <select class="a3-select" id="cfg-dept-filter">
+                        <option value="">全部营销部</option>
+                      </select>
+                      <i class="fas fa-chevron-down a3-select-arrow"></i>
+                    </div>
+                  </div>
+                  <div class="a3-text-secondary" style="align-self:flex-end;padding-bottom:6px">合计员工 <b class="a3-text-primary" id="cfg-staff-total">0</b> 人</div>
+                </div>
+                <div class="a3-table-wrapper">
+                  <table class="a3-table" id="cfg-staff-table">
+                    <thead>
+                      <tr>
+                        <th>营销部（业务组）</th>
+                        <th>员工数量</th>
+                        <th>说明</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="a3-card a3-mb-16">
+              <div class="a3-card-header"><span class="a3-card-title">项目人力配置</span></div>
+              <div class="a3-card-body">
+                <p class="a3-text-secondary a3-mb-16">按项目维护计划人力（人天），可对照品牌品线。保存后仅本 Demo 本地生效。</p>
+                <div class="a3-table-wrapper">
+                  <table class="a3-table" id="cfg-project-table">
+                    <thead>
+                      <tr>
+                        <th>项目</th>
+                        <th>品牌品线</th>
+                        <th>计划人力(人天)</th>
+                        <th>备注</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
+                <span class="a3-text-secondary" id="cfg-save-meta">尚未保存</span>
+                <div class="a3-flex" style="gap:8px">
+                  <button type="button" class="a3-btn a3-btn-default" id="cfg-draft"><i class="fas fa-floppy-disk"></i> 暂存草稿</button>
+                  <button type="button" class="a3-btn a3-btn-primary" id="cfg-save"><i class="fas fa-check"></i> 保存配置</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Admin: 观看面板 -->
+        <section class="page" id="page-admin-watch">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">观看面板</h1>
+            <p class="a3-text-secondary a3-mt-4">按周查看全员填报进度：已提交人数 / 应填人数（来自配置面板员工数），支持整体与分部门。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16" id="admin-watch-gate" style="display:none">
+            <i class="fas fa-lock"></i>
+            <span>请切换身份为「管理员 · 顾澄」后查看进度。</span>
+          </div>
+          <div id="admin-watch-body">
+            <div class="yc-stats a3-mb-16" id="watch-week-cards"></div>
+            <div class="a3-card">
+              <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
+                <span class="a3-card-title">分周 · 分部门进度</span>
+                <div class="yc-field" style="margin:0;min-width:160px">
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="watch-week-select"></select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="a3-card-body">
+                <div class="a3-mb-16" id="watch-overall-bar"></div>
+                <div class="a3-table-wrapper">
+                  <table class="a3-table" id="watch-dept-table">
+                    <thead>
+                      <tr>
+                        <th>营销部</th>
+                        <th>已提交</th>
+                        <th>应填</th>
+                        <th>进度</th>
+                        <th>状态</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

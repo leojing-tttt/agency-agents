@@ -140,7 +140,42 @@ const TITLES = {
   leader: "待我确认",
   project: "项目人力",
   brand: "品牌品线人力",
+  "admin-config": "配置面板",
+  "admin-watch": "观看面板",
   master: "主数据来源",
+};
+
+const ADMIN_STORAGE_KEY = "yecai-workhour-admin-config-v1";
+const ADMIN_DRAFT_KEY = "yecai-workhour-admin-config-draft-v1";
+
+const DEFAULT_STAFF_BY_DEPT = {
+  营销一部: 12,
+  营销二部: 10,
+  营销三部: 11,
+  营销四部: 9,
+  营销五部: 8,
+  营销六部: 10,
+  营销七部: 7,
+  营销八部: 9,
+  营销九部: 8,
+};
+
+function defaultProjectManpower() {
+  return PROJECT_REPORT.map((p) => ({
+    project: p.project,
+    brand: p.brand,
+    plannedDays: p.days,
+    note: "",
+  }));
+}
+
+/** 观看面板：各周已提交人数 mock（应填 = 配置员工数） */
+const WATCH_WEEKS = ["2026-W36", "2026-W37", "2026-W38", "2026-W39"];
+const WATCH_SUBMITTED = {
+  "2026-W36": { 营销一部: 12, 营销二部: 10, 营销三部: 11, 营销四部: 9, 营销五部: 8, 营销六部: 10, 营销七部: 7, 营销八部: 9, 营销九部: 8 },
+  "2026-W37": { 营销一部: 10, 营销二部: 7, 营销三部: 9, 营销四部: 6, 营销五部: 5, 营销六部: 8, 营销七部: 4, 营销八部: 6, 营销九部: 5 },
+  "2026-W38": { 营销一部: 12, 营销二部: 10, 营销三部: 11, 营销四部: 9, 营销五部: 8, 营销六部: 10, 营销七部: 7, 营销八部: 9, 营销九部: 8 },
+  "2026-W39": { 营销一部: 8, 营销二部: 4, 营销三部: 6, 营销四部: 3, 营销五部: 5, 营销六部: 2, 营销七部: 3, 营销八部: 4, 营销九部: 1 },
 };
 
 const LEADER_GROUP = "营销一部";
@@ -160,6 +195,26 @@ function emptyRow(group) {
   };
 }
 
+function loadAdminConfig() {
+  try {
+    const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (_) { /* ignore */ }
+  return {
+    staffByDept: { ...DEFAULT_STAFF_BY_DEPT },
+    projectManpower: defaultProjectManpower(),
+    savedAt: null,
+  };
+}
+
+function loadAdminDraft() {
+  try {
+    const raw = localStorage.getItem(ADMIN_DRAFT_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
 const state = {
   role: "filler",
   locked: false,
@@ -172,12 +227,26 @@ const state = {
     { week: "2026-W38", status: "locked", rows: cloneRows("2026-W38") },
     { week: "2026-W39", status: "submitted", rows: cloneRows("2026-W39") },
   ],
+  adminConfig: loadAdminConfig(),
+  adminDraftMeta: null,
+  watchWeek: "2026-W39",
 };
+
+const draftBoot = loadAdminDraft();
+if (draftBoot) {
+  state.adminConfig = {
+    staffByDept: { ...DEFAULT_STAFF_BY_DEPT, ...(draftBoot.staffByDept || {}) },
+    projectManpower: draftBoot.projectManpower || defaultProjectManpower(),
+    savedAt: state.adminConfig.savedAt,
+  };
+  state.adminDraftMeta = draftBoot.draftedAt || "草稿已恢复";
+}
 
 const roleMeta = {
   filler: { name: "林可 · 媒介", showCost: false },
   leader: { name: "周衡 · 营销一部 Leader", showCost: false },
   finance: { name: "沈岚 · 财务", showCost: true },
+  admin: { name: "顾澄 · 管理员", showCost: true },
 };
 
 function toast(type, text) {
@@ -235,19 +304,33 @@ function subSelectHtml(type, selected) {
   return optsObj(list, selected);
 }
 
+function syncAdminMenus() {
+  const isAdmin = state.role === "admin";
+  document.querySelectorAll(".admin-only").forEach((el) => {
+    el.style.display = isAdmin ? "" : "none";
+  });
+}
+
 function go(page) {
+  if ((page === "admin-config" || page === "admin-watch") && state.role !== "admin") {
+    toast("warning", "请先切换为管理员身份");
+    page = "fill";
+  }
   document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + page));
   document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => m.classList.toggle("active", m.dataset.page === page));
-  document.getElementById("crumb").textContent = TITLES[page];
+  document.getElementById("crumb").textContent = TITLES[page] || page;
   if (page === "fill") renderFill();
   if (page === "fill-cmp") renderFillCmp();
   if (page === "mine") renderMine();
   if (page === "leader") renderLeader();
   if (page === "project") renderProject();
   if (page === "brand") renderBrand();
+  if (page === "admin-config") renderAdminConfig();
+  if (page === "admin-watch") renderAdminWatch();
   if (page === "master") renderMaster();
-  if (page === "fill-cmp") location.hash = "fill-cmp";
-  else if (location.hash === "#fill-cmp") history.replaceState(null, "", location.pathname + location.search);
+  const adminHashes = { "fill-cmp": "fill-cmp", "admin-config": "admin-config", "admin-watch": "admin-watch" };
+  if (adminHashes[page]) location.hash = adminHashes[page];
+  else if (location.hash && location.hash !== "#") history.replaceState(null, "", location.pathname + location.search);
 }
 
 document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => {
@@ -257,8 +340,12 @@ document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => {
 document.getElementById("role-select").addEventListener("change", (e) => {
   state.role = e.target.value;
   document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
+  syncAdminMenus();
   const active = document.querySelector(".a3-menu-item.active");
-  go(active ? active.dataset.page : "fill");
+  const onAdminPage = active && (active.dataset.page === "admin-config" || active.dataset.page === "admin-watch");
+  if (state.role === "admin") go(onAdminPage ? active.dataset.page : "admin-config");
+  else if (onAdminPage) go("fill");
+  else go(active ? active.dataset.page : "fill");
 });
 
 document.getElementById("fill-week").addEventListener("change", (e) => {
@@ -636,6 +723,209 @@ function renderMaster() {
   document.getElementById("md-types").textContent = typeText + "（=执行单类型，两级；源自 CreateExecutionOrder/store.ts）";
 }
 
+function progressBarHtml(pct, success) {
+  const p = Math.max(0, Math.min(100, Math.round(pct)));
+  return `
+    <div class="a3-progress ${success ? "success" : ""}">
+      <div class="a3-progress-track"><div class="a3-progress-inner" style="width:${p}%"></div></div>
+      <span class="a3-progress-text">${p}%</span>
+    </div>
+  `;
+}
+
+function staffTotal() {
+  return GROUPS.reduce((s, g) => s + (Number(state.adminConfig.staffByDept[g]) || 0), 0);
+}
+
+function updateCfgMeta() {
+  const el = document.getElementById("cfg-save-meta");
+  const parts = [];
+  if (state.adminConfig.savedAt) parts.push("已保存 " + state.adminConfig.savedAt);
+  if (state.adminDraftMeta) parts.push("草稿 " + state.adminDraftMeta);
+  el.textContent = parts.length ? parts.join(" · ") : "尚未保存";
+  document.getElementById("cfg-staff-total").textContent = staffTotal();
+}
+
+function renderAdminConfig() {
+  const isAdmin = state.role === "admin";
+  document.getElementById("admin-config-gate").style.display = isAdmin ? "none" : "flex";
+  document.getElementById("admin-config-body").style.display = isAdmin ? "block" : "none";
+  if (!isAdmin) return;
+
+  const filterEl = document.getElementById("cfg-dept-filter");
+  if (filterEl.options.length <= 1) {
+    GROUPS.forEach((g) => {
+      const o = document.createElement("option");
+      o.value = g;
+      o.textContent = g;
+      filterEl.appendChild(o);
+    });
+  }
+  const filter = filterEl.value;
+  const depts = filter ? [filter] : GROUPS;
+  document.querySelector("#cfg-staff-table tbody").innerHTML = depts.map((g) => `
+    <tr>
+      <td>${g}</td>
+      <td><div class="a3-input-wrapper" style="max-width:120px">
+        <input class="a3-input" type="number" min="0" max="999" step="1" value="${state.adminConfig.staffByDept[g] || 0}" data-staff="${g}" />
+      </div></td>
+      <td class="a3-text-secondary">应填人数基准（观看面板）</td>
+    </tr>
+  `).join("");
+
+  document.querySelector("#cfg-project-table tbody").innerHTML = state.adminConfig.projectManpower.map((p, i) => `
+    <tr>
+      <td>${p.project}</td>
+      <td>${p.brand}</td>
+      <td><div class="a3-input-wrapper" style="max-width:120px">
+        <input class="a3-input" type="number" min="0" max="999" step="0.1" value="${p.plannedDays}" data-proj-days="${i}" />
+      </div></td>
+      <td><div class="a3-input-wrapper">
+        <input class="a3-input" type="text" placeholder="可选备注" value="${p.note || ""}" data-proj-note="${i}" />
+      </div></td>
+    </tr>
+  `).join("");
+
+  document.querySelectorAll("[data-staff]").forEach((el) => {
+    el.addEventListener("change", () => {
+      state.adminConfig.staffByDept[el.dataset.staff] = Number(el.value) || 0;
+      updateCfgMeta();
+    });
+  });
+  document.querySelectorAll("[data-proj-days]").forEach((el) => {
+    el.addEventListener("change", () => {
+      state.adminConfig.projectManpower[+el.dataset.projDays].plannedDays = Number(el.value) || 0;
+    });
+  });
+  document.querySelectorAll("[data-proj-note]").forEach((el) => {
+    el.addEventListener("change", () => {
+      state.adminConfig.projectManpower[+el.dataset.projNote].note = el.value;
+    });
+  });
+  updateCfgMeta();
+}
+
+document.getElementById("cfg-dept-filter").addEventListener("change", () => {
+  if (document.getElementById("page-admin-config").classList.contains("active")) renderAdminConfig();
+});
+
+document.getElementById("cfg-draft").addEventListener("click", () => {
+  if (state.role !== "admin") return toast("warning", "仅管理员可暂存");
+  const draftedAt = new Date().toLocaleString("zh-CN", { hour12: false });
+  localStorage.setItem(ADMIN_DRAFT_KEY, JSON.stringify({
+    staffByDept: state.adminConfig.staffByDept,
+    projectManpower: state.adminConfig.projectManpower,
+    draftedAt,
+  }));
+  state.adminDraftMeta = draftedAt;
+  updateCfgMeta();
+  toast("info", "配置草稿已暂存到本机");
+});
+
+document.getElementById("cfg-save").addEventListener("click", () => {
+  if (state.role !== "admin") return toast("warning", "仅管理员可保存");
+  const savedAt = new Date().toLocaleString("zh-CN", { hour12: false });
+  state.adminConfig.savedAt = savedAt;
+  localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(state.adminConfig));
+  localStorage.removeItem(ADMIN_DRAFT_KEY);
+  state.adminDraftMeta = null;
+  updateCfgMeta();
+  toast("success", "配置已保存，观看面板将使用最新应填人数");
+});
+
+function weekProgress(week) {
+  const submittedMap = WATCH_SUBMITTED[week] || {};
+  let submitted = 0;
+  let expected = 0;
+  const byDept = GROUPS.map((g) => {
+    const exp = Number(state.adminConfig.staffByDept[g]) || 0;
+    const sub = Math.min(Number(submittedMap[g]) || 0, exp || 999);
+    submitted += sub;
+    expected += exp;
+    const pct = exp ? Math.round((sub / exp) * 100) : 0;
+    return { group: g, submitted: sub, expected: exp, pct };
+  });
+  const overall = expected ? Math.round((submitted / expected) * 100) : 0;
+  return { week, submitted, expected, overall, byDept };
+}
+
+function watchStatusTag(pct) {
+  if (pct >= 100) return '<span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>已完成</span>';
+  if (pct >= 60) return '<span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>进行中</span>';
+  return '<span class="a3-tag a3-tag-danger"><span class="a3-tag-dot"></span>滞后</span>';
+}
+
+function renderAdminWatch() {
+  const isAdmin = state.role === "admin";
+  document.getElementById("admin-watch-gate").style.display = isAdmin ? "none" : "flex";
+  document.getElementById("admin-watch-body").style.display = isAdmin ? "block" : "none";
+  if (!isAdmin) return;
+
+  const weekSelect = document.getElementById("watch-week-select");
+  if (weekSelect.options.length !== WATCH_WEEKS.length) {
+    weekSelect.innerHTML = WATCH_WEEKS.map((w) =>
+      `<option value="${w}" ${w === state.watchWeek ? "selected" : ""}>${w}</option>`
+    ).join("");
+  } else {
+    weekSelect.value = state.watchWeek;
+  }
+
+  const cards = document.getElementById("watch-week-cards");
+  cards.innerHTML = WATCH_WEEKS.map((w) => {
+    const p = weekProgress(w);
+    const active = w === state.watchWeek ? " yc-watch-card-active" : "";
+    return `
+      <div class="a3-card yc-stat yc-watch-card${active}" data-watch-week="${w}">
+        <div class="a3-card-body">
+          <div class="a3-text-secondary" style="font-size:12px">${w}</div>
+          <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${p.overall}%</div>
+          <div class="a3-text-secondary a3-mt-8" style="font-size:12px">${p.submitted} / ${p.expected} 人已交</div>
+          <div class="a3-mt-8">${progressBarHtml(p.overall, p.overall >= 100)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  cards.querySelectorAll("[data-watch-week]").forEach((card) => {
+    card.addEventListener("click", () => {
+      state.watchWeek = card.dataset.watchWeek;
+      renderAdminWatch();
+    });
+  });
+
+  const cur = weekProgress(state.watchWeek);
+  document.getElementById("watch-overall-bar").innerHTML = `
+    <div class="a3-flex-between a3-mb-8" style="justify-content:space-between">
+      <span class="a3-text-primary" style="font-weight:600">${cur.week} 整体进度</span>
+      <span class="a3-text-secondary">${cur.submitted} / ${cur.expected} 人 · ${watchStatusTag(cur.overall)}</span>
+    </div>
+    ${progressBarHtml(cur.overall, cur.overall >= 100)}
+  `;
+
+  document.querySelector("#watch-dept-table tbody").innerHTML = cur.byDept.map((d) => `
+    <tr>
+      <td>${d.group}</td>
+      <td>${d.submitted}</td>
+      <td>${d.expected}</td>
+      <td style="min-width:180px">${progressBarHtml(d.pct, d.pct >= 100)}</td>
+      <td>${watchStatusTag(d.pct)}</td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("watch-week-select").addEventListener("change", (e) => {
+  state.watchWeek = e.target.value;
+  renderAdminWatch();
+});
+
 document.querySelectorAll(".cost-col").forEach((el) => { el.style.display = "none"; });
-if (location.hash === "#fill-cmp") go("fill-cmp");
+syncAdminMenus();
+const bootHash = (location.hash || "").replace("#", "");
+if (bootHash === "admin-config" || bootHash === "admin-watch") {
+  state.role = "admin";
+  document.getElementById("role-select").value = "admin";
+  document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.admin.name}`;
+  syncAdminMenus();
+  go(bootHash);
+} else if (bootHash === "fill-cmp") go("fill-cmp");
 else renderFill();
