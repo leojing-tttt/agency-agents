@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>业财系统 · 工时归集</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="a3-components.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="a3-page">
+  <div class="yc-shell a3-flex">
+    <aside class="yc-sider a3-bg-card">
+      <div class="yc-logo a3-text-brand">
+        <i class="fas fa-chart-pie"></i>
+        <span>业财系统</span>
+      </div>
+      <ul class="a3-menu">
+        <li class="a3-menu-group-title">人效 / 工时</li>
+        <li class="a3-menu-item active" data-page="fill"><i class="fas fa-pen-to-square"></i><span>周填报</span></li>
+        <li class="a3-menu-item" data-page="fill-cmp"><i class="fas fa-table-columns"></i><span>填报对比</span></li>
+        <li class="a3-menu-item" data-page="mine"><i class="fas fa-list"></i><span>我的填报</span></li>
+        <li class="a3-menu-item" data-page="leader"><i class="fas fa-clipboard-check"></i><span>待我确认</span></li>
+        <li class="a3-menu-group-title">报表</li>
+        <li class="a3-menu-item" data-page="project"><i class="fas fa-diagram-project"></i><span>项目人力</span></li>
+        <li class="a3-menu-item" data-page="brand"><i class="fas fa-tags"></i><span>品牌品线人力</span></li>
+        <li class="a3-menu-group-title admin-only">管理 / 配置</li>
+        <li class="a3-menu-item admin-only" data-page="admin-config"><i class="fas fa-sliders"></i><span>配置面板</span></li>
+        <li class="a3-menu-item admin-only" data-page="admin-watch"><i class="fas fa-chart-line"></i><span>填报进度面板</span></li>
+        <li class="a3-menu-group-title">说明</li>
+        <li class="a3-menu-item" data-page="master"><i class="fas fa-database"></i><span>主数据来源</span></li>
+      </ul>
+      <div class="yc-role a3-p-16">
+        <div class="a3-text-disabled a3-mb-8" style="font-size:12px">演示身份切换</div>
+        <div class="a3-select-wrapper">
+          <select class="a3-select" id="role-select">
+            <option value="filler">填报人 · 林可（媒介）</option>
+            <option value="leader">Leader · 周衡（营销一部）</option>
+            <option value="finance">财务 · 沈岚</option>
+            <option value="admin">管理员 · 顾澄</option>
+          </select>
+          <i class="fas fa-chevron-down a3-select-arrow"></i>
+        </div>
+      </div>
+    </aside>
+
+    <div class="yc-main a3-flex-1">
+      <header class="a3-page-header a3-flex-between">
+        <div class="a3-breadcrumb">
+          <span class="a3-breadcrumb-item"><a>人效</a></span>
+          <span class="a3-breadcrumb-separator">/</span>
+          <span class="a3-breadcrumb-item"><a>工时</a></span>
+          <span class="a3-breadcrumb-separator">/</span>
+          <span class="a3-breadcrumb-item" id="crumb">周填报</span>
+        </div>
+        <span class="a3-tag a3-tag-default" id="user-chip">
+          <i class="fas fa-user"></i>
+          林可 · 媒介
+        </span>
+      </header>
+
+      <div class="a3-page-content">
+        <!-- 1 Fill: 按营销部区块分组 -->
+        <section class="page active" id="page-fill">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">周工时填报</h1>
+            <p class="a3-text-secondary a3-mt-4">按营销部（业务组）分块填报。先选部门，再在部门下添加多行：品牌→品线、执行单类型→子类型，填写本周占比（合计须为 100%）。</p>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-body">
+              <div class="yc-toolbar a3-mb-16 a3-flex-between" style="justify-content:space-between;align-items:flex-end">
+                <div class="yc-field">
+                  <label class="a3-text-secondary">填报周</label>
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="fill-week">
+                      <option>2026-W39（09/22–09/28）</option>
+                      <option>2026-W38（09/15–09/21）</option>
+                    </select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+                <button type="button" class="a3-btn a3-btn-default" id="add-dept"><i class="fas fa-folder-plus"></i> 添加营销部</button>
+              </div>
+              <div id="fill-sections"></div>
+            </div>
+            <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
+              <span class="a3-text-secondary" id="fill-sum-wrap">本周合计 <b class="a3-text-primary" id="fill-sum">0</b> / 100%</span>
+              <div class="a3-flex" style="gap:8px">
+                <button type="button" class="a3-btn a3-btn-default" id="save-draft">暂存</button>
+                <button type="button" class="a3-btn a3-btn-primary" id="submit-fill"><i class="fas fa-paper-plane"></i> 提交</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 1b Flat table variant for UX compare -->
+        <section class="page" id="page-fill-cmp">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">填报工时对比</h1>
+            <p class="a3-text-secondary a3-mt-4">与「周填报」同一套主数据与占比规则，布局改为扁平表：业务组在首列。便于对照「分块 vs 平铺」两种交互。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16">
+            <i class="fas fa-info-circle"></i>
+            <span>枚举已统一：业务组=营销一部…九部；业务类型=执行单类型（两级）。本页为平铺表变体，周填报为按部门分块变体。</span>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-body">
+              <div class="yc-toolbar a3-mb-16">
+                <div class="yc-field">
+                  <label class="a3-text-secondary">填报周</label>
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="fill-cmp-week">
+                      <option>2026-W39（09/22–09/28）</option>
+                      <option>2026-W38（09/15–09/21）</option>
+                    </select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="a3-table-wrapper">
+                <table class="a3-table" id="fill-cmp-table">
+                  <thead>
+                    <tr>
+                      <th>业务组</th>
+                      <th>品牌</th>
+                      <th>品线</th>
+                      <th>执行单类型</th>
+                      <th>子类型</th>
+                      <th>占比(%)</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
+              <span class="a3-text-secondary" id="fill-cmp-sum-wrap">本周合计 <b class="a3-text-primary" id="fill-cmp-sum">0</b> / 100%</span>
+              <div class="a3-flex" style="gap:8px">
+                <button type="button" class="a3-btn a3-btn-default" id="add-cmp-row"><i class="fas fa-plus"></i> 添加行</button>
+                <button type="button" class="a3-btn a3-btn-default" id="save-cmp-draft">暂存</button>
+                <button type="button" class="a3-btn a3-btn-primary" id="submit-cmp-fill"><i class="fas fa-paper-plane"></i> 提交</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2 Mine -->
+        <section class="page" id="page-mine">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">我的填报记录</h1>
+            <p class="a3-text-secondary a3-mt-4">仅展示本人已填占比与提交状态。拆分归属结果对填报人不可见。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16">
+            <i class="fas fa-info-circle"></i>
+            <span>权限提示：归集拆分结果仅各业务组 Leader 可见，本页不展示项目/执行单分摊。</span>
+          </div>
+          <div class="a3-card">
+            <div class="a3-table-wrapper">
+              <table class="a3-table" id="mine-table">
+                <thead>
+                  <tr>
+                    <th>填报周</th>
+                    <th>业务组</th>
+                    <th>品牌</th>
+                    <th>品线</th>
+                    <th>执行单类型</th>
+                    <th>子类型</th>
+                    <th>占比(%)</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3 Leader -->
+        <section class="page" id="page-leader">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">归集拆分与确认</h1>
+            <p class="a3-text-secondary a3-mt-4">按业务组查看系统拆分到项目 / 执行单的结果，确认后锁定纳入人效统计。</p>
+          </div>
+          <div class="a3-alert a3-alert-warning a3-mb-16" id="leader-gate">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>当前身份不是业务组 Leader。请在左侧切换为「Leader · 周衡」后查看。</span>
+          </div>
+          <div id="leader-body" style="display:none">
+            <div class="yc-stats a3-mb-16">
+              <div class="a3-card yc-stat"><div class="a3-card-body">
+                <div class="a3-text-secondary" style="font-size:12px">业务组</div>
+                <div class="a3-text-primary a3-mt-8" style="font-weight:600">营销一部</div>
+              </div></div>
+              <div class="a3-card yc-stat"><div class="a3-card-body">
+                <div class="a3-text-secondary" style="font-size:12px">待确认占比</div>
+                <div class="a3-text-brand a3-mt-8" style="font-size:22px;font-weight:600" id="leader-hours">0%</div>
+              </div></div>
+              <div class="a3-card yc-stat"><div class="a3-card-body">
+                <div class="a3-text-secondary" style="font-size:12px">涉及项目</div>
+                <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600" id="leader-projects">0</div>
+              </div></div>
+              <div class="a3-card yc-stat"><div class="a3-card-body">
+                <div class="a3-text-secondary" style="font-size:12px">状态</div>
+                <div class="a3-mt-8" id="leader-status-wrap"><span class="a3-tag a3-tag-warning" id="leader-status"><span class="a3-tag-dot"></span>待确认</span></div>
+              </div></div>
+            </div>
+            <div class="a3-card">
+              <div class="a3-table-wrapper">
+                <table class="a3-table" id="leader-table">
+                  <thead>
+                    <tr>
+                      <th>填报人</th>
+                      <th>品牌 / 品线</th>
+                      <th>执行单类型</th>
+                      <th>填报占比</th>
+                      <th>归集项目</th>
+                      <th>执行单</th>
+                      <th>分摊权重</th>
+                      <th>分摊占比</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="a3-card-footer">
+                <button type="button" class="a3-btn a3-btn-success" id="lock-btn"><i class="fas fa-lock"></i> 确认并锁定本周</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4 Project -->
+        <section class="page" id="page-project">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">项目人力耗费</h1>
+            <p class="a3-text-secondary a3-mt-4">按项目汇总投入人天。业务线默认只见人天；财务身份可见金额化人力成本列。</p>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-body">
+              <div class="yc-toolbar a3-mb-16">
+                <div class="yc-field">
+                  <label class="a3-text-secondary">周期</label>
+                  <div class="a3-select-wrapper"><select class="a3-select"><option>2026-W39</option><option>2026-Q3</option></select><i class="fas fa-chevron-down a3-select-arrow"></i></div>
+                </div>
+                <div class="yc-field">
+                  <label class="a3-text-secondary">项目</label>
+                  <div class="a3-select-wrapper"><select class="a3-select"><option>全部</option><option>好奇小森林 Q3 种草</option><option>好奇深睡 日化战役</option><option>高洁丝卫生巾 双11 预热</option><option>拜耳心肝宝 GEO 战役</option><option>康王洗发水 舆情监测</option></select><i class="fas fa-chevron-down a3-select-arrow"></i></div>
+                </div>
+                <button type="button" class="a3-btn a3-btn-primary"><i class="fas fa-search"></i> 查询</button>
+                <button type="button" class="a3-btn a3-btn-default"><i class="fas fa-download"></i> 导出</button>
+              </div>
+              <div class="a3-table-wrapper">
+                <table class="a3-table" id="project-table">
+                  <thead>
+                    <tr>
+                      <th>项目</th>
+                      <th>品牌品线</th>
+                      <th>业务类型汇总</th>
+                      <th>投入人天</th>
+                      <th class="cost-col">人力成本(元)</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5 Brand: 业务组 → 品牌 → 品线 -->
+        <section class="page" id="page-brand">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">品牌品线人力耗费</h1>
+            <p class="a3-text-secondary a3-mt-4">从业务组维度下钻：业务组（营销一部–九部）→ 品牌 → 品线，汇总投入人天。财务身份可见成本列。</p>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-body">
+              <div class="yc-toolbar a3-mb-16">
+                <div class="yc-field">
+                  <label class="a3-text-secondary">周期</label>
+                  <div class="a3-select-wrapper"><select class="a3-select"><option>2026-W39</option><option>2026-Q3</option></select><i class="fas fa-chevron-down a3-select-arrow"></i></div>
+                </div>
+                <div class="yc-field">
+                  <label class="a3-text-secondary">业务组</label>
+                  <div class="a3-select-wrapper"><select class="a3-select" id="brand-filter"><option value="">全部</option></select><i class="fas fa-chevron-down a3-select-arrow"></i></div>
+                </div>
+                <button type="button" class="a3-btn a3-btn-primary" id="brand-query"><i class="fas fa-search"></i> 查询</button>
+              </div>
+              <div class="a3-table-wrapper">
+                <table class="a3-table" id="brand-table">
+                  <thead>
+                    <tr>
+                      <th>业务组</th>
+                      <th>品牌</th>
+                      <th>品线</th>
+                      <th>投入人天</th>
+                      <th>媒介</th>
+                      <th>投放</th>
+                      <th>策划</th>
+                      <th class="cost-col">人力成本(元)</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Admin: 配置面板 -->
+        <section class="page" id="page-admin-config">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">配置面板</h1>
+            <p class="a3-text-secondary a3-mt-4">管理员配置各营销部员工数量，以及部门与品牌对应关系。暂存/保存写入本机；员工数供填报进度面板计算应填人数，品牌映射约束周填报品牌下拉。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16" id="admin-config-gate" style="display:none">
+            <i class="fas fa-lock"></i>
+            <span>请切换身份为「管理员 · 顾澄」后编辑配置。</span>
+          </div>
+          <div id="admin-config-body">
+            <div class="a3-card a3-mb-16">
+              <div class="a3-card-header"><span class="a3-card-title">按部门配置员工数量</span></div>
+              <div class="a3-card-body">
+                <div class="yc-toolbar a3-mb-16">
+                  <div class="yc-field">
+                    <label class="a3-text-secondary">快速定位部门</label>
+                    <div class="a3-select-wrapper">
+                      <select class="a3-select" id="cfg-dept-filter">
+                        <option value="">全部营销部</option>
+                      </select>
+                      <i class="fas fa-chevron-down a3-select-arrow"></i>
+                    </div>
+                  </div>
+                  <div class="a3-text-secondary" style="align-self:flex-end;padding-bottom:6px">合计员工 <b class="a3-text-primary" id="cfg-staff-total">0</b> 人</div>
+                </div>
+                <div class="a3-table-wrapper">
+                  <table class="a3-table" id="cfg-staff-table">
+                    <thead>
+                      <tr>
+                        <th>营销部（业务组）</th>
+                        <th>员工数量</th>
+                        <th>说明</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="a3-card a3-mb-16">
+              <div class="a3-card-header"><span class="a3-card-title">部门与品牌对应关系</span></div>
+              <div class="a3-card-body">
+                <p class="a3-text-secondary a3-mb-16">为每个营销部勾选可服务的品牌（来自业财 BRAND_LINE_MASTER）。周填报中该部门下的品牌下拉将优先/限定为已映射品牌。</p>
+                <div class="a3-table-wrapper">
+                  <table class="a3-table" id="cfg-dept-brand-table">
+                    <thead>
+                      <tr>
+                        <th style="width:140px">营销部</th>
+                        <th>对应品牌</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
+                <span class="a3-text-secondary" id="cfg-save-meta">尚未保存</span>
+                <div class="a3-flex" style="gap:8px">
+                  <button type="button" class="a3-btn a3-btn-default" id="cfg-draft"><i class="fas fa-floppy-disk"></i> 暂存草稿</button>
+                  <button type="button" class="a3-btn a3-btn-primary" id="cfg-save"><i class="fas fa-check"></i> 保存配置</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Admin: 填报进度面板 -->
+        <section class="page" id="page-admin-watch">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">填报进度面板</h1>
+            <p class="a3-text-secondary a3-mt-4">按周查看全员填报进度：已提交 / 应填（来自配置面板员工数）。顶部统计支持左右切换周次，下方明细随所选周滚动更新。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16" id="admin-watch-gate" style="display:none">
+            <i class="fas fa-lock"></i>
+            <span>请切换身份为「管理员 · 顾澄」后查看进度。</span>
+          </div>
+          <div id="admin-watch-body">
+            <div class="yc-week-nav a3-mb-16">
+              <button type="button" class="a3-btn a3-btn-default" id="watch-week-prev" title="上一周"><i class="fas fa-chevron-left"></i> 上一周</button>
+              <div class="yc-week-nav-label">
+                <span class="a3-text-secondary" style="font-size:12px">当前周次</span>
+                <strong class="a3-text-primary" id="watch-week-label">2026-W39</strong>
+                <span class="a3-text-disabled" style="font-size:12px" id="watch-week-hint">左键下一周 · 右键上一周</span>
+              </div>
+              <button type="button" class="a3-btn a3-btn-default" id="watch-week-next" title="下一周">下一周 <i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="yc-stats a3-mb-16" id="watch-week-cards" title="左键：下一周 · 右键：上一周"></div>
+            <div class="a3-card">
+              <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
+                <span class="a3-card-title">分部门进度 <span class="a3-text-secondary" id="watch-table-week" style="font-weight:400;font-size:13px"></span></span>
+                <div class="yc-field" style="margin:0;min-width:160px">
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="watch-week-select"></select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="a3-card-body">
+                <div class="a3-mb-16" id="watch-overall-bar"></div>
+                <div class="a3-table-wrapper">
+                  <table class="a3-table" id="watch-dept-table">
+                    <thead>
+                      <tr>
+                        <th>营销部</th>
+                        <th>已提交</th>
+                        <th>应填</th>
+                        <th>进度</th>
+                        <th>状态</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Master -->
+        <section class="page" id="page-master">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">主数据来源（只读说明）</h1>
+            <p class="a3-text-secondary a3-mt-4">品牌品线、业务组、业务类型已在业财主数据中维护。填报页仅下拉引用，本演示不提供 CRUD。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16">
+            <i class="fas fa-link"></i>
+            <span>业务类型 = 现有执行单类型主数据。</span>
+          </div>
+          <div class="a3-card">
+            <div class="a3-table-wrapper">
+              <table class="a3-table">
+                <thead><tr><th>类型</th><th>示例枚举（mock）</th><th>维护位置</th></tr></thead>
+                <tbody>
+                  <tr><td>品牌</td><td id="md-brands"></td><td>既有主数据 · 品牌品线</td></tr>
+                  <tr><td>品线</td><td id="md-lines"></td><td>既有主数据 · 品牌品线</td></tr>
+                  <tr><td>业务组</td><td id="md-groups"></td><td>既有主数据 · 组织/业务组</td></tr>
+                  <tr><td>业务类型</td><td id="md-types"></td><td>既有主数据 · 执行单类型</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-root"></div>
+  <script src="app.js"></script>
+</body>
+</html>
