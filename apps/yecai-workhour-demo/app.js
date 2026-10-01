@@ -150,7 +150,7 @@ const TITLES = {
   project: "项目人力",
   brand: "品牌品线人力",
   "admin-config": "配置面板",
-  "admin-watch": "观看面板",
+  "admin-watch": "填报进度面板",
   master: "主数据来源",
 };
 
@@ -178,7 +178,7 @@ function defaultProjectManpower() {
   }));
 }
 
-/** 观看面板：各周已提交人数 mock（应填 = 配置员工数） */
+/** 填报进度面板：各周已提交人数 mock（应填 = 配置员工数） */
 const WATCH_WEEKS = ["2026-W36", "2026-W37", "2026-W38", "2026-W39"];
 const WATCH_SUBMITTED = {
   "2026-W36": { 营销一部: 12, 营销二部: 10, 营销三部: 11, 营销四部: 9, 营销五部: 8, 营销六部: 10, 营销七部: 7, 营销八部: 9, 营销九部: 8 },
@@ -335,7 +335,7 @@ function go(page) {
   if (page === "admin-config") renderAdminConfig();
   if (page === "admin-watch") renderAdminWatch();
   if (page === "master") renderMaster();
-  const pageHashes = { "fill-cmp": "fill-cmp", "admin-config": "admin-config", "admin-watch": "admin-watch", brand: "brand" };
+  const pageHashes = { "fill-cmp": "fill-cmp", "admin-config": "admin-config", "admin-watch": "admin-progress", brand: "brand" };
   if (pageHashes[page]) location.hash = pageHashes[page];
   else if (location.hash && location.hash !== "#") history.replaceState(null, "", location.pathname + location.search);
 }
@@ -796,7 +796,7 @@ function renderAdminConfig() {
       <td><div class="a3-input-wrapper" style="max-width:120px">
         <input class="a3-input" type="number" min="0" max="999" step="1" value="${state.adminConfig.staffByDept[g] || 0}" data-staff="${g}" />
       </div></td>
-      <td class="a3-text-secondary">应填人数基准（观看面板）</td>
+      <td class="a3-text-secondary">应填人数基准（填报进度面板）</td>
     </tr>
   `).join("");
 
@@ -857,7 +857,7 @@ document.getElementById("cfg-save").addEventListener("click", () => {
   localStorage.removeItem(ADMIN_DRAFT_KEY);
   state.adminDraftMeta = null;
   updateCfgMeta();
-  toast("success", "配置已保存，观看面板将使用最新应填人数");
+  toast("success", "配置已保存，填报进度面板将使用最新应填人数");
 });
 
 function weekProgress(week) {
@@ -882,11 +882,21 @@ function watchStatusTag(pct) {
   return '<span class="a3-tag a3-tag-danger"><span class="a3-tag-dot"></span>滞后</span>';
 }
 
+function shiftWatchWeek(delta) {
+  const idx = WATCH_WEEKS.indexOf(state.watchWeek);
+  const cur = idx < 0 ? WATCH_WEEKS.length - 1 : idx;
+  const next = (cur + delta + WATCH_WEEKS.length) % WATCH_WEEKS.length;
+  state.watchWeek = WATCH_WEEKS[next];
+  renderAdminWatch();
+}
+
 function renderAdminWatch() {
   const isAdmin = state.role === "admin";
   document.getElementById("admin-watch-gate").style.display = isAdmin ? "none" : "flex";
   document.getElementById("admin-watch-body").style.display = isAdmin ? "block" : "none";
   if (!isAdmin) return;
+
+  if (!WATCH_WEEKS.includes(state.watchWeek)) state.watchWeek = WATCH_WEEKS[WATCH_WEEKS.length - 1];
 
   const weekSelect = document.getElementById("watch-week-select");
   if (weekSelect.options.length !== WATCH_WEEKS.length) {
@@ -897,30 +907,38 @@ function renderAdminWatch() {
     weekSelect.value = state.watchWeek;
   }
 
-  const cards = document.getElementById("watch-week-cards");
-  cards.innerHTML = WATCH_WEEKS.map((w) => {
-    const p = weekProgress(w);
-    const active = w === state.watchWeek ? " yc-watch-card-active" : "";
-    return `
-      <div class="a3-card yc-stat yc-watch-card${active}" data-watch-week="${w}">
-        <div class="a3-card-body">
-          <div class="a3-text-secondary" style="font-size:12px">${w}</div>
-          <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${p.overall}%</div>
-          <div class="a3-text-secondary a3-mt-8" style="font-size:12px">${p.submitted} / ${p.expected} 人已交</div>
-          <div class="a3-mt-8">${progressBarHtml(p.overall, p.overall >= 100)}</div>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  cards.querySelectorAll("[data-watch-week]").forEach((card) => {
-    card.addEventListener("click", () => {
-      state.watchWeek = card.dataset.watchWeek;
-      renderAdminWatch();
-    });
-  });
-
   const cur = weekProgress(state.watchWeek);
+  const doneDepts = cur.byDept.filter((d) => d.pct >= 100).length;
+  const lagDepts = cur.byDept.filter((d) => d.pct < 60).length;
+  const weekIdx = WATCH_WEEKS.indexOf(state.watchWeek) + 1;
+
+  document.getElementById("watch-week-label").textContent = cur.week;
+  document.getElementById("watch-week-hint").textContent = `${weekIdx} / ${WATCH_WEEKS.length} · 左键下一周 · 右键上一周`;
+  document.getElementById("watch-table-week").textContent = `· ${cur.week}`;
+
+  document.getElementById("watch-week-cards").innerHTML = `
+    <div class="a3-card yc-stat yc-watch-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">整体进度</div>
+      <div class="a3-text-brand a3-mt-8" style="font-size:22px;font-weight:600">${cur.overall}%</div>
+      <div class="a3-mt-8">${progressBarHtml(cur.overall, cur.overall >= 100)}</div>
+    </div></div>
+    <div class="a3-card yc-stat yc-watch-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">已提交</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${cur.submitted}</div>
+      <div class="a3-text-secondary a3-mt-8" style="font-size:12px">人</div>
+    </div></div>
+    <div class="a3-card yc-stat yc-watch-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">应填</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${cur.expected}</div>
+      <div class="a3-text-secondary a3-mt-8" style="font-size:12px">人（配置员工数）</div>
+    </div></div>
+    <div class="a3-card yc-stat yc-watch-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">部门完成 / 滞后</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${doneDepts} / ${lagDepts}</div>
+      <div class="a3-mt-8">${watchStatusTag(cur.overall)}</div>
+    </div></div>
+  `;
+
   document.getElementById("watch-overall-bar").innerHTML = `
     <div class="a3-flex-between a3-mb-8" style="justify-content:space-between">
       <span class="a3-text-primary" style="font-weight:600">${cur.week} 整体进度</span>
@@ -940,6 +958,16 @@ function renderAdminWatch() {
   `).join("");
 }
 
+document.getElementById("watch-week-prev").addEventListener("click", () => shiftWatchWeek(-1));
+document.getElementById("watch-week-next").addEventListener("click", () => shiftWatchWeek(1));
+
+const watchCardsEl = document.getElementById("watch-week-cards");
+watchCardsEl.addEventListener("click", () => shiftWatchWeek(1));
+watchCardsEl.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  shiftWatchWeek(-1);
+});
+
 document.getElementById("watch-week-select").addEventListener("change", (e) => {
   state.watchWeek = e.target.value;
   renderAdminWatch();
@@ -948,11 +976,12 @@ document.getElementById("watch-week-select").addEventListener("change", (e) => {
 document.querySelectorAll(".cost-col").forEach((el) => { el.style.display = "none"; });
 syncAdminMenus();
 const bootHash = (location.hash || "").replace("#", "");
-if (bootHash === "admin-config" || bootHash === "admin-watch") {
+const adminBoot = bootHash === "admin-config" || bootHash === "admin-watch" || bootHash === "admin-progress";
+if (adminBoot) {
   state.role = "admin";
   document.getElementById("role-select").value = "admin";
   document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.admin.name}`;
   syncAdminMenus();
-  go(bootHash);
+  go(bootHash === "admin-config" ? "admin-config" : "admin-watch");
 } else if (bootHash === "fill-cmp" || bootHash === "brand") go(bootHash);
 else renderFill();
