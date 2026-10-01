@@ -1,4 +1,7 @@
-/* 业财工时归集 demo logic — A3 SaaS UI chrome in index.html */
+/* 业财工时归集 demo — A3 SaaS UI
+ * 执行单类型两级枚举来源：
+ * agency-agents/system/a3-talent-libary-master-…/CreateExecutionOrder/store.ts + type.ts
+ */
 
 const BRANDS = ["青禾", "北境智造", "星澜茶", "澄光护肤", "岚屿家居"];
 const LINES = {
@@ -8,135 +11,125 @@ const LINES = {
   澄光护肤: ["精华", "面霜", "眼霜"],
   岚屿家居: ["香氛", "床品", "餐厨"],
 };
-const GROUPS = ["华东投放组", "华南投放组", "内容策划组", "媒介采买组", "设计策略组", "品牌运营组"];
-/** 填报对比页专用业务组（营销一部–九部）；旧周填报仍用 GROUPS */
-const MARKETING_DEPTS = [
+
+/** 业务组：营销一部–九部（全站统一） */
+const GROUPS = [
   "营销一部", "营销二部", "营销三部", "营销四部", "营销五部",
   "营销六部", "营销七部", "营销八部", "营销九部",
 ];
-const BIZ_TYPES = ["信息流投放", "内容种草", "媒介采买", "设计制作", "策略策划", "达人合作", "直播运营"];
 
-const WEEK_LABELS = {
-  "2026-W39": "2026-W39（09/22–09/28）",
-  "2026-W38": "2026-W38（09/15–09/21）",
+/**
+ * 执行单类型 L1→L2（与 CreateExecutionOrder/store.ts initialDictData 对齐）
+ * 无子类型的 L1：子类型下拉显示「—」且值为空
+ */
+const EXECUTE_TYPES = [
+  { value: "INTERNAL_KOL", label: "KOL" },
+  { value: "INTERNAL_DSP", label: "投流" },
+  { value: "HARD_AD", label: "硬广" },
+  { value: "PUBLIC_OPINION", label: "舆情" },
+  { value: "GEO", label: "GEO" },
+  { value: "SELF_MEDIA", label: "自媒体与其他" },
+  { value: "OTHER", label: "策划与比稿费用" },
+  { value: "CUSTOMER_RELATIONSHIP", label: "客情或其他费用" },
+];
+
+const EXECUTE_SUBTYPES = {
+  INTERNAL_KOL: [
+    { value: "KOL", label: "KOL（一口价）" },
+    { value: "COMMON_KOL", label: "KOL（共创）" },
+    { value: "KOL_OTHER", label: "KOL其他（授权/产品/差旅/线下费用等）" },
+    { value: "KOL_SERVICE_PROVIDER", label: "KOL（执行服务商）" },
+  ],
+  INTERNAL_DSP: [
+    { value: "INFLUENCER_PLATFORM_PAYMENT", label: "平台付款" },
+    { value: "INFLUENCER_EXTERNAL_ORDER", label: "外部下单" },
+  ],
+  HARD_AD: [
+    { value: "HARD_AD_PRICING", label: "定价类广告（自有牌照）" },
+    { value: "HARD_AD_MEDIA_PHOTO", label: "非牌照类媒体广告" },
+  ],
+  PUBLIC_OPINION: [],
+  GEO: [],
+  SELF_MEDIA: [],
+  OTHER: [],
+  CUSTOMER_RELATIONSHIP: [],
 };
 
-/** 林可 · 媒介 — 各周填报底稿（合计约 40h） */
+const EXECUTE_LABEL = Object.fromEntries(EXECUTE_TYPES.map((t) => [t.value, t.label]));
+function subLabel(type, sub) {
+  if (!type) return "—";
+  const list = EXECUTE_SUBTYPES[type] || [];
+  if (!list.length) return "—";
+  return (list.find((s) => s.value === sub) || {}).label || "—";
+}
+
+/** 周填报 mock：rows 含 group/brand/line/type/sub/pct，每周合计 100 */
 const FILL_BY_WEEK = {
   "2026-W39": [
-    { brand: "青禾", line: "精华水", group: "华东投放组", type: "信息流投放", hours: 14 },
-    { brand: "青禾", line: "精华水", group: "内容策划组", type: "内容种草", hours: 6 },
-    { brand: "青禾", line: "防晒", group: "华东投放组", type: "信息流投放", hours: 5 },
-    { brand: "北境智造", line: "主机", group: "媒介采买组", type: "媒介采买", hours: 8 },
-    { brand: "北境智造", line: "配件", group: "媒介采买组", type: "媒介采买", hours: 3 },
-    { brand: "星澜茶", line: "礼盒", group: "内容策划组", type: "内容种草", hours: 4 },
+    { group: "营销一部", brand: "青禾", line: "精华水", type: "INTERNAL_KOL", sub: "KOL", pct: 25 },
+    { group: "营销一部", brand: "青禾", line: "防晒", type: "INTERNAL_DSP", sub: "INFLUENCER_PLATFORM_PAYMENT", pct: 15 },
+    { group: "营销三部", brand: "北境智造", line: "主机", type: "HARD_AD", sub: "HARD_AD_PRICING", pct: 20 },
+    { group: "营销五部", brand: "星澜茶", line: "礼盒", type: "GEO", sub: "", pct: 15 },
+    { group: "营销七部", brand: "澄光护肤", line: "精华", type: "PUBLIC_OPINION", sub: "", pct: 12 },
+    { group: "营销九部", brand: "岚屿家居", line: "香氛", type: "OTHER", sub: "", pct: 13 },
   ],
   "2026-W38": [
-    { brand: "青禾", line: "面膜", group: "华东投放组", type: "信息流投放", hours: 10 },
-    { brand: "青禾", line: "精华水", group: "内容策划组", type: "内容种草", hours: 8 },
-    { brand: "澄光护肤", line: "精华", group: "华南投放组", type: "信息流投放", hours: 7 },
-    { brand: "北境智造", line: "主机", group: "媒介采买组", type: "媒介采买", hours: 9 },
-    { brand: "岚屿家居", line: "香氛", group: "设计策略组", type: "设计制作", hours: 6 },
+    { group: "营销二部", brand: "青禾", line: "面膜", type: "INTERNAL_KOL", sub: "COMMON_KOL", pct: 30 },
+    { group: "营销四部", brand: "北境智造", line: "配件", type: "INTERNAL_DSP", sub: "INFLUENCER_EXTERNAL_ORDER", pct: 25 },
+    { group: "营销六部", brand: "星澜茶", line: "瓶装", type: "SELF_MEDIA", sub: "", pct: 20 },
+    { group: "营销八部", brand: "澄光护肤", line: "面霜", type: "CUSTOMER_RELATIONSHIP", sub: "", pct: 15 },
+    { group: "营销一部", brand: "岚屿家居", line: "床品", type: "HARD_AD", sub: "HARD_AD_MEDIA_PHOTO", pct: 10 },
   ],
 };
 
-/** 填报对比页底稿：业务组=营销一部–九部，维度 业务组→品牌品线→业务类型（合计 40h） */
-const FILL_CMP_BY_WEEK = {
-  "2026-W39": [
-    { group: "营销一部", brand: "青禾", line: "精华水", type: "信息流投放", hours: 12 },
-    { group: "营销一部", brand: "青禾", line: "防晒", type: "达人合作", hours: 4 },
-    { group: "营销三部", brand: "北境智造", line: "主机", type: "媒介采买", hours: 8 },
-    { group: "营销五部", brand: "星澜茶", line: "礼盒", type: "内容种草", hours: 6 },
-    { group: "营销七部", brand: "澄光护肤", line: "精华", type: "策略策划", hours: 5 },
-    { group: "营销九部", brand: "岚屿家居", line: "香氛", type: "设计制作", hours: 5 },
-  ],
-  "2026-W38": [
-    { group: "营销二部", brand: "青禾", line: "面膜", type: "信息流投放", hours: 10 },
-    { group: "营销四部", brand: "北境智造", line: "配件", type: "媒介采买", hours: 9 },
-    { group: "营销六部", brand: "星澜茶", line: "瓶装", type: "内容种草", hours: 8 },
-    { group: "营销八部", brand: "澄光护肤", line: "面霜", type: "直播运营", hours: 7 },
-    { group: "营销一部", brand: "岚屿家居", line: "床品", type: "设计制作", hours: 6 },
-  ],
-};
-
-/** Leader 归集：品牌|品线|业务类型 → 项目/执行单权重（权重之和 = 1） */
+/** Leader 归集：品牌|品线|type → 项目权重 */
 const SPLIT_CATALOG = {
-  "青禾|精华水|信息流投放": [
-    { project: "青禾精华 Q3 种草", order: "ZX-东投-0918", w: 0.55 },
-    { project: "青禾精华 会员日", order: "ZX-东投-0922", w: 0.3 },
-    { project: "青禾双11 蓄水", order: "ZX-东投-0925", w: 0.15 },
+  "青禾|精华水|INTERNAL_KOL": [
+    { project: "青禾精华 Q3 种草", order: "ZX-一部-0918", w: 0.6 },
+    { project: "青禾精华 会员日", order: "ZX-一部-0922", w: 0.4 },
   ],
-  "青禾|防晒|信息流投放": [
-    { project: "青禾防晒 日化战役", order: "ZX-东投-0908", w: 0.7 },
-    { project: "青禾防晒 达人联投", order: "ZX-东投-0912", w: 0.3 },
+  "青禾|防晒|INTERNAL_DSP": [
+    { project: "青禾防晒 日化战役", order: "ZX-一部-0908", w: 0.7 },
+    { project: "青禾防晒 达人联投", order: "ZX-一部-0912", w: 0.3 },
   ],
-  "青禾|面膜|信息流投放": [
-    { project: "青禾面膜 国庆档", order: "ZX-东投-0901", w: 0.65 },
-    { project: "青禾面膜 私域转化", order: "ZX-东投-0905", w: 0.35 },
-  ],
-  "澄光护肤|精华|信息流投放": [
-    { project: "澄光秋冬焕肤", order: "ZX-东投-0910", w: 0.6 },
-    { project: "澄光会员日加投", order: "ZX-东投-0916", w: 0.4 },
-  ],
-  "星澜茶|礼盒|信息流投放": [
-    { project: "星澜茶 中秋礼盒", order: "ZX-东投-0903", w: 1 },
+  "岚屿家居|床品|HARD_AD": [
+    { project: "岚屿床品 硬广档", order: "ZX-一部-0830", w: 1 },
   ],
 };
 
-/** 华东投放组其他成员本周待确认（与林可填报拼成完整组视图） */
-const TEAM_EAST_EXTRAS = [
+const TEAM_DEPT1_EXTRAS = [
   {
-    person: "陈屿", brand: "青禾", line: "精华水", type: "信息流投放", filled: 10,
-    parts: [{ project: "青禾精华 Q3 种草", order: "ZX-东投-0918", w: 1 }],
+    person: "陈屿", brand: "青禾", line: "精华水", type: "INTERNAL_KOL", sub: "KOL", filled: 20,
+    parts: [{ project: "青禾精华 Q3 种草", order: "ZX-一部-0918", w: 1 }],
   },
   {
-    person: "苏晚", brand: "澄光护肤", line: "精华", type: "信息流投放", filled: 8,
+    person: "苏晚", brand: "青禾", line: "防晒", type: "INTERNAL_DSP", sub: "INFLUENCER_PLATFORM_PAYMENT", filled: 10,
     parts: [
-      { project: "澄光秋冬焕肤", order: "ZX-东投-0910", w: 0.625 },
-      { project: "澄光会员日加投", order: "ZX-东投-0916", w: 0.375 },
-    ],
-  },
-  {
-    person: "何予", brand: "星澜茶", line: "礼盒", type: "信息流投放", filled: 6,
-    parts: [{ project: "星澜茶 中秋礼盒", order: "ZX-东投-0903", w: 1 }],
-  },
-  {
-    person: "何予", brand: "青禾", line: "面膜", type: "信息流投放", filled: 4,
-    parts: [
-      { project: "青禾面膜 国庆档", order: "ZX-东投-0901", w: 0.5 },
-      { project: "青禾面膜 私域转化", order: "ZX-东投-0905", w: 0.5 },
+      { project: "青禾防晒 日化战役", order: "ZX-一部-0908", w: 0.5 },
+      { project: "青禾防晒 达人联投", order: "ZX-一部-0912", w: 0.5 },
     ],
   },
 ];
 
-/** 项目人力报表（人天 ≈ 工时/8；成本按约 4000 元/人天） */
 const PROJECT_REPORT = [
-  { project: "青禾精华 Q3 种草", brand: "青禾 / 精华水", types: "信息流投放、内容种草", days: 6.8, cost: 27200 },
-  { project: "青禾精华 会员日", brand: "青禾 / 精华水", types: "信息流投放", days: 1.8, cost: 7200 },
-  { project: "青禾双11 蓄水", brand: "青禾 / 精华水", types: "信息流投放、策略策划", days: 1.2, cost: 4800 },
-  { project: "青禾防晒 日化战役", brand: "青禾 / 防晒", types: "信息流投放、达人合作", days: 2.4, cost: 9600 },
-  { project: "青禾防晒 达人联投", brand: "青禾 / 防晒", types: "达人合作、信息流投放", days: 1.1, cost: 4400 },
-  { project: "青禾面膜 国庆档", brand: "青禾 / 面膜", types: "信息流投放、内容种草", days: 2.0, cost: 8000 },
-  { project: "北境主机 双11 预热", brand: "北境智造 / 主机", types: "媒介采买、策略策划", days: 4.5, cost: 22500 },
-  { project: "北境配件 新品上架", brand: "北境智造 / 配件", types: "媒介采买", days: 1.6, cost: 8000 },
-  { project: "星澜茶 中秋礼盒", brand: "星澜茶 / 礼盒", types: "内容种草、信息流投放、设计制作", days: 3.2, cost: 12800 },
-  { project: "澄光秋冬焕肤", brand: "澄光护肤 / 精华", types: "信息流投放、内容种草", days: 2.8, cost: 11200 },
-  { project: "岚屿香氛 门店联名", brand: "岚屿家居 / 香氛", types: "设计制作、品牌运营", days: 1.5, cost: 6000 },
+  { project: "青禾精华 Q3 种草", brand: "青禾 / 精华水", types: "KOL（一口价）", days: 6.8, cost: 27200 },
+  { project: "青禾精华 会员日", brand: "青禾 / 精华水", types: "KOL（一口价）", days: 1.8, cost: 7200 },
+  { project: "青禾防晒 日化战役", brand: "青禾 / 防晒", types: "投流 / 平台付款", days: 2.4, cost: 9600 },
+  { project: "青禾防晒 达人联投", brand: "青禾 / 防晒", types: "投流 / 平台付款", days: 1.1, cost: 4400 },
+  { project: "北境主机 双11 预热", brand: "北境智造 / 主机", types: "硬广 / 定价类广告", days: 4.5, cost: 22500 },
+  { project: "星澜茶 中秋礼盒", brand: "星澜茶 / 礼盒", types: "GEO", days: 3.2, cost: 12800 },
+  { project: "澄光秋冬焕肤", brand: "澄光护肤 / 精华", types: "舆情", days: 2.8, cost: 11200 },
+  { project: "岚屿香氛 门店联名", brand: "岚屿家居 / 香氛", types: "策划与比稿费用", days: 1.5, cost: 6000 },
 ];
 
-/** 品牌品线人力：媒介+投放+策划 = 投入人天 */
 const BRAND_REPORT = [
   { brand: "青禾", line: "精华水", days: 9.8, media: 2.1, buy: 5.2, plan: 2.5, cost: 39200 },
   { brand: "青禾", line: "防晒", days: 3.5, media: 0.8, buy: 2.0, plan: 0.7, cost: 14000 },
   { brand: "青禾", line: "面膜", days: 2.0, media: 0.5, buy: 0.9, plan: 0.6, cost: 8000 },
-  { brand: "青禾", line: "洁面", days: 0.8, media: 0.2, buy: 0.3, plan: 0.3, cost: 3200 },
   { brand: "北境智造", line: "主机", days: 4.5, media: 0.6, buy: 3.2, plan: 0.7, cost: 22500 },
   { brand: "北境智造", line: "配件", days: 1.6, media: 0.3, buy: 1.1, plan: 0.2, cost: 8000 },
-  { brand: "北境智造", line: "智能音箱", days: 0.9, media: 0.2, buy: 0.5, plan: 0.2, cost: 4500 },
   { brand: "星澜茶", line: "礼盒", days: 2.4, media: 0.8, buy: 0.6, plan: 1.0, cost: 9600 },
-  { brand: "星澜茶", line: "瓶装", days: 1.5, media: 0.4, buy: 0.5, plan: 0.6, cost: 6000 },
   { brand: "澄光护肤", line: "精华", days: 2.8, media: 0.7, buy: 1.2, plan: 0.9, cost: 11200 },
-  { brand: "澄光护肤", line: "面霜", days: 1.2, media: 0.3, buy: 0.5, plan: 0.4, cost: 4800 },
   { brand: "岚屿家居", line: "香氛", days: 1.5, media: 0.3, buy: 0.5, plan: 0.7, cost: 6000 },
 ];
 
@@ -150,12 +143,21 @@ const TITLES = {
   master: "主数据来源",
 };
 
+const LEADER_GROUP = "营销一部";
+
 function cloneRows(week) {
   return FILL_BY_WEEK[week].map((r) => ({ ...r }));
 }
 
-function cloneCmpRows(week) {
-  return FILL_CMP_BY_WEEK[week].map((r) => ({ ...r }));
+function emptyRow(group) {
+  return {
+    group: group || "",
+    brand: BRANDS[0],
+    line: LINES[BRANDS[0]][0],
+    type: EXECUTE_TYPES[0].value,
+    sub: (EXECUTE_SUBTYPES[EXECUTE_TYPES[0].value][0] || {}).value || "",
+    pct: 0,
+  };
 }
 
 const state = {
@@ -165,25 +167,16 @@ const state = {
   week: "2026-W39",
   rows: cloneRows("2026-W39"),
   cmpWeek: "2026-W39",
-  cmpRows: cloneCmpRows("2026-W39"),
-  /** 我的填报：多周历史；W39 与当前填报同步 */
+  cmpRows: cloneRows("2026-W39"),
   history: [
-    {
-      week: "2026-W38",
-      status: "locked",
-      rows: cloneRows("2026-W38"),
-    },
-    {
-      week: "2026-W39",
-      status: "submitted",
-      rows: cloneRows("2026-W39"),
-    },
+    { week: "2026-W38", status: "locked", rows: cloneRows("2026-W38") },
+    { week: "2026-W39", status: "submitted", rows: cloneRows("2026-W39") },
   ],
 };
 
 const roleMeta = {
   filler: { name: "林可 · 媒介", showCost: false },
-  leader: { name: "周衡 · 华东投放组 Leader", showCost: false },
+  leader: { name: "周衡 · 营销一部 Leader", showCost: false },
   finance: { name: "沈岚 · 财务", showCost: true },
 };
 
@@ -204,8 +197,42 @@ function opts(list, selected) {
   return list.map((v) => `<option ${v === selected ? "selected" : ""}>${v}</option>`).join("");
 }
 
+function optsObj(list, selected, valueKey = "value", labelKey = "label") {
+  return list.map((v) =>
+    `<option value="${v[valueKey]}" ${v[valueKey] === selected ? "selected" : ""}>${v[labelKey]}</option>`
+  ).join("");
+}
+
 function round1(n) {
   return Math.round(n * 10) / 10;
+}
+
+function sumPct(rows) {
+  return round1(rows.reduce((s, r) => s + (Number(r.pct) || 0), 0));
+}
+
+function setSumDisplay(sumEl, wrapEl, total) {
+  sumEl.textContent = total;
+  const ok = Math.abs(total - 100) < 0.05;
+  wrapEl.classList.toggle("yc-sum-ok", ok);
+  wrapEl.classList.toggle("yc-sum-bad", !ok);
+}
+
+function defaultSub(type) {
+  const list = EXECUTE_SUBTYPES[type] || [];
+  return list.length ? list[0].value : "";
+}
+
+function typeSelectHtml(selected) {
+  return optsObj(EXECUTE_TYPES, selected);
+}
+
+function subSelectHtml(type, selected) {
+  const list = EXECUTE_SUBTYPES[type] || [];
+  if (!list.length) {
+    return `<option value="" selected>—</option>`;
+  }
+  return optsObj(list, selected);
 }
 
 function go(page) {
@@ -235,14 +262,12 @@ document.getElementById("role-select").addEventListener("change", (e) => {
 });
 
 document.getElementById("fill-week").addEventListener("change", (e) => {
-  const label = e.target.value;
-  const week = label.startsWith("2026-W38") ? "2026-W38" : "2026-W39";
+  const week = e.target.value.startsWith("2026-W38") ? "2026-W38" : "2026-W39";
   if (week === state.week) return;
-  // 切周前把当前编辑写回对应周底稿（演示用）
   FILL_BY_WEEK[state.week] = state.rows.map((r) => ({ ...r }));
   state.week = week;
   state.rows = cloneRows(week);
-  state.locked = week === "2026-W38" ? true : state.history.find((h) => h.week === "2026-W39")?.status === "locked";
+  state.locked = week === "2026-W38";
   renderFill();
 });
 
@@ -258,55 +283,153 @@ function syncHistoryCurrentWeek() {
   state.history.sort((a, b) => (a.week < b.week ? 1 : -1));
 }
 
-function renderFill() {
-  const tbody = document.querySelector("#fill-table tbody");
-  tbody.innerHTML = "";
-  state.rows.forEach((row, i) => {
-    const lines = LINES[row.brand] || [];
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="brand">${opts(BRANDS, row.brand)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
-      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="line">${opts(lines, row.line)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
-      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="group">${opts(GROUPS, row.group)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
-      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="type">${opts(BIZ_TYPES, row.type)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
-      <td><div class="a3-input-wrapper"><input class="a3-input" type="number" min="0" max="40" step="0.5" value="${row.hours}" data-i="${i}" data-k="hours" /></div></td>
-      <td><button type="button" class="a3-btn a3-btn-text a3-table-link" style="color:var(--a3-danger)" data-rm="${i}">删除</button></td>
-    `;
-    tbody.appendChild(tr);
+function groupsInOrder(rows) {
+  const seen = [];
+  rows.forEach((r) => {
+    if (r.group && !seen.includes(r.group)) seen.push(r.group);
   });
-  tbody.querySelectorAll("select, input").forEach((el) => {
+  return seen;
+}
+
+function bindRowControls(root, getRows, setRows, rerender) {
+  root.querySelectorAll("select, input").forEach((el) => {
     el.addEventListener("change", () => {
+      const rows = getRows();
       const i = +el.dataset.i;
       const k = el.dataset.k;
-      if (k === "hours") state.rows[i].hours = Number(el.value);
-      else state.rows[i][k] = el.value;
+      if (k === "pct") rows[i].pct = Number(el.value);
+      else rows[i][k] = el.value;
       if (k === "brand") {
-        state.rows[i].line = (LINES[el.value] || [])[0] || "";
-        renderFill();
-      } else updateSum();
+        rows[i].line = (LINES[el.value] || [])[0] || "";
+        setRows(rows);
+        rerender();
+      } else if (k === "type") {
+        rows[i].sub = defaultSub(el.value);
+        setRows(rows);
+        rerender();
+      } else if (k === "group") {
+        setRows(rows);
+        rerender();
+      } else {
+        setRows(rows);
+        if (rerender === renderFill) updateFillSum();
+        else updateCmpSum();
+      }
     });
   });
-  tbody.querySelectorAll("[data-rm]").forEach((btn) => {
+  root.querySelectorAll("[data-rm]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      state.rows.splice(+btn.dataset.rm, 1);
+      const rows = getRows();
+      rows.splice(+btn.dataset.rm, 1);
+      setRows(rows);
+      rerender();
+    });
+  });
+}
+
+function rowCellsHtml(row, i, { includeGroup }) {
+  const lines = LINES[row.brand] || [];
+  const subDisabled = !(EXECUTE_SUBTYPES[row.type] || []).length;
+  const groupCell = includeGroup
+    ? `<td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="group">${opts(GROUPS, row.group)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>`
+    : "";
+  return `
+    ${groupCell}
+    <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="brand">${opts(BRANDS, row.brand)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
+    <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="line">${opts(lines, row.line)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
+    <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="type">${typeSelectHtml(row.type)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
+    <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="sub" ${subDisabled ? "disabled" : ""}>${subSelectHtml(row.type, row.sub)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
+    <td><div class="a3-input-wrapper yc-pct-cell"><input class="a3-input" type="number" min="0" max="100" step="1" value="${row.pct}" data-i="${i}" data-k="pct" /><span class="yc-pct-suffix">%</span></div></td>
+    <td><button type="button" class="a3-btn a3-btn-text a3-table-link" style="color:var(--a3-danger)" data-rm="${i}">删除</button></td>
+  `;
+}
+
+function updateFillSum() {
+  setSumDisplay(
+    document.getElementById("fill-sum"),
+    document.getElementById("fill-sum-wrap"),
+    sumPct(state.rows),
+  );
+}
+
+function renderFill() {
+  const root = document.getElementById("fill-sections");
+  const groups = groupsInOrder(state.rows);
+  if (!groups.length) {
+    root.innerHTML = `<div class="a3-empty"><i class="fas fa-inbox"></i><div class="a3-empty-text">暂无营销部，请点击「添加营销部」</div></div>`;
+    updateFillSum();
+    return;
+  }
+  root.innerHTML = groups.map((g) => {
+    const indices = state.rows.map((r, i) => (r.group === g ? i : -1)).filter((i) => i >= 0);
+    const deptPct = round1(indices.reduce((s, i) => s + (Number(state.rows[i].pct) || 0), 0));
+    const rowsHtml = indices.map((i) => `<tr>${rowCellsHtml(state.rows[i], i, { includeGroup: false })}</tr>`).join("");
+    return `
+      <div class="yc-dept a3-card a3-mb-16" data-dept="${g}">
+        <div class="yc-dept-head">
+          <div class="yc-dept-title">
+            <i class="fas fa-building a3-text-brand"></i>
+            <strong class="a3-text-primary">${g}</strong>
+            <span class="a3-tag a3-tag-default">本部门 ${deptPct}%</span>
+          </div>
+          <div class="a3-flex" style="gap:8px">
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm" data-add-line="${g}"><i class="fas fa-plus"></i> 添加行</button>
+            <button type="button" class="a3-btn a3-btn-text" style="color:var(--a3-danger)" data-rm-dept="${g}">移除部门</button>
+          </div>
+        </div>
+        <div class="a3-table-wrapper">
+          <table class="a3-table">
+            <thead>
+              <tr>
+                <th>品牌</th><th>品线</th><th>执行单类型</th><th>子类型</th><th>占比(%)</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml || `<tr><td colspan="6"><div class="a3-table-empty">该部门暂无明细，请添加行</div></td></tr>`}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  bindRowControls(
+    root,
+    () => state.rows,
+    (rows) => { state.rows = rows; },
+    renderFill,
+  );
+
+  root.querySelectorAll("[data-add-line]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.rows.push(emptyRow(btn.dataset.addLine));
       renderFill();
     });
   });
-  updateSum();
+  root.querySelectorAll("[data-rm-dept]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.rows = state.rows.filter((r) => r.group !== btn.dataset.rmDept);
+      renderFill();
+    });
+  });
+  updateFillSum();
 }
 
-function updateSum() {
-  document.getElementById("fill-sum").textContent = state.rows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
-}
-
-document.getElementById("add-row").addEventListener("click", () => {
-  state.rows.push({ brand: "青禾", line: "精华水", group: "华东投放组", type: "信息流投放", hours: 4 });
+document.getElementById("add-dept").addEventListener("click", () => {
+  const used = new Set(state.rows.map((r) => r.group));
+  const next = GROUPS.find((g) => !used.has(g));
+  if (!next) return toast("warning", "九个营销部均已添加");
+  state.rows.push(emptyRow(next));
   renderFill();
 });
+
 document.getElementById("save-draft").addEventListener("click", () => toast("info", "已暂存"));
 document.getElementById("submit-fill").addEventListener("click", () => {
-  const t = state.rows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
-  if (!state.rows.length || t <= 0) return toast("warning", "请填写有效工时");
+  if (!state.rows.length) return toast("warning", "请至少添加一行");
+  const incomplete = state.rows.some((r) => !r.group || !r.brand || !r.line || !r.type);
+  if (incomplete) return toast("warning", "请完善业务组、品牌品线与执行单类型");
+  const needSub = state.rows.some((r) => (EXECUTE_SUBTYPES[r.type] || []).length && !r.sub);
+  if (needSub) return toast("warning", "请选择执行单子类型");
+  const total = sumPct(state.rows);
+  if (Math.abs(total - 100) >= 0.05) return toast("warning", `本周占比合计须为 100%，当前为 ${total}%`);
   if (state.week === "2026-W38") return toast("warning", "历史周已锁定，不可再次提交");
   state.submitted = true;
   state.locked = false;
@@ -316,92 +439,51 @@ document.getElementById("submit-fill").addEventListener("click", () => {
   go("mine");
 });
 
-function groupOpts(selected) {
-  const placeholder = `<option value="" ${selected ? "" : "selected"} disabled>请先选择业务组</option>`;
-  return placeholder + MARKETING_DEPTS.map((v) =>
-    `<option value="${v}" ${v === selected ? "selected" : ""}>${v}</option>`
-  ).join("");
-}
-
-function dimOpts(list, selected, enabled) {
-  if (!enabled) {
-    return `<option value="" selected disabled>请先选择业务组</option>`;
-  }
-  return opts(list, selected);
-}
-
 function updateCmpSum() {
-  document.getElementById("fill-cmp-sum").textContent =
-    state.cmpRows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+  setSumDisplay(
+    document.getElementById("fill-cmp-sum"),
+    document.getElementById("fill-cmp-sum-wrap"),
+    sumPct(state.cmpRows),
+  );
 }
 
 function renderFillCmp() {
   const tbody = document.querySelector("#fill-cmp-table tbody");
-  tbody.innerHTML = "";
-  state.cmpRows.forEach((row, i) => {
-    const hasGroup = Boolean(row.group);
-    const lines = LINES[row.brand] || [];
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="group">${groupOpts(row.group)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
-      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="brand" ${hasGroup ? "" : "disabled"}>${dimOpts(BRANDS, row.brand, hasGroup)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
-      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="line" ${hasGroup ? "" : "disabled"}>${dimOpts(lines, row.line, hasGroup)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
-      <td><div class="a3-select-wrapper"><select class="a3-select" data-i="${i}" data-k="type" ${hasGroup ? "" : "disabled"}>${dimOpts(BIZ_TYPES, row.type, hasGroup)}</select><i class="fas fa-chevron-down a3-select-arrow"></i></div></td>
-      <td><div class="a3-input-wrapper"><input class="a3-input" type="number" min="0" max="40" step="0.5" value="${row.hours}" data-i="${i}" data-k="hours" ${hasGroup ? "" : "disabled"} /></div></td>
-      <td><button type="button" class="a3-btn a3-btn-text a3-table-link" style="color:var(--a3-danger)" data-rm="${i}">删除</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-  tbody.querySelectorAll("select, input").forEach((el) => {
-    el.addEventListener("change", () => {
-      const i = +el.dataset.i;
-      const k = el.dataset.k;
-      if (k === "hours") state.cmpRows[i].hours = Number(el.value);
-      else state.cmpRows[i][k] = el.value;
-      if (k === "group") {
-        // 选完业务组后才开放后续维度；保留已有品牌或给默认
-        if (!state.cmpRows[i].brand) {
-          state.cmpRows[i].brand = BRANDS[0];
-          state.cmpRows[i].line = LINES[BRANDS[0]][0];
-          state.cmpRows[i].type = BIZ_TYPES[0];
-        }
-        renderFillCmp();
-      } else if (k === "brand") {
-        state.cmpRows[i].line = (LINES[el.value] || [])[0] || "";
-        renderFillCmp();
-      } else updateCmpSum();
-    });
-  });
-  tbody.querySelectorAll("[data-rm]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.cmpRows.splice(+btn.dataset.rm, 1);
-      renderFillCmp();
-    });
-  });
+  tbody.innerHTML = state.cmpRows.map((row, i) =>
+    `<tr>${rowCellsHtml(row, i, { includeGroup: true })}</tr>`
+  ).join("") || `<tr><td colspan="7"><div class="a3-table-empty"><i class="fas fa-inbox"></i>暂无行，请添加</div></td></tr>`;
+
+  bindRowControls(
+    tbody,
+    () => state.cmpRows,
+    (rows) => { state.cmpRows = rows; },
+    renderFillCmp,
+  );
   updateCmpSum();
 }
 
 document.getElementById("fill-cmp-week").addEventListener("change", (e) => {
   const week = e.target.value.startsWith("2026-W38") ? "2026-W38" : "2026-W39";
   if (week === state.cmpWeek) return;
-  FILL_CMP_BY_WEEK[state.cmpWeek] = state.cmpRows.map((r) => ({ ...r }));
   state.cmpWeek = week;
-  state.cmpRows = cloneCmpRows(week);
+  state.cmpRows = cloneRows(week);
   renderFillCmp();
 });
 
 document.getElementById("add-cmp-row").addEventListener("click", () => {
-  state.cmpRows.push({ group: "", brand: "", line: "", type: "", hours: 0 });
+  state.cmpRows.push(emptyRow(GROUPS[0]));
   renderFillCmp();
 });
-document.getElementById("save-cmp-draft").addEventListener("click", () => toast("info", "已暂存（对比方案）"));
+document.getElementById("save-cmp-draft").addEventListener("click", () => toast("info", "已暂存（平铺变体）"));
 document.getElementById("submit-cmp-fill").addEventListener("click", () => {
+  if (!state.cmpRows.length) return toast("warning", "请至少添加一行");
   const incomplete = state.cmpRows.some((r) => !r.group || !r.brand || !r.line || !r.type);
-  if (incomplete) return toast("warning", "请先为每行选择业务组，再完善品牌品线与业务类型");
-  const t = state.cmpRows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
-  if (!state.cmpRows.length || t <= 0) return toast("warning", "请填写有效工时");
-  FILL_CMP_BY_WEEK[state.cmpWeek] = state.cmpRows.map((r) => ({ ...r }));
-  toast("success", "对比方案已提交（演示）。可切回「周填报」对照旧维度。");
+  if (incomplete) return toast("warning", "请完善业务组、品牌品线与执行单类型");
+  const needSub = state.cmpRows.some((r) => (EXECUTE_SUBTYPES[r.type] || []).length && !r.sub);
+  if (needSub) return toast("warning", "请选择执行单子类型");
+  const total = sumPct(state.cmpRows);
+  if (Math.abs(total - 100) >= 0.05) return toast("warning", `本周占比合计须为 100%，当前为 ${total}%`);
+  toast("success", "平铺变体已提交（演示）。可切回「周填报」对照分块交互。");
 });
 
 function statusTag(status) {
@@ -419,48 +501,50 @@ function renderMine() {
       ? [{ week: state.week, status: state.locked ? "locked" : "submitted", rows: state.rows }]
       : [];
   if (!entries.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="a3-empty"><i class="fas fa-inbox"></i><div class="a3-empty-text">暂无提交记录，请先在「周填报」提交</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="a3-empty"><i class="fas fa-inbox"></i><div class="a3-empty-text">暂无提交记录，请先在「周填报」提交</div></div></td></tr>`;
     return;
   }
   tbody.innerHTML = entries.flatMap((h) =>
     h.rows.map((r) => `
       <tr>
         <td>${h.week}</td>
+        <td>${r.group}</td>
         <td>${r.brand}</td>
         <td>${r.line}</td>
-        <td>${r.group}</td>
-        <td>${r.type}</td>
-        <td>${r.hours}</td>
+        <td>${EXECUTE_LABEL[r.type] || r.type}</td>
+        <td>${subLabel(r.type, r.sub)}</td>
+        <td>${r.pct}%</td>
         <td>${statusTag(h.status)}</td>
       </tr>
     `)
   ).join("");
 }
 
-function expandParts(person, brand, line, type, filled, parts) {
+function expandParts(person, brand, line, typeLabel, filled, parts) {
   return parts.map((p) => ({
     person,
     brand: `${brand} / ${line}`,
-    type,
-    filled,
+    type: typeLabel,
+    filled: filled + "%",
     project: p.project,
     order: p.order,
     pct: Math.round(p.w * 100) + "%",
-    hours: round1(filled * p.w),
+    hours: round1(filled * p.w) + "%",
   }));
 }
 
 function buildSplits() {
-  const east = state.rows.filter((r) => r.group === "华东投放组");
+  const dept = state.rows.filter((r) => r.group === LEADER_GROUP);
   const out = [];
-  east.forEach((r) => {
+  dept.forEach((r) => {
+    const typeLabel = `${EXECUTE_LABEL[r.type] || r.type}${r.sub ? " / " + subLabel(r.type, r.sub) : ""}`;
     const parts = SPLIT_CATALOG[`${r.brand}|${r.line}|${r.type}`] || [{ project: "待匹配项目", order: "—", w: 1 }];
-    out.push(...expandParts("林可", r.brand, r.line, r.type, r.hours, parts));
+    out.push(...expandParts("林可", r.brand, r.line, typeLabel, r.pct, parts));
   });
-  // 仅在看本周待确认时附带组内其他人；历史周只展示林可
   if (state.week === "2026-W39") {
-    TEAM_EAST_EXTRAS.forEach((m) => {
-      out.push(...expandParts(m.person, m.brand, m.line, m.type, m.filled, m.parts));
+    TEAM_DEPT1_EXTRAS.forEach((m) => {
+      const typeLabel = `${EXECUTE_LABEL[m.type] || m.type}${m.sub ? " / " + subLabel(m.type, m.sub) : ""}`;
+      out.push(...expandParts(m.person, m.brand, m.line, typeLabel, m.filled, m.parts));
     });
   }
   return out;
@@ -472,8 +556,8 @@ function renderLeader() {
   document.getElementById("leader-body").style.display = isLeader ? "block" : "none";
   if (!isLeader) return;
   const splits = buildSplits();
-  const hours = round1(splits.reduce((s, r) => s + r.hours, 0));
-  document.getElementById("leader-hours").textContent = hours + "h";
+  const hours = round1(splits.reduce((s, r) => s + parseFloat(r.hours), 0));
+  document.getElementById("leader-hours").textContent = hours + "%";
   document.getElementById("leader-projects").textContent = new Set(splits.map((r) => r.project)).size;
   document.getElementById("leader-status").className = state.locked ? "a3-tag a3-tag-success" : "a3-tag a3-tag-warning";
   document.getElementById("leader-status").innerHTML = state.locked
@@ -542,9 +626,14 @@ document.getElementById("brand-filter").addEventListener("change", () => {
 function renderMaster() {
   document.getElementById("md-brands").textContent = BRANDS.join("、");
   document.getElementById("md-lines").textContent = Object.entries(LINES).map(([b, ls]) => `${b}→${ls.join("/")}`).join("；");
-  document.getElementById("md-groups").textContent =
-    "周填报：" + GROUPS.join("、") + "；填报对比：" + MARKETING_DEPTS.join("、");
-  document.getElementById("md-types").textContent = BIZ_TYPES.join("、") + "（=执行单类型）";
+  document.getElementById("md-groups").textContent = GROUPS.join("、");
+  const typeText = EXECUTE_TYPES.map((t) => {
+    const subs = EXECUTE_SUBTYPES[t.value] || [];
+    return subs.length
+      ? `${t.label}→${subs.map((s) => s.label).join("/")}`
+      : `${t.label}（无子类型）`;
+  }).join("；");
+  document.getElementById("md-types").textContent = typeText + "（=执行单类型，两级；源自 CreateExecutionOrder/store.ts）";
 }
 
 document.querySelectorAll(".cost-col").forEach((el) => { el.style.display = "none"; });
