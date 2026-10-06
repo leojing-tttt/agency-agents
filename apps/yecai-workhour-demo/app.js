@@ -247,6 +247,30 @@ const FIN_BRAND_DAY0 = {
   霞湖世家: 368200,
 };
 
+/** 客户 → 品牌（业财合同主体；一客户可多品牌） */
+const CLIENT_BRANDS = {
+  金佰利: ["好奇", "高洁丝"],
+  拜耳: ["拜耳"],
+  滇虹药业: ["康王"],
+  霞湖世家: ["霞湖世家"],
+};
+const BRAND_TO_CLIENT = Object.fromEntries(
+  Object.entries(CLIENT_BRANDS).flatMap(([c, brands]) => brands.map((b) => [b, c])),
+);
+
+function clientOf(brand) {
+  return BRAND_TO_CLIENT[brand] || brand;
+}
+
+function clientsFromBrands(brandMap) {
+  const out = {};
+  Object.entries(brandMap).forEach(([b, v]) => {
+    const c = clientOf(b);
+    out[c] = (out[c] || 0) + v;
+  });
+  return out;
+}
+
 function isoDate(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -326,7 +350,7 @@ function sumPeriod(from, to) {
   const empty = {
     days,
     revenue: 0, cashin: 0, cost: 0, gross: 0, margin: 0, pending: 0,
-    brands: {}, sparks: { revenue: [], cashin: [], cost: [], gross: [], margin: [], pending: [] },
+    brands: {}, clients: {}, sparks: { revenue: [], cashin: [], cost: [], gross: [], margin: [], pending: [] },
   };
   if (!days.length) return empty;
   const brands = {};
@@ -345,6 +369,7 @@ function sumPeriod(from, to) {
     empty.sparks.pending.push(row.pending);
   });
   empty.brands = brands;
+  empty.clients = clientsFromBrands(brands);
   empty.pending = FIN_DAILY[days[days.length - 1]].pending;
   empty.margin = empty.revenue ? (empty.gross / empty.revenue) * 100 : 0;
   empty.days = days;
@@ -573,6 +598,7 @@ const state = {
   ovPreset: "today",
   ovFrom: "2026-10-05",
   ovTo: "2026-10-05",
+  contribCut: "brand",
 };
 
 const draftBoot = loadAdminDraft();
@@ -1430,9 +1456,48 @@ function sparkline(values, invert) {
   return `<svg class="yc-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline fill="none" stroke="${color}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" points="${pts}"/></svg>`;
 }
 
-function shareBar(pct) {
+function shareBar(pct, showPct) {
   const n = Math.max(0, Math.min(100, Number(pct) || 0));
-  return `<span class="yc-share"><span class="yc-share-track"><i style="width:${n}%"></i></span><em>${n.toFixed(1)}%</em></span>`;
+  const lab = showPct === false ? "" : `<em>${n.toFixed(1)}%</em>`;
+  return `<span class="yc-share"><span class="yc-share-track"><i style="width:${n}%"></i></span>${lab}</span>`;
+}
+
+function syncContribCut() {
+  document.querySelectorAll("[data-contrib-cut]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.contribCut === state.contribCut);
+  });
+}
+
+function setContribCut(cut) {
+  state.contribCut = cut === "client" ? "client" : "brand";
+  syncContribCut();
+  const ov = document.getElementById("page-fin-overview");
+  const rev = document.getElementById("page-fin-revenue");
+  if (ov && ov.classList.contains("active")) renderFinOverview();
+  if (rev && rev.classList.contains("active")) renderFinRevenue();
+}
+
+function contribHead(periodWord) {
+  return `${periodWord}贡献 · ${state.contribCut === "client" ? "按客户" : "按品牌"}`;
+}
+
+function renderContribRows(brandMap) {
+  const byClient = state.contribCut === "client";
+  const map = byClient ? clientsFromBrands(brandMap) : brandMap;
+  const total = Object.values(map).reduce((s, n) => s + n, 0);
+  return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([name, amt]) => {
+    const sub = byClient
+      ? `品牌 ${(CLIENT_BRANDS[name] || []).join("、")}`
+      : `客户 ${clientOf(name)}`;
+    return `<div class="yc-conc-row">
+      <div class="yc-conc-name">
+        <b>${name}</b>
+        <span class="yc-conc-sub">${sub}</span>
+      </div>
+      <div class="yc-conc-amt">¥ ${fmtMoney(amt)}</div>
+      ${shareBar(total ? (amt / total) * 100 : 0, false)}
+    </div>`;
+  }).join("");
 }
 
 function kpiCell(opts) {
@@ -1492,7 +1557,8 @@ function renderFinOverview() {
   document.getElementById("fin-overview-lead").textContent = isDay
     ? "执行单确认收入 · 较昨日 · 异常最多 3 条。人力不拆日，见成本页周锁定。"
     : `执行单确认收入 · ${from} 至 ${to} 合计 · ${vs} · 异常最多 3 条。人力不拆日。`;
-  document.getElementById("fin-conc-head").textContent = `${periodWord}贡献浓度`;
+  document.getElementById("fin-conc-head").textContent = contribHead(periodWord);
+  syncContribCut();
 
   const fromEl = document.getElementById("fin-ov-from");
   const toEl = document.getElementById("fin-ov-to");
@@ -1525,16 +1591,7 @@ function renderFinOverview() {
     invert: k.invert,
   })).join("");
 
-  const brandTotal = Object.values(cur.brands).reduce((s, n) => s + n, 0);
-  const conc = Object.entries(cur.brands).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  document.getElementById("fin-conc-list").innerHTML = conc.map(([brand, amt]) => {
-    const pct = brandTotal ? (amt / brandTotal) * 100 : 0;
-    return `<div class="yc-conc-row">
-      <div class="yc-conc-name">${brand}</div>
-      <div class="yc-conc-amt">¥ ${fmtMoney(amt)}</div>
-      ${shareBar(pct)}
-    </div>`;
-  }).join("");
+  document.getElementById("fin-conc-list").innerHTML = renderContribRows(cur.brands);
 
   const alerts = ovAlerts(preset, from, to);
   document.getElementById("fin-alert-list").innerHTML = alerts.map((a) => {
@@ -1581,34 +1638,52 @@ function ensureFinRevFilters() {
 
 function renderFinRevenue() {
   ensureFinRevFilters();
+  syncContribCut();
+  const byClient = state.contribCut === "client";
   const type = document.getElementById("fin-rev-type").value;
   const group = document.getElementById("fin-rev-group").value;
-  let rows = FIN_REVENUE_ROWS.slice();
+  let rows = FIN_REVENUE_ROWS.map((r) => ({ ...r, client: clientOf(r.brand) }));
   if (type) rows = rows.filter((r) => r.type === type);
   if (group) rows = rows.filter((r) => r.group === group);
+  if (byClient) {
+    rows.sort((a, b) => a.client.localeCompare(b.client, "zh") || b.amount - a.amount);
+  } else {
+    rows.sort((a, b) => a.brand.localeCompare(b.brand, "zh") || b.amount - a.amount);
+  }
   const total = rows.reduce((s, r) => s + r.amount, 0);
   const prevTotal = rows.reduce((s, r) => s + r.prev, 0);
   const depts = new Set(rows.map((r) => r.group)).size;
   const brands = new Set(rows.map((r) => r.brand)).size;
+  const clients = new Set(rows.map((r) => r.client)).size;
   const delta = fmtDelta(total, prevTotal, "元");
+  const cutLabel = byClient ? "按客户" : "按品牌";
+  document.getElementById("fin-rev-cut-label").textContent = `明细 · ${cutLabel}`;
+  document.getElementById("fin-rev-lead").textContent = byClient
+    ? "当前切片：按客户。金佰利含好奇+高洁丝；与按品牌加总不同口径。"
+    : "当前切片：按品牌。同一客户下的品牌分开计；可切到按客户。";
   document.getElementById("fin-rev-summary").innerHTML = [
     kpiCell({ label: "筛选后确认收入", main: `¥ ${fmtMoney(total)}`, delta, spark: [12, 13, 12.5, 14, 15, 16, total / 100000], invert: false }),
     `<div class="yc-kpi-cell"><div class="yc-kpi-label">涉及营销部</div><div class="yc-kpi-value">${depts}</div><div class="yc-kpi-foot"><span class="yc-muted">一部–九部</span></div></div>`,
-    `<div class="yc-kpi-cell"><div class="yc-kpi-label">涉及品牌</div><div class="yc-kpi-value">${brands}</div><div class="yc-kpi-foot"><span class="yc-muted">BRAND_LINE_MASTER</span></div></div>`,
-    `<div class="yc-kpi-cell"><div class="yc-kpi-label">明细行</div><div class="yc-kpi-value">${rows.length}</div><div class="yc-kpi-foot"><span class="yc-muted">部门 → 品牌 → 品线</span></div></div>`,
+    `<div class="yc-kpi-cell"><div class="yc-kpi-label">${byClient ? "涉及客户" : "涉及品牌"}</div><div class="yc-kpi-value">${byClient ? clients : brands}</div><div class="yc-kpi-foot"><span class="yc-muted">${byClient ? "合同主体" : "BRAND_LINE_MASTER"}</span></div></div>`,
+    `<div class="yc-kpi-cell"><div class="yc-kpi-label">明细行</div><div class="yc-kpi-value">${rows.length}</div><div class="yc-kpi-foot"><span class="yc-muted">${cutLabel}</span></div></div>`,
   ].join("");
+  document.getElementById("fin-rev-thead-row").innerHTML = byClient
+    ? `<th>客户</th><th>品牌</th><th>品线</th><th>执行单类型</th><th class="yc-num">确认收入</th><th class="yc-num">较昨日</th><th></th>`
+    : `<th>品牌</th><th>客户</th><th>品线</th><th>执行单类型</th><th class="yc-num">确认收入</th><th class="yc-num">较昨日</th><th></th>`;
   document.querySelector("#fin-rev-table tbody").innerHTML = rows.length ? rows.map((r) => {
     const d = fmtDelta(r.amount, r.prev, "元");
     const share = total ? ((r.amount / total) * 100) : 0;
+    const first = byClient ? r.client : r.brand;
+    const second = byClient ? r.brand : r.client;
     return `
       <tr>
-        <td>${r.group}</td>
-        <td>${r.brand}</td>
+        <td>${first}</td>
+        <td>${second}</td>
         <td>${r.line}</td>
         <td>${EXECUTE_LABEL[r.type] || r.type}</td>
         <td class="yc-num">¥ ${fmtMoney(r.amount)}</td>
         <td class="yc-num ${d.cls}">${d.text.replace("较昨日 ", "")}</td>
-        <td>${shareBar(share)}</td>
+        <td>${shareBar(share, false)}</td>
       </tr>
     `;
   }).join("") : `<tr><td colspan="7" class="a3-text-secondary">无匹配数据</td></tr>`;
@@ -1746,6 +1821,9 @@ document.getElementById("fin-ov-from").addEventListener("change", (e) => {
 document.getElementById("fin-ov-to").addEventListener("change", (e) => {
   applyOvPreset("custom", document.getElementById("fin-ov-from").value, e.target.value);
   renderFinOverview();
+});
+document.querySelectorAll("[data-contrib-cut]").forEach((btn) => {
+  btn.addEventListener("click", () => setContribCut(btn.dataset.contribCut));
 });
 
 document.getElementById("fin-rev-query").addEventListener("click", () => renderFinRevenue());

@@ -303,6 +303,26 @@ body.yc-fin-active .a3-page-content {
   color: var(--a3-primary);
   font-weight: 600;
 }
+.yc-seg-sm .yc-seg-btn { height: 28px; padding: 0 10px; font-size: 12px; }
+
+.yc-conc-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yc-conc-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.yc-conc-name b { font-weight: 600; }
+.yc-conc-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--a3-text-secondary);
+}
 
 .yc-ov-range {
   display: inline-flex;

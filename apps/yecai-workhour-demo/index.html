@@ -465,8 +465,14 @@
           <div class="yc-cockpit-split">
             <div class="yc-panel">
               <div class="yc-panel-head">
-                <span id="fin-conc-head">当日贡献浓度</span>
-                <button type="button" class="a3-btn a3-btn-text a3-btn-sm" data-fin-goto="fin-revenue">收入下钻</button>
+                <span id="fin-conc-head">当日贡献 · 按品牌</span>
+                <div class="yc-conc-tools">
+                  <div class="yc-seg yc-seg-sm" id="fin-ov-cut">
+                    <button type="button" class="yc-seg-btn active" data-contrib-cut="brand">按品牌</button>
+                    <button type="button" class="yc-seg-btn" data-contrib-cut="client">按客户</button>
+                  </div>
+                  <button type="button" class="a3-btn a3-btn-text a3-btn-sm" data-fin-goto="fin-revenue">收入下钻</button>
+                </div>
               </div>
               <div id="fin-conc-list" class="yc-conc"></div>
             </div>
@@ -520,22 +526,28 @@
               <button type="button" class="a3-btn a3-btn-primary" id="fin-rev-query">筛选</button>
             </div>
           </div>
-          <p class="yc-cockpit-lead">营销一部–九部 → 品牌 → 品线。L1 可选。金额脱敏样例。</p>
+          <p class="yc-cockpit-lead" id="fin-rev-lead">当前切片：按品牌。客户与品牌是不同切面（如金佰利含好奇+高洁丝）。</p>
           <div class="yc-kpi-strip yc-kpi-strip-4" id="fin-rev-summary"></div>
           <div class="yc-panel">
-            <div class="yc-panel-head"><span>明细</span><span class="yc-muted">部门 · 品牌 · 品线 · 类型</span></div>
+            <div class="yc-panel-head">
+              <span id="fin-rev-cut-label">明细 · 按品牌</span>
+              <div class="yc-seg yc-seg-sm" id="fin-rev-cut">
+                <button type="button" class="yc-seg-btn active" data-contrib-cut="brand">按品牌</button>
+                <button type="button" class="yc-seg-btn" data-contrib-cut="client">按客户</button>
+              </div>
+            </div>
             <div class="a3-table-wrapper yc-dense-table">
               <table class="a3-table" id="fin-rev-table">
                 <thead>
-                  <tr>
-                    <th>营销部</th>
-                    <th>品牌</th>
-                    <th>品线</th>
-                    <th>执行单类型</th>
-                    <th class="yc-num">确认收入</th>
-                    <th class="yc-num">较昨日</th>
-                    <th>占比</th>
-                  </tr>
+                    <tr id="fin-rev-thead-row">
+                      <th>营销部</th>
+                      <th>品牌</th>
+                      <th>品线</th>
+                      <th>执行单类型</th>
+                      <th class="yc-num">确认收入</th>
+                      <th class="yc-num">较昨日</th>
+                      <th></th>
+                    </tr>
                 </thead>
                 <tbody></tbody>
               </table>
