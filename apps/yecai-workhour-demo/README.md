@@ -6,8 +6,9 @@ Uses **A3 SaaS UI** from `apps/campaign-agent/public/a3-components.css`（《A3 
 
 ```bash
 cd apps/yecai-workhour-demo
-npx --yes serve -l 5178 .
-# http://localhost:5178/
+npx --yes serve -l 5179 .
+# http://localhost:5179/
+# 高管日报：#fin-overview | #fin-revenue | #fin-cash | #fin-margin（切换身份 CEO / CFO）
 ```
 
 ## Skill / design source

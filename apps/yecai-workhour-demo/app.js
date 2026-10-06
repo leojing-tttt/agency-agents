@@ -178,10 +178,113 @@ const TITLES = {
   leader: "待我确认",
   project: "项目人力",
   brand: "品牌品线人力",
+  "fin-overview": "今日总览",
+  "fin-revenue": "收入与贡献",
+  "fin-cash": "回款与现金",
+  "fin-margin": "成本与毛利",
   "admin-config": "配置面板",
   "admin-watch": "填报进度面板",
   master: "主数据来源",
 };
+
+/** 高管日报 · 脱敏日快照（方案 A；非正式财务数） */
+const FIN_SNAPSHOT_DAY = "2026-10-05";
+const FIN_KPIS = [
+  { key: "revenue", label: "当日确认收入", value: 1864200, prev: 1720800, unit: "元", ceo: true, cfo: true },
+  { key: "cashin", label: "当日回款", value: 942500, prev: 1103200, unit: "元", ceo: true, cfo: true },
+  { key: "cost", label: "当日成本（可归）", value: 1126800, prev: 1084500, unit: "元", ceo: true, cfo: true },
+  { key: "gross", label: "当日毛利", value: 737400, prev: 636300, unit: "元", ceo: true, cfo: true },
+  { key: "margin", label: "当日毛利率", value: 39.6, prev: 37.0, unit: "%", ceo: true, cfo: true },
+  { key: "pending", label: "待确认 / 异常", value: 3, prev: 5, unit: "条", ceo: true, cfo: true },
+];
+
+const FIN_ALERTS = [
+  {
+    level: "高",
+    type: "逾期回款",
+    summary: "客户 C-**87（拜耳线）逾期 18 天未回",
+    impact: "应收 42.6 万",
+    action: "催收 / 暂停新单",
+  },
+  {
+    level: "中",
+    type: "收入待确认",
+    summary: "营销三部 · 高洁丝卫生巾硬广 2 单未财务确认",
+    impact: "确认收入缺口 18.2 万",
+    action: "财务复核",
+  },
+  {
+    level: "中",
+    type: "毛利下滑",
+    summary: "康王线当日毛利率 22%，较昨日 −6.4pt",
+    impact: "部门：营销七部",
+    action: "查媒体成本",
+  },
+];
+
+/** 部门→品牌→品线→L1 收入贡献（样例） */
+const FIN_REVENUE_ROWS = [
+  { group: "营销一部", brand: "好奇", line: "小森林", type: "INTERNAL_KOL", amount: 286000, prev: 251000 },
+  { group: "营销一部", brand: "好奇", line: "深睡大师", type: "INTERNAL_DSP", amount: 198000, prev: 210000 },
+  { group: "营销二部", brand: "好奇", line: "小桃裤", type: "INTERNAL_KOL", amount: 124000, prev: 98000 },
+  { group: "营销三部", brand: "高洁丝", line: "卫生巾", type: "HARD_AD", amount: 312000, prev: 275000 },
+  { group: "营销三部", brand: "高洁丝", line: "海岛奢宠纯棉", type: "INTERNAL_DSP", amount: 86000, prev: 92000 },
+  { group: "营销四部", brand: "高洁丝", line: "阳光烘烘抑菌纯棉", type: "HARD_AD", amount: 72000, prev: 68000 },
+  { group: "营销五部", brand: "拜耳", line: "心肝宝", type: "GEO", amount: 168000, prev: 155000 },
+  { group: "营销六部", brand: "拜耳", line: "时光片Pro", type: "SELF_MEDIA", amount: 94000, prev: 88000 },
+  { group: "营销七部", brand: "康王", line: "酮康唑洗发水", type: "PUBLIC_OPINION", amount: 156000, prev: 182000 },
+  { group: "营销八部", brand: "霞湖世家", line: "80支液氨棉T恤", type: "CUSTOMER_RELATIONSHIP", amount: 48000, prev: 52000 },
+  { group: "营销九部", brand: "霞湖世家", line: "120支液氨棉T恤", type: "OTHER", amount: 220000, prev: 195000 },
+  { group: "营销九部", brand: "霞湖世家", line: "200支液氨棉T恤", type: "INTERNAL_KOL", amount: 100200, prev: 84800 },
+];
+
+const FIN_AGING = [
+  { bucket: "未到期", clients: 28, amount: 3860000, focus: "正常" },
+  { bucket: "1–30 天", clients: 9, amount: 920000, focus: "跟进" },
+  { bucket: "31–60 天", clients: 4, amount: 540000, focus: "催收" },
+  { bucket: "60 天以上", clients: 2, amount: 426000, focus: "高风险" },
+];
+
+const FIN_CASH_FLOWS = [
+  { client: "客户 A-**12", brand: "好奇", amount: 286000, method: "电汇", status: "已入账" },
+  { client: "客户 B-**45", brand: "高洁丝", amount: 312000, method: "电汇", status: "已入账" },
+  { client: "客户 C-**87", brand: "拜耳", amount: 0, method: "—", status: "逾期未回" },
+  { client: "客户 D-**03", brand: "霞湖世家", amount: 220000, method: "承兑", status: "已入账" },
+  { client: "客户 E-**61", brand: "康王", amount: 124500, method: "电汇", status: "待核销" },
+];
+
+const FIN_COST_MIX = [
+  { name: "媒体采买", amount: 682000, prev: 648000, note: "投流/硬广当日确认成本" },
+  { name: "制作与内容", amount: 268000, prev: 255000, note: "KOL 制作 / 素材" },
+  { name: "其他直接成本", amount: 176800, prev: 181500, note: "客情 / 比稿 / 差旅等" },
+  { name: "人力（日）", amount: null, prev: null, note: "工时周锁定，不拆日成本 — 见下表" },
+];
+
+const FIN_BRAND_MARGIN = [
+  { brand: "好奇", revenue: 608000, cost: 352000 },
+  { brand: "高洁丝", revenue: 470000, cost: 298000 },
+  { brand: "拜耳", revenue: 262000, cost: 168000 },
+  { brand: "康王", revenue: 156000, cost: 121680 },
+  { brand: "霞湖世家", revenue: 368200, cost: 187120 },
+];
+
+/** 人力周对照：仅已锁定周可出人天；不发明日人力成本 */
+const FIN_LABOR_WEEK = [
+  {
+    week: "2026-W38",
+    status: "locked",
+    days: 28.4,
+    weekRevenue: 9200000,
+    note: "已锁定 · 可做人效对照",
+  },
+  {
+    week: "2026-W39",
+    status: "open",
+    days: null,
+    weekRevenue: 6120000,
+    note: "填报中 · 人天未锁定，不展示日成本",
+  },
+];
 
 const ADMIN_STORAGE_KEY = "yecai-workhour-admin-config-v2";
 const ADMIN_DRAFT_KEY = "yecai-workhour-admin-config-draft-v2";
@@ -319,11 +422,38 @@ try {
 } catch (_) { /* ignore */ }
 
 const roleMeta = {
-  filler: { name: "林可 · 媒介", showCost: false },
-  leader: { name: "周衡 · 营销一部 Leader", showCost: false },
-  finance: { name: "沈岚 · 财务", showCost: true },
-  admin: { name: "顾澄 · 管理员", showCost: true },
+  filler: { name: "林可 · 媒介", showCost: false, fin: false },
+  leader: { name: "周衡 · 营销一部 Leader", showCost: false, fin: false },
+  finance: { name: "沈岚 · 财务", showCost: true, fin: true },
+  ceo: { name: "顾岑 · CEO", showCost: true, fin: true },
+  cfo: { name: "沈岚 · CFO", showCost: true, fin: true },
+  admin: { name: "顾澄 · 管理员", showCost: true, fin: true },
 };
+
+const FIN_PAGES = ["fin-overview", "fin-revenue", "fin-cash", "fin-margin"];
+
+function fmtMoney(n) {
+  if (n == null || Number.isNaN(n)) return "—";
+  return Number(n).toLocaleString("zh-CN");
+}
+
+function fmtDelta(cur, prev, unit, invert) {
+  if (prev == null || cur == null) return { text: "—", cls: "yc-delta-flat" };
+  const d = cur - prev;
+  if (Math.abs(d) < 1e-9) return { text: "较昨日持平", cls: "yc-delta-flat" };
+  const up = d > 0;
+  const abs = unit === "%" ? Math.abs(d).toFixed(1) : Math.abs(d);
+  const absText = unit === "%" ? `${abs}pt` : unit === "条" ? `${abs}` : fmtMoney(abs);
+  const goodUp = invert ? !up : up;
+  return {
+    text: `较昨日 ${up ? "+" : "−"}${absText}${unit === "元" ? "" : unit === "条" ? " 条" : ""}`,
+    cls: goodUp ? "yc-delta-up" : "yc-delta-down",
+  };
+}
+
+function isExecRole(role) {
+  return role === "ceo" || role === "cfo" || role === "finance" || role === "admin";
+}
 
 function toast(type, text) {
   const root = document.getElementById("toast-root");
@@ -380,9 +510,35 @@ function subSelectHtml(type, selected) {
   return optsObj(list, selected);
 }
 
-function syncAdminMenus() {
+function syncRoleMenus() {
   const isAdmin = state.role === "admin";
+  const canFin = isExecRole(state.role);
   document.body.classList.toggle("yc-role-admin", isAdmin);
+  document.body.classList.toggle("yc-role-fin", canFin);
+  document.body.classList.toggle("yc-role-ceo", state.role === "ceo");
+  document.body.classList.toggle("yc-role-cfo", state.role === "cfo" || state.role === "finance");
+}
+
+function updateFinBreadcrumb(page) {
+  const crumbs = document.querySelector(".a3-breadcrumb");
+  if (!crumbs) return;
+  if (FIN_PAGES.includes(page)) {
+    crumbs.innerHTML = `
+      <span class="a3-breadcrumb-item"><a>财务</a></span>
+      <span class="a3-breadcrumb-separator">/</span>
+      <span class="a3-breadcrumb-item"><a>日报</a></span>
+      <span class="a3-breadcrumb-separator">/</span>
+      <span class="a3-breadcrumb-item" id="crumb">${TITLES[page] || page}</span>
+    `;
+  } else {
+    crumbs.innerHTML = `
+      <span class="a3-breadcrumb-item"><a>人效</a></span>
+      <span class="a3-breadcrumb-separator">/</span>
+      <span class="a3-breadcrumb-item"><a>工时</a></span>
+      <span class="a3-breadcrumb-separator">/</span>
+      <span class="a3-breadcrumb-item" id="crumb">${TITLES[page] || page}</span>
+    `;
+  }
 }
 
 function go(page) {
@@ -390,19 +546,36 @@ function go(page) {
     toast("warning", "请先切换为管理员身份");
     page = "fill";
   }
+  if (FIN_PAGES.includes(page) && !isExecRole(state.role)) {
+    toast("warning", "请切换为 CEO / CFO（或财务）后查看日报");
+    page = "fill";
+  }
   document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + page));
   document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => m.classList.toggle("active", m.dataset.page === page));
-  document.getElementById("crumb").textContent = TITLES[page] || page;
+  updateFinBreadcrumb(page);
   if (page === "fill") renderFill();
   if (page === "fill-cmp") renderFillCmp();
   if (page === "mine") renderMine();
   if (page === "leader") renderLeader();
   if (page === "project") renderProject();
   if (page === "brand") renderBrand();
+  if (page === "fin-overview") renderFinOverview();
+  if (page === "fin-revenue") renderFinRevenue();
+  if (page === "fin-cash") renderFinCash();
+  if (page === "fin-margin") renderFinMargin();
   if (page === "admin-config") renderAdminConfig();
   if (page === "admin-watch") renderAdminWatch();
   if (page === "master") renderMaster();
-  const pageHashes = { "fill-cmp": "fill-cmp", "admin-config": "admin-config", "admin-watch": "admin-progress", brand: "brand" };
+  const pageHashes = {
+    "fill-cmp": "fill-cmp",
+    "admin-config": "admin-config",
+    "admin-watch": "admin-progress",
+    brand: "brand",
+    "fin-overview": "fin-overview",
+    "fin-revenue": "fin-revenue",
+    "fin-cash": "fin-cash",
+    "fin-margin": "fin-margin",
+  };
   if (pageHashes[page]) location.hash = pageHashes[page];
   else if (location.hash && location.hash !== "#") history.replaceState(null, "", location.pathname + location.search);
 }
@@ -414,11 +587,14 @@ document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => {
 document.getElementById("role-select").addEventListener("change", (e) => {
   state.role = e.target.value;
   document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
-  syncAdminMenus();
+  syncRoleMenus();
   const active = document.querySelector(".a3-menu-item.active");
   const onAdminPage = active && (active.dataset.page === "admin-config" || active.dataset.page === "admin-watch");
-  if (state.role === "admin") go(onAdminPage ? active.dataset.page : "admin-config");
-  else if (onAdminPage) go("fill");
+  const onFinPage = active && FIN_PAGES.includes(active.dataset.page);
+  if (state.role === "ceo") go("fin-overview");
+  else if (state.role === "cfo") go("fin-cash");
+  else if (state.role === "admin") go(onAdminPage ? active.dataset.page : "admin-config");
+  else if (onAdminPage || (onFinPage && !isExecRole(state.role))) go("fill");
   else go(active ? active.dataset.page : "fill");
 });
 
@@ -1064,15 +1240,298 @@ document.getElementById("watch-week-select").addEventListener("change", (e) => {
   renderAdminWatch();
 });
 
+function levelTag(level) {
+  if (level === "高") return `<span class="a3-tag a3-tag-danger"><span class="a3-tag-dot"></span>高</span>`;
+  if (level === "中") return `<span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>中</span>`;
+  return `<span class="a3-tag a3-tag-default"><span class="a3-tag-dot"></span>${level}</span>`;
+}
+
+function renderFinOverview() {
+  const isCeo = state.role === "ceo";
+  document.getElementById("fin-overview-asof").textContent = `截至 ${FIN_SNAPSHOT_DAY}`;
+  document.getElementById("fin-overview-role-hint").textContent = isCeo ? "CEO 视角" : (state.role === "cfo" ? "CFO 视角" : "高管视角");
+  const kpis = FIN_KPIS.filter((k) => (isCeo ? k.ceo : k.cfo));
+  document.getElementById("fin-kpi-grid").innerHTML = kpis.map((k) => {
+    const delta = fmtDelta(k.value, k.prev, k.unit);
+    const main = k.unit === "%" ? `${k.value.toFixed(1)}%` : k.unit === "条" ? String(k.value) : `¥ ${fmtMoney(k.value)}`;
+    return `
+      <div class="a3-card yc-stat"><div class="a3-card-body">
+        <div class="a3-text-secondary" style="font-size:12px">${k.label}</div>
+        <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${main}</div>
+        <div class="a3-mt-8 ${delta.cls}" style="font-size:12px">${delta.text}</div>
+      </div></div>
+    `;
+  }).join("");
+  document.querySelector("#fin-alert-table tbody").innerHTML = FIN_ALERTS.map((a) => `
+    <tr>
+      <td>${levelTag(a.level)}</td>
+      <td>${a.type}</td>
+      <td>${a.summary}</td>
+      <td>${a.impact}</td>
+      <td>${a.action}</td>
+    </tr>
+  `).join("");
+}
+
+function ensureFinRevFilters() {
+  const typeSel = document.getElementById("fin-rev-type");
+  const groupSel = document.getElementById("fin-rev-group");
+  if (typeSel && typeSel.options.length <= 1) {
+    EXECUTE_TYPES.forEach((t) => {
+      const o = document.createElement("option");
+      o.value = t.value;
+      o.textContent = t.label;
+      typeSel.appendChild(o);
+    });
+  }
+  if (groupSel && groupSel.options.length <= 1) {
+    GROUPS.forEach((g) => {
+      const o = document.createElement("option");
+      o.value = g;
+      o.textContent = g;
+      groupSel.appendChild(o);
+    });
+  }
+}
+
+function renderFinRevenue() {
+  ensureFinRevFilters();
+  const type = document.getElementById("fin-rev-type").value;
+  const group = document.getElementById("fin-rev-group").value;
+  let rows = FIN_REVENUE_ROWS.slice();
+  if (type) rows = rows.filter((r) => r.type === type);
+  if (group) rows = rows.filter((r) => r.group === group);
+  const total = rows.reduce((s, r) => s + r.amount, 0);
+  const prevTotal = rows.reduce((s, r) => s + r.prev, 0);
+  const depts = new Set(rows.map((r) => r.group)).size;
+  const brands = new Set(rows.map((r) => r.brand)).size;
+  const delta = fmtDelta(total, prevTotal, "元");
+  document.getElementById("fin-rev-summary").innerHTML = `
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">筛选后确认收入</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(total)}</div>
+      <div class="a3-mt-8 ${delta.cls}" style="font-size:12px">${delta.text}</div>
+    </div></div>
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">涉及营销部</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${depts}</div>
+    </div></div>
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">涉及品牌</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${brands}</div>
+    </div></div>
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">明细行</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${rows.length}</div>
+    </div></div>
+  `;
+  document.querySelector("#fin-rev-table tbody").innerHTML = rows.length ? rows.map((r) => {
+    const d = fmtDelta(r.amount, r.prev, "元");
+    const share = total ? ((r.amount / total) * 100).toFixed(1) : "0.0";
+    return `
+      <tr>
+        <td>${r.group}</td>
+        <td>${r.brand}</td>
+        <td>${r.line}</td>
+        <td>${EXECUTE_LABEL[r.type] || r.type}</td>
+        <td>¥ ${fmtMoney(r.amount)}</td>
+        <td class="${d.cls}">${d.text}</td>
+        <td>${share}%</td>
+      </tr>
+    `;
+  }).join("") : `<tr><td colspan="7" class="a3-text-secondary">无匹配数据</td></tr>`;
+}
+
+function renderFinCash() {
+  const isCfo = state.role === "cfo" || state.role === "finance" || state.role === "admin";
+  document.getElementById("fin-cash-role-hint").textContent = isCfo ? "CFO 视角（含账龄）" : "CEO 摘要视角";
+  const cashIn = FIN_KPIS.find((k) => k.key === "cashin");
+  const notDue = FIN_AGING.find((a) => a.bucket === "未到期");
+  const overdue = FIN_AGING.filter((a) => a.bucket !== "未到期").reduce((s, a) => s + a.amount, 0);
+  const overduePrev = 1680000;
+  document.getElementById("fin-cash-kpis").innerHTML = `
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">当日回款</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(cashIn.value)}</div>
+      <div class="a3-mt-8 ${fmtDelta(cashIn.value, cashIn.prev, "元").cls}" style="font-size:12px">${fmtDelta(cashIn.value, cashIn.prev, "元").text}</div>
+    </div></div>
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">未到期应收</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(notDue.amount)}</div>
+      <div class="a3-text-secondary a3-mt-8" style="font-size:12px">${notDue.clients} 家客户</div>
+    </div></div>
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">逾期合计</div>
+      <div class="a3-text-brand a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(overdue)}</div>
+      <div class="a3-mt-8 ${fmtDelta(overdue, overduePrev, "元", true).cls}" style="font-size:12px">${fmtDelta(overdue, overduePrev, "元", true).text}</div>
+    </div></div>
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">当日入账笔数</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${FIN_CASH_FLOWS.filter((f) => f.amount > 0).length}</div>
+    </div></div>
+  `;
+  const agingTotal = FIN_AGING.reduce((s, a) => s + a.amount, 0);
+  document.querySelector("#fin-aging-table tbody").innerHTML = FIN_AGING.map((a) => `
+    <tr>
+      <td>${a.bucket}</td>
+      <td>${a.clients}</td>
+      <td>¥ ${fmtMoney(a.amount)}</td>
+      <td>${((a.amount / agingTotal) * 100).toFixed(1)}%</td>
+      <td class="cfo-only">${a.focus}</td>
+    </tr>
+  `).join("");
+  document.querySelector("#fin-cash-flow-table tbody").innerHTML = FIN_CASH_FLOWS.map((f) => {
+    const st = f.status.includes("逾期")
+      ? `<span class="a3-tag a3-tag-danger"><span class="a3-tag-dot"></span>${f.status}</span>`
+      : f.status.includes("待")
+        ? `<span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>${f.status}</span>`
+        : `<span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>${f.status}</span>`;
+    return `
+      <tr>
+        <td>${f.client}</td>
+        <td>${f.brand}</td>
+        <td>${f.amount ? `¥ ${fmtMoney(f.amount)}` : "—"}</td>
+        <td>${f.method}</td>
+        <td>${st}</td>
+      </tr>
+    `;
+  }).join("");
+  document.querySelectorAll("#page-fin-cash .cfo-only").forEach((el) => {
+    if (isCfo) el.style.removeProperty("display");
+    else el.style.display = "none";
+  });
+}
+
+function renderFinMargin() {
+  const gross = FIN_KPIS.find((k) => k.key === "gross");
+  const margin = FIN_KPIS.find((k) => k.key === "margin");
+  const cost = FIN_KPIS.find((k) => k.key === "cost");
+  document.getElementById("fin-margin-kpis").innerHTML = `
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">当日可归成本</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(cost.value)}</div>
+      <div class="a3-mt-8 ${fmtDelta(cost.value, cost.prev, "元", true).cls}" style="font-size:12px">${fmtDelta(cost.value, cost.prev, "元", true).text}</div>
+    </div></div>
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">当日毛利</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(gross.value)}</div>
+      <div class="a3-mt-8 ${fmtDelta(gross.value, gross.prev, "元").cls}" style="font-size:12px">${fmtDelta(gross.value, gross.prev, "元").text}</div>
+    </div></div>
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">当日毛利率</div>
+      <div class="a3-text-brand a3-mt-8" style="font-size:22px;font-weight:600">${margin.value.toFixed(1)}%</div>
+      <div class="a3-mt-8 ${fmtDelta(margin.value, margin.prev, "%").cls}" style="font-size:12px">${fmtDelta(margin.value, margin.prev, "%").text}</div>
+    </div></div>
+    <div class="a3-card yc-stat"><div class="a3-card-body">
+      <div class="a3-text-secondary" style="font-size:12px">人力日成本</div>
+      <div class="a3-text-primary a3-mt-8" style="font-size:18px;font-weight:600">不拆日</div>
+      <div class="a3-text-secondary a3-mt-8" style="font-size:12px">见已锁定周工时对照</div>
+    </div></div>
+  `;
+  const mixSum = FIN_COST_MIX.filter((c) => c.amount != null).reduce((s, c) => s + c.amount, 0);
+  document.querySelector("#fin-cost-mix-table tbody").innerHTML = FIN_COST_MIX.map((c) => {
+    if (c.amount == null) {
+      return `
+        <tr>
+          <td>${c.name}</td>
+          <td class="a3-text-secondary">—</td>
+          <td class="a3-text-secondary">—</td>
+          <td class="a3-text-secondary">—</td>
+          <td>${c.note}</td>
+        </tr>
+      `;
+    }
+    const d = fmtDelta(c.amount, c.prev, "元");
+    return `
+      <tr>
+        <td>${c.name}</td>
+        <td>¥ ${fmtMoney(c.amount)}</td>
+        <td class="${d.cls}">${d.text}</td>
+        <td>${((c.amount / mixSum) * 100).toFixed(1)}%</td>
+        <td>${c.note}</td>
+      </tr>
+    `;
+  }).join("");
+  document.querySelector("#fin-brand-margin-table tbody").innerHTML = FIN_BRAND_MARGIN.map((b) => {
+    const g = b.revenue - b.cost;
+    const rate = b.revenue ? ((g / b.revenue) * 100).toFixed(1) : "0.0";
+    return `
+      <tr>
+        <td>${b.brand}</td>
+        <td>¥ ${fmtMoney(b.revenue)}</td>
+        <td>¥ ${fmtMoney(b.cost)}</td>
+        <td>¥ ${fmtMoney(g)}</td>
+        <td>${rate}%</td>
+      </tr>
+    `;
+  }).join("");
+  document.querySelector("#fin-labor-week-table tbody").innerHTML = FIN_LABOR_WEEK.map((w) => {
+    const locked = w.status === "locked";
+    const tag = locked
+      ? `<span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>已锁定</span>`
+      : `<span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>填报中</span>`;
+    const days = locked ? w.days : "—";
+    const efficiency = locked && w.days
+      ? `¥ ${fmtMoney(Math.round(w.weekRevenue / w.days))} / 人天`
+      : "人天未锁定";
+    return `
+      <tr>
+        <td>${w.week}</td>
+        <td>${tag}</td>
+        <td>${days}</td>
+        <td>¥ ${fmtMoney(w.weekRevenue)}</td>
+        <td>${efficiency}</td>
+        <td>${w.note}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+document.getElementById("fin-rev-query").addEventListener("click", () => renderFinRevenue());
+document.getElementById("fin-rev-type").addEventListener("change", () => renderFinRevenue());
+document.getElementById("fin-rev-group").addEventListener("change", () => renderFinRevenue());
+document.querySelectorAll("[data-fin-goto]").forEach((btn) => {
+  btn.addEventListener("click", () => go(btn.getAttribute("data-fin-goto")));
+});
+
 document.querySelectorAll(".cost-col").forEach((el) => { el.style.display = "none"; });
-syncAdminMenus();
+syncRoleMenus();
 const bootHash = (location.hash || "").replace("#", "");
 const adminBoot = bootHash === "admin-config" || bootHash === "admin-watch" || bootHash === "admin-progress";
+const finBoot = FIN_PAGES.includes(bootHash);
 if (adminBoot) {
   state.role = "admin";
   document.getElementById("role-select").value = "admin";
   document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.admin.name}`;
-  syncAdminMenus();
+  syncRoleMenus();
   go(bootHash === "admin-config" ? "admin-config" : "admin-watch");
+} else if (finBoot) {
+  state.role = bootHash === "fin-cash" || bootHash === "fin-margin" ? "cfo" : "ceo";
+  document.getElementById("role-select").value = state.role;
+  document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
+  syncRoleMenus();
+  go(bootHash);
 } else if (bootHash === "fill-cmp" || bootHash === "brand") go(bootHash);
 else renderFill();
+
+window.addEventListener("hashchange", () => {
+  const h = (location.hash || "").replace("#", "");
+  if (FIN_PAGES.includes(h)) {
+    if (!isExecRole(state.role)) {
+      state.role = h === "fin-cash" || h === "fin-margin" ? "cfo" : "ceo";
+      document.getElementById("role-select").value = state.role;
+      document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
+      syncRoleMenus();
+    }
+    go(h);
+  } else if (h === "fill-cmp" || h === "brand") go(h);
+  else if (h === "admin-config" || h === "admin-watch" || h === "admin-progress") {
+    if (state.role !== "admin") {
+      state.role = "admin";
+      document.getElementById("role-select").value = "admin";
+      document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.admin.name}`;
+      syncRoleMenus();
+    }
+    go(h === "admin-config" ? "admin-config" : "admin-watch");
+  }
+});

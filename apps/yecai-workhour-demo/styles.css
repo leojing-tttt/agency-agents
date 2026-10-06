@@ -147,6 +147,30 @@ body {
 body.yc-role-admin .admin-only { display: list-item !important; }
 body.yc-role-admin .a3-menu-group-title.admin-only { display: block !important; }
 
+.fin-only { display: none !important; }
+body.yc-role-fin .fin-only { display: list-item !important; }
+body.yc-role-fin .a3-menu-group-title.fin-only { display: block !important; }
+
+.yc-stats-6 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 1100px) {
+  .yc-stats-6 { grid-template-columns: repeat(2, 1fr); }
+}
+
+.yc-fin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.yc-delta-up { color: var(--a3-success, #52c41a); }
+.yc-delta-down { color: var(--a3-danger, #ff4d4f); }
+.yc-delta-flat { color: var(--a3-text-secondary); }
+
+.cfo-only { display: none; }
+body.yc-role-cfo .cfo-only,
+body.yc-role-admin .cfo-only { display: table-cell; }
+
 .a3-card-title {
   font-weight: 600;
   color: var(--a3-text-primary);
