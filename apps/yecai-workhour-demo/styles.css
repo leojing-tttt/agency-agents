@@ -394,7 +394,7 @@ body.yc-fin-active .a3-page-content {
 
 .yc-conc-row {
   display: grid;
-  grid-template-columns: 88px 1fr 110px;
+  grid-template-columns: 88px 96px minmax(120px, 1fr);
   gap: 10px;
   align-items: center;
   padding: 8px 0;
@@ -441,7 +441,7 @@ body.yc-fin-active .a3-page-content {
 
 .yc-alert-row {
   display: grid;
-  grid-template-columns: 52px 1fr 110px 88px;
+  grid-template-columns: 52px minmax(0, 1.4fr) 100px 92px;
   gap: 10px;
   align-items: center;
   padding: 12px 14px;
