@@ -1481,21 +1481,22 @@ function contribHead(periodWord) {
   return `${periodWord}贡献 · ${state.contribCut === "client" ? "按客户" : "按品牌"}`;
 }
 
-function renderContribRows(brandMap) {
+function renderContribRows(brandMap, prevBrandMap, vsLabel) {
   const byClient = state.contribCut === "client";
   const map = byClient ? clientsFromBrands(brandMap) : brandMap;
-  const total = Object.values(map).reduce((s, n) => s + n, 0);
+  const prevMap = byClient ? clientsFromBrands(prevBrandMap || {}) : (prevBrandMap || {});
   return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([name, amt]) => {
     const sub = byClient
       ? `品牌 ${(CLIENT_BRANDS[name] || []).join("、")}`
       : `客户 ${clientOf(name)}`;
-    return `<div class="yc-conc-row">
+    const d = fmtDelta(amt, prevMap[name] == null ? null : prevMap[name], "元", false, vsLabel);
+    return `<div class="yc-conc-row yc-conc-nums">
       <div class="yc-conc-name">
         <b>${name}</b>
         <span class="yc-conc-sub">${sub}</span>
       </div>
       <div class="yc-conc-amt">¥ ${fmtMoney(amt)}</div>
-      ${shareBar(total ? (amt / total) * 100 : 0, false)}
+      <div class="yc-conc-delta ${d.cls}">${d.text}</div>
     </div>`;
   }).join("");
 }
@@ -1534,7 +1535,7 @@ function renderFinOverview() {
   const cur = sumPeriod(from, to);
   const prevWin = previousWindow(from, to);
   const prev = (prevWin.from && prevWin.to) ? sumPeriod(prevWin.from, prevWin.to) : {
-    revenue: null, cashin: null, cost: null, gross: null, margin: null, pending: null,
+    revenue: null, cashin: null, cost: null, gross: null, margin: null, pending: null, brands: {},
   };
   const periodWord = isDay ? "当日" : "期间";
 
@@ -1591,7 +1592,7 @@ function renderFinOverview() {
     invert: k.invert,
   })).join("");
 
-  document.getElementById("fin-conc-list").innerHTML = renderContribRows(cur.brands);
+  document.getElementById("fin-conc-list").innerHTML = renderContribRows(cur.brands, prev.brands, vs);
 
   const alerts = ovAlerts(preset, from, to);
   document.getElementById("fin-alert-list").innerHTML = alerts.map((a) => {
@@ -1657,6 +1658,18 @@ function renderFinRevenue() {
   const clients = new Set(rows.map((r) => r.client)).size;
   const delta = fmtDelta(total, prevTotal, "元");
   const cutLabel = byClient ? "按客户" : "按品牌";
+  const groups = {};
+  rows.forEach((r) => {
+    const key = byClient ? r.client : r.brand;
+    if (!groups[key]) {
+      groups[key] = { name: key, client: r.client, brands: new Set(), amount: 0, prev: 0 };
+    }
+    groups[key].amount += r.amount;
+    groups[key].prev += r.prev;
+    groups[key].brands.add(r.brand);
+    groups[key].client = clientOf(r.brand);
+  });
+  const agg = Object.values(groups).sort((a, b) => b.amount - a.amount);
   document.getElementById("fin-rev-cut-label").textContent = `明细 · ${cutLabel}`;
   document.getElementById("fin-rev-lead").textContent = byClient
     ? "当前切片：按客户。金佰利含好奇+高洁丝；与按品牌加总不同口径。"
@@ -1665,28 +1678,23 @@ function renderFinRevenue() {
     kpiCell({ label: "筛选后确认收入", main: `¥ ${fmtMoney(total)}`, delta, spark: [12, 13, 12.5, 14, 15, 16, total / 100000], invert: false }),
     `<div class="yc-kpi-cell"><div class="yc-kpi-label">涉及营销部</div><div class="yc-kpi-value">${depts}</div><div class="yc-kpi-foot"><span class="yc-muted">一部–九部</span></div></div>`,
     `<div class="yc-kpi-cell"><div class="yc-kpi-label">${byClient ? "涉及客户" : "涉及品牌"}</div><div class="yc-kpi-value">${byClient ? clients : brands}</div><div class="yc-kpi-foot"><span class="yc-muted">${byClient ? "合同主体" : "BRAND_LINE_MASTER"}</span></div></div>`,
-    `<div class="yc-kpi-cell"><div class="yc-kpi-label">明细行</div><div class="yc-kpi-value">${rows.length}</div><div class="yc-kpi-foot"><span class="yc-muted">${cutLabel}</span></div></div>`,
+    `<div class="yc-kpi-cell"><div class="yc-kpi-label">明细行</div><div class="yc-kpi-value">${agg.length}</div><div class="yc-kpi-foot"><span class="yc-muted">${cutLabel}</span></div></div>`,
   ].join("");
   document.getElementById("fin-rev-thead-row").innerHTML = byClient
-    ? `<th>客户</th><th>品牌</th><th>品线</th><th>执行单类型</th><th class="yc-num">确认收入</th><th class="yc-num">较昨日</th><th></th>`
-    : `<th>品牌</th><th>客户</th><th>品线</th><th>执行单类型</th><th class="yc-num">确认收入</th><th class="yc-num">较昨日</th><th></th>`;
-  document.querySelector("#fin-rev-table tbody").innerHTML = rows.length ? rows.map((r) => {
+    ? `<th>客户</th><th>覆盖品牌</th><th class="yc-num">确认收入</th><th class="yc-num">较昨日</th>`
+    : `<th>品牌</th><th>客户</th><th class="yc-num">确认收入</th><th class="yc-num">较昨日</th>`;
+  document.querySelector("#fin-rev-table tbody").innerHTML = agg.length ? agg.map((r) => {
     const d = fmtDelta(r.amount, r.prev, "元");
-    const share = total ? ((r.amount / total) * 100) : 0;
-    const first = byClient ? r.client : r.brand;
-    const second = byClient ? r.brand : r.client;
+    const second = byClient ? [...r.brands].join("、") : r.client;
     return `
       <tr>
-        <td>${first}</td>
+        <td>${r.name}</td>
         <td>${second}</td>
-        <td>${r.line}</td>
-        <td>${EXECUTE_LABEL[r.type] || r.type}</td>
         <td class="yc-num">¥ ${fmtMoney(r.amount)}</td>
         <td class="yc-num ${d.cls}">${d.text.replace("较昨日 ", "")}</td>
-        <td>${shareBar(share, false)}</td>
       </tr>
     `;
-  }).join("") : `<tr><td colspan="7" class="a3-text-secondary">无匹配数据</td></tr>`;
+  }).join("") : `<tr><td colspan="4" class="a3-text-secondary">无匹配数据</td></tr>`;
 }
 
 function renderFinCash() {

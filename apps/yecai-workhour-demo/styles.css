@@ -468,9 +468,21 @@ body.yc-fin-active .a3-page-content {
   font-size: 13px;
 }
 
+.yc-conc-row.yc-conc-nums {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px 16px;
+  padding: 10px 0;
+}
+
 .yc-conc-row:last-child { border-bottom: 0; }
 .yc-conc-name { font-weight: 500; }
-.yc-conc-amt { font-variant-numeric: tabular-nums; text-align: right; }
+.yc-conc-amt { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.yc-conc-delta {
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 
 .yc-share {
   display: flex;
