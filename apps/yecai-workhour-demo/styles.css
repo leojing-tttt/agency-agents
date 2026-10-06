@@ -1,5 +1,18 @@
 /* Layout chrome on top of A3 SaaS UI (a3-components.css).
-   Colors only via --a3-* tokens. Custom classes stay yc- prefixed. */
+   Cool finance palette: ink / steel / blue-gray. Custom classes yc-*. */
+:root {
+  --yc-ink: #0F1724;
+  --yc-ink-mid: #1A2433;
+  --yc-ink-soft: #243044;
+  --yc-steel: #2F6F8F;
+  --yc-steel-soft: rgba(47, 111, 143, 0.22);
+  --yc-surface: #F4F7FA;
+  --yc-surface-deep: #E8EEF4;
+  --yc-line: #D5DEE8;
+  --yc-on-ink: #E8EEF4;
+  --yc-on-ink-muted: rgba(232, 238, 244, 0.62);
+}
+
 *,
 *::before,
 *::after { box-sizing: border-box; }
@@ -12,6 +25,7 @@ body {
   font-size: 14px;
   line-height: 1.5715;
   color: var(--a3-text-primary);
+  background: var(--a3-bg-body);
 }
 
 .yc-shell { min-height: 100vh; }
@@ -168,12 +182,12 @@ body.yc-role-fin .fin-only { display: inline-flex !important; }
   padding: 0 28px 0 10px;
 }
 body.yc-fin-active .yc-role-select-wrap .a3-select {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: #f7f1ea;
+  background: rgba(232, 238, 244, 0.08);
+  border-color: rgba(232, 238, 244, 0.2);
+  color: var(--yc-on-ink);
 }
 body.yc-fin-active .yc-role-select-wrap .a3-select-arrow {
-  color: rgba(247, 241, 234, 0.65);
+  color: var(--yc-on-ink-muted);
 }
 
 .yc-obs-entry {
@@ -182,10 +196,10 @@ body.yc-fin-active .yc-role-select-wrap .a3-select-arrow {
   gap: 8px;
   height: 32px;
   padding: 0 12px 0 6px;
-  border: 1px solid #2a2624;
+  border: 1px solid var(--yc-ink-soft);
   border-radius: 999px;
-  background: #1c1917;
-  color: #faf6f1;
+  background: var(--yc-ink);
+  color: var(--yc-on-ink);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -193,12 +207,12 @@ body.yc-fin-active .yc-role-select-wrap .a3-select-arrow {
   transition: background 0.15s ease, transform 0.15s ease;
 }
 .yc-obs-entry:hover {
-  background: #2a2421;
+  background: var(--yc-ink-mid);
   transform: translateY(-1px);
 }
 body.yc-fin-active .yc-obs-entry {
-  background: #c9677d;
-  border-color: #c9677d;
+  background: var(--yc-steel);
+  border-color: var(--yc-steel);
   color: #fff;
 }
 .yc-obs-entry-mark {
@@ -216,10 +230,10 @@ body.yc-fin-active .yc-obs-entry {
 .yc-obs-rail {
   flex: none;
   background:
-    radial-gradient(1200px 180px at 12% -40%, rgba(201, 103, 125, 0.22), transparent 55%),
-    linear-gradient(180deg, #1c1917 0%, #241f1c 100%);
-  color: #f7f1ea;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    radial-gradient(1100px 160px at 10% -40%, var(--yc-steel-soft), transparent 55%),
+    linear-gradient(180deg, var(--yc-ink) 0%, var(--yc-ink-mid) 100%);
+  color: var(--yc-on-ink);
+  border-bottom: 1px solid rgba(232, 238, 244, 0.08);
 }
 .yc-obs-rail[hidden] { display: none !important; }
 .yc-obs-rail-inner {
@@ -243,7 +257,7 @@ body.yc-fin-active .yc-obs-entry {
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(247, 241, 234, 0.55);
+  color: rgba(232, 238, 244, 0.5);
 }
 .yc-obs-tabs {
   display: flex;
@@ -258,7 +272,7 @@ body.yc-fin-active .yc-obs-entry {
   padding: 0 14px;
   border: 0;
   background: transparent;
-  color: rgba(247, 241, 234, 0.62);
+  color: var(--yc-on-ink-muted);
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -276,7 +290,7 @@ body.yc-fin-active .yc-obs-entry {
   right: 14px;
   bottom: 2px;
   height: 2px;
-  background: #c9677d;
+  background: #5BA3C4;
   border-radius: 2px;
 }
 .yc-obs-exit {
@@ -285,39 +299,39 @@ body.yc-fin-active .yc-obs-entry {
   gap: 6px;
   height: 32px;
   padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(232, 238, 244, 0.2);
   border-radius: 6px;
   background: transparent;
-  color: rgba(247, 241, 234, 0.8);
+  color: rgba(232, 238, 244, 0.78);
   font-size: 12px;
   cursor: pointer;
 }
 .yc-obs-exit:hover {
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(232, 238, 244, 0.45);
 }
 
 /* 观测台：收起侧栏，全宽 cockpit */
 body.yc-fin-active .yc-sider { display: none; }
 body.yc-fin-active .a3-page-header {
-  background: #161311;
-  border-bottom-color: rgba(255, 255, 255, 0.06);
-  color: rgba(247, 241, 234, 0.72);
+  background: var(--yc-ink);
+  border-bottom-color: rgba(232, 238, 244, 0.08);
+  color: var(--yc-on-ink-muted);
 }
 body.yc-fin-active .a3-breadcrumb-item,
 body.yc-fin-active .a3-breadcrumb-separator,
 body.yc-fin-active #crumb {
-  color: rgba(247, 241, 234, 0.72) !important;
+  color: var(--yc-on-ink-muted) !important;
 }
 body.yc-fin-active .a3-breadcrumb-item a { color: inherit; }
 body.yc-fin-active #user-chip {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #f7f1ea;
+  background: rgba(232, 238, 244, 0.08);
+  border-color: rgba(232, 238, 244, 0.14);
+  color: var(--yc-on-ink);
 }
 body.yc-fin-active .a3-page-content {
   background:
-    linear-gradient(180deg, #ece7e1 0%, #f6f2ee 120px, #f6f2ee 100%);
+    linear-gradient(180deg, var(--yc-surface-deep) 0%, var(--yc-surface) 140px, var(--yc-surface) 100%);
   padding: 22px 28px 40px;
 }
 body.yc-fin-active .yc-cockpit {
@@ -333,12 +347,12 @@ body.yc-fin-active .yc-cockpit-title {
 body.yc-fin-active .yc-kicker {
   letter-spacing: 0.18em;
   text-transform: none;
-  color: #8a7a74;
+  color: #6B7C8F;
 }
 body.yc-fin-active .yc-kpi-strip,
 body.yc-fin-active .yc-panel {
-  border-color: #e4ddd6;
-  box-shadow: 0 1px 0 rgba(28, 25, 23, 0.03);
+  border-color: var(--yc-line);
+  box-shadow: 0 1px 0 rgba(15, 23, 36, 0.04);
 }
 body.yc-fin-active .yc-kpi-value {
   font-size: 28px;
@@ -421,7 +435,7 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 
 .yc-brand-tag:has(input:checked) {
   border-color: var(--a3-primary);
-  background: var(--a3-primary-light, #fff1f0);
+  background: var(--a3-primary-light, #E8F1F6);
   color: var(--a3-primary);
 }
 
@@ -513,9 +527,9 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 
 .yc-formula {
   margin: 0 0 10px;
-  border: 1px solid #ead0d6;
+  border: 1px solid #C5D5E2;
   border-radius: 8px;
-  background: linear-gradient(180deg, #fff8f9 0%, #fff 100%);
+  background: linear-gradient(180deg, #F5F9FC 0%, #fff 100%);
   overflow: hidden;
 }
 .yc-formula-toggle {
@@ -542,7 +556,7 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 .yc-formula.is-open .yc-formula-toggle i { transform: rotate(180deg); }
 .yc-formula-body {
   padding: 0 12px 10px;
-  border-top: 1px solid #f0e0e4;
+  border-top: 1px solid #D7E3ED;
   font-size: 12px;
   line-height: 1.55;
   color: var(--a3-text-secondary);
@@ -717,7 +731,7 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 
 .yc-pill-brand {
   color: var(--a3-primary);
-  border-color: #ead0d6;
+  border-color: #C5D5E2;
   background: var(--a3-primary-light);
 }
 

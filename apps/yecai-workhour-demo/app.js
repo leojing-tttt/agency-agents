@@ -1641,7 +1641,7 @@ function sparkline(values, invert) {
   }).join(" ");
   const up = values[values.length - 1] >= values[0];
   const good = invert ? !up : up;
-  const color = good ? "#52C41A" : "#ff4d4f";
+  const color = good ? "#2F9B6A" : "#D4524A";
   return `<svg class="yc-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline fill="none" stroke="${color}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" points="${pts}"/></svg>`;
 }
 
@@ -1969,7 +1969,7 @@ function renderFinCash() {
     `<div class="yc-kpi-cell"><div class="yc-kpi-label">DSO（占位）</div><div class="yc-kpi-value">42<span class="yc-kpi-unit">天</span></div><div class="yc-kpi-foot"><span class="yc-muted">需财务公式 / 真接口</span></div></div>`,
   ].join("");
   const agingTotal = FIN_AGING.reduce((s, a) => s + a.amount, 0);
-  const tones = ["#52C41A", "#FAAD14", "#c9677d", "#ff4d4f"];
+  const tones = ["#2F9B6A", "#C9912A", "#2F6F8F", "#D4524A"];
   document.getElementById("fin-aging-bars").innerHTML = `<div class="yc-stack">${FIN_AGING.map((a, i) => {
     const pct = agingTotal ? (a.amount / agingTotal) * 100 : 0;
     return `<i style="width:${pct}%;background:${tones[i]}" title="${a.bucket}"></i>`;
