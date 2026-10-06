@@ -270,10 +270,56 @@ body.yc-fin-active .a3-page-content {
   line-height: 1.2;
 }
 
-.yc-cockpit-lead {
-  margin: 0 0 16px;
-  font-size: 13px;
+.yc-ov-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 12px;
+}
+
+.yc-seg {
+  display: inline-flex;
+  padding: 2px;
+  background: #fff;
+  border: 1px solid var(--a3-border);
+  border-radius: 8px;
+}
+
+.yc-seg-btn {
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
   color: var(--a3-text-secondary);
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.yc-seg-btn:hover { color: var(--a3-primary); }
+.yc-seg-btn.active {
+  background: var(--a3-primary-light);
+  color: var(--a3-primary);
+  font-weight: 600;
+}
+
+.yc-ov-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yc-ov-date {
+  width: 148px;
+  max-width: 148px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.yc-ov-range.is-custom .yc-ov-date {
+  border-color: var(--a3-primary);
 }
 
 .yc-cockpit-meta,

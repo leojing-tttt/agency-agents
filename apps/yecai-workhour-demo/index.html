@@ -438,20 +438,34 @@
         <section class="page yc-cockpit" id="page-fin-overview">
           <div class="yc-cockpit-mast">
             <div>
-              <div class="yc-kicker">财务日报 · T+1 确认</div>
-              <h1 class="yc-cockpit-title">今日总览</h1>
+              <div class="yc-kicker" id="fin-overview-kicker">财务日报 · T+1 确认</div>
+              <h1 class="yc-cockpit-title" id="fin-overview-title">今日总览</h1>
             </div>
             <div class="yc-cockpit-meta">
               <span class="yc-pill" id="fin-overview-asof">截至 2026-10-05</span>
               <span class="yc-pill yc-pill-brand" id="fin-overview-role-hint">CEO 视角</span>
             </div>
           </div>
-          <p class="yc-cockpit-lead">执行单确认收入 · 较昨日 / 近 7 日 · 异常最多 3 条。人力不拆今日，见成本页周锁定。</p>
+          <div class="yc-ov-filter">
+            <div class="yc-seg" id="fin-ov-presets">
+              <button type="button" class="yc-seg-btn active" data-ov-preset="today">今日</button>
+              <button type="button" class="yc-seg-btn" data-ov-preset="7d">近 7 天</button>
+              <button type="button" class="yc-seg-btn" data-ov-preset="30d">近一个月</button>
+              <button type="button" class="yc-seg-btn" data-ov-preset="custom">任意时间段</button>
+            </div>
+            <div class="yc-ov-range" id="fin-ov-range">
+              <span class="yc-muted">从</span>
+              <input class="a3-input yc-ov-date" type="date" id="fin-ov-from" min="2026-08-01" max="2026-10-05" value="2026-10-05" />
+              <span class="yc-muted">到</span>
+              <input class="a3-input yc-ov-date" type="date" id="fin-ov-to" min="2026-08-01" max="2026-10-05" value="2026-10-05" />
+            </div>
+          </div>
+          <p class="yc-cockpit-lead" id="fin-overview-lead">执行单确认收入 · 较昨日 / 近 7 日 · 异常最多 3 条。人力不拆日，见成本页周锁定。</p>
           <div class="yc-kpi-strip" id="fin-kpi-grid"></div>
           <div class="yc-cockpit-split">
             <div class="yc-panel">
               <div class="yc-panel-head">
-                <span>当日贡献浓度</span>
+                <span id="fin-conc-head">当日贡献浓度</span>
                 <button type="button" class="a3-btn a3-btn-text a3-btn-sm" data-fin-goto="fin-revenue">收入下钻</button>
               </div>
               <div id="fin-conc-list" class="yc-conc"></div>

@@ -238,6 +238,173 @@ const FIN_REVENUE_ROWS = [
   { group: "营销九部", brand: "霞湖世家", line: "200支液氨棉T恤", type: "INTERNAL_KOL", amount: 100200, prev: 84800 },
 ];
 
+const FIN_SAMPLE_MIN = "2026-08-01";
+const FIN_BRAND_DAY0 = {
+  好奇: 608000,
+  高洁丝: 470000,
+  拜耳: 262000,
+  康王: 156000,
+  霞湖世家: 368200,
+};
+
+function isoDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function addDaysISO(iso, n) {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + n);
+  return isoDate(d);
+}
+
+function daysBetween(from, to) {
+  const a = new Date(`${from}T00:00:00`);
+  const b = new Date(`${to}T00:00:00`);
+  return Math.round((b - a) / 86400000);
+}
+
+function listIsoDays(from, to) {
+  const out = [];
+  if (!from || !to || from > to) return out;
+  let d = from;
+  while (d <= to) {
+    out.push(d);
+    d = addDaysISO(d, 1);
+  }
+  return out;
+}
+
+function dayMixFactor(iso) {
+  const wd = new Date(`${iso}T00:00:00`).getDay();
+  let f = 1;
+  if (wd === 0 || wd === 6) f = 0.58;
+  else if (wd === 1) f = 0.86;
+  else if (wd === 5) f = 1.1;
+  const n = daysBetween(FIN_SAMPLE_MIN, iso);
+  f *= 0.9 + 0.18 * Math.sin(n / 3.7);
+  return f;
+}
+
+/** 日快照样例：2026-09-01 … 快照日；快照日对齐 FIN_KPIS */
+const FIN_DAILY = (() => {
+  const map = {};
+  listIsoDays(FIN_SAMPLE_MIN, FIN_SNAPSHOT_DAY).forEach((iso) => {
+    const isSnap = iso === FIN_SNAPSHOT_DAY;
+    const f = isSnap ? 1 : dayMixFactor(iso);
+    const revenue = isSnap ? 1864200 : Math.round(1864200 * f);
+    const cashin = isSnap ? 942500 : Math.round(942500 * f * 0.97);
+    const cost = isSnap ? 1126800 : Math.round(1126800 * f * 1.01);
+    const gross = revenue - cost;
+    const n = daysBetween(FIN_SAMPLE_MIN, iso);
+    const pending = isSnap ? 3 : 2 + (n * 7) % 6;
+    const brands = {};
+    Object.entries(FIN_BRAND_DAY0).forEach(([b, v], i) => {
+      brands[b] = isSnap ? v : Math.max(8000, Math.round(v * f * (1 + (i - 2) * 0.03 * (f - 1))));
+    });
+    const brandSum = Object.values(brands).reduce((s, x) => s + x, 0);
+    if (brandSum && !isSnap) {
+      Object.keys(brands).forEach((b) => {
+        brands[b] = Math.round(brands[b] * (revenue / brandSum));
+      });
+    }
+    map[iso] = { revenue, cashin, cost, gross, pending, brands };
+  });
+  return map;
+})();
+
+function clampIso(iso) {
+  if (iso < FIN_SAMPLE_MIN) return FIN_SAMPLE_MIN;
+  if (iso > FIN_SNAPSHOT_DAY) return FIN_SNAPSHOT_DAY;
+  return iso;
+}
+
+function sumPeriod(from, to) {
+  const days = listIsoDays(from, to).filter((d) => FIN_DAILY[d]);
+  const empty = {
+    days,
+    revenue: 0, cashin: 0, cost: 0, gross: 0, margin: 0, pending: 0,
+    brands: {}, sparks: { revenue: [], cashin: [], cost: [], gross: [], margin: [], pending: [] },
+  };
+  if (!days.length) return empty;
+  const brands = {};
+  days.forEach((iso) => {
+    const row = FIN_DAILY[iso];
+    empty.revenue += row.revenue;
+    empty.cashin += row.cashin;
+    empty.cost += row.cost;
+    empty.gross += row.gross;
+    Object.entries(row.brands).forEach(([b, v]) => { brands[b] = (brands[b] || 0) + v; });
+    empty.sparks.revenue.push(row.revenue / 10000);
+    empty.sparks.cashin.push(row.cashin / 10000);
+    empty.sparks.cost.push(row.cost / 10000);
+    empty.sparks.gross.push(row.gross / 10000);
+    empty.sparks.margin.push(row.revenue ? (row.gross / row.revenue) * 100 : 0);
+    empty.sparks.pending.push(row.pending);
+  });
+  empty.brands = brands;
+  empty.pending = FIN_DAILY[days[days.length - 1]].pending;
+  empty.margin = empty.revenue ? (empty.gross / empty.revenue) * 100 : 0;
+  empty.days = days;
+  return empty;
+}
+
+function previousWindow(from, to) {
+  const n = daysBetween(from, to) + 1;
+  const prevTo = addDaysISO(from, -1);
+  const prevFrom = addDaysISO(prevTo, -(n - 1));
+  if (prevFrom < FIN_SAMPLE_MIN) {
+    return { from: null, to: null };
+  }
+  return { from: prevFrom, to: prevTo };
+}
+
+function ovCompareLabel(preset) {
+  if (preset === "today") return "较昨日";
+  if (preset === "7d") return "较前 7 天";
+  if (preset === "30d") return "较前一个月";
+  return "较前一同期";
+}
+
+function applyOvPreset(preset, fromCustom, toCustom) {
+  state.ovPreset = preset;
+  if (preset === "today") {
+    state.ovFrom = FIN_SNAPSHOT_DAY;
+    state.ovTo = FIN_SNAPSHOT_DAY;
+  } else if (preset === "7d") {
+    state.ovTo = FIN_SNAPSHOT_DAY;
+    state.ovFrom = addDaysISO(FIN_SNAPSHOT_DAY, -6);
+  } else if (preset === "30d") {
+    state.ovTo = FIN_SNAPSHOT_DAY;
+    state.ovFrom = addDaysISO(FIN_SNAPSHOT_DAY, -29);
+  } else {
+    let from = clampIso(fromCustom || state.ovFrom);
+    let to = clampIso(toCustom || state.ovTo);
+    if (from > to) { const t = from; from = to; to = t; }
+    state.ovFrom = from;
+    state.ovTo = to;
+  }
+}
+
+function ovAlerts(preset, from, to) {
+  const span = daysBetween(from, to) + 1;
+  if (preset === "today" || span === 1) return FIN_ALERTS;
+  if (span <= 7) {
+    return [
+      { level: "高", type: "逾期回款", summary: "近 7 天拜耳线客户 C-**87 仍未回", impact: "应收 42.6 万", action: "催收 / 暂停新单" },
+      { level: "中", type: "收入待确认", summary: "营销三部硬广 4 单待财务确认", impact: "确认缺口 41.0 万", action: "财务复核" },
+      { level: "中", type: "毛利下滑", summary: "康王近 7 天毛利率低于公司均值", impact: "营销七部", action: "查媒体成本" },
+    ];
+  }
+  return [
+    { level: "高", type: "逾期回款", summary: "近一个月高风险逾期集中在拜耳线", impact: "逾期累计偏高", action: "催收清单" },
+    { level: "中", type: "收入待确认", summary: "高洁丝硬广待确认单跨周未关", impact: "确认进度落后", action: "财务复核" },
+    { level: "中", type: "毛利下滑", summary: "康王期间毛利率持续偏低", impact: "营销七部", action: "查媒体成本" },
+  ];
+}
+
 const FIN_AGING = [
   { bucket: "未到期", clients: 28, amount: 3860000, focus: "正常" },
   { bucket: "1–30 天", clients: 9, amount: 920000, focus: "跟进" },
@@ -403,6 +570,9 @@ const state = {
   adminConfig: loadAdminConfig(),
   adminDraftMeta: null,
   watchWeek: "2026-W39",
+  ovPreset: "today",
+  ovFrom: "2026-10-05",
+  ovTo: "2026-10-05",
 };
 
 const draftBoot = loadAdminDraft();
@@ -437,16 +607,17 @@ function fmtMoney(n) {
   return Number(n).toLocaleString("zh-CN");
 }
 
-function fmtDelta(cur, prev, unit, invert) {
+function fmtDelta(cur, prev, unit, invert, vsLabel) {
+  const vs = vsLabel || "较昨日";
   if (prev == null || cur == null) return { text: "—", cls: "yc-delta-flat" };
   const d = cur - prev;
-  if (Math.abs(d) < 1e-9) return { text: "较昨日持平", cls: "yc-delta-flat" };
+  if (Math.abs(d) < 1e-9) return { text: `${vs}持平`, cls: "yc-delta-flat" };
   const up = d > 0;
   const abs = unit === "%" ? Math.abs(d).toFixed(1) : Math.abs(d);
   const absText = unit === "%" ? `${abs}pt` : unit === "条" ? `${abs}` : fmtMoney(abs);
   const goodUp = invert ? !up : up;
   return {
-    text: `较昨日 ${up ? "+" : "−"}${absText}${unit === "元" ? "" : unit === "条" ? " 条" : ""}`,
+    text: `${vs} ${up ? "+" : "−"}${absText}${unit === "元" ? "" : unit === "条" ? " 条" : ""}`,
     cls: goodUp ? "yc-delta-up" : "yc-delta-down",
   };
 }
@@ -1290,26 +1461,72 @@ function levelTag(level) {
 
 function renderFinOverview() {
   const isCeo = state.role === "ceo";
-  document.getElementById("fin-overview-asof").textContent = `截至 ${FIN_SNAPSHOT_DAY}`;
-  document.getElementById("fin-overview-role-hint").textContent = isCeo ? "CEO 视角" : (state.role === "cfo" ? "CFO 视角" : "高管视角");
-  const kpis = FIN_KPIS.filter((k) => (isCeo ? k.ceo : k.cfo));
-  document.getElementById("fin-kpi-grid").innerHTML = kpis.map((k) => {
-    const invert = k.key === "cost" || k.key === "pending";
-    return kpiCell({
-      label: k.label,
-      main: kpiMain(k),
-      delta: fmtDelta(k.value, k.prev, k.unit, invert),
-      spark: k.spark,
-      invert,
-    });
-  }).join("");
+  const from = state.ovFrom;
+  const to = state.ovTo;
+  const preset = state.ovPreset;
+  const isDay = from === to;
+  const vs = ovCompareLabel(preset);
+  const cur = sumPeriod(from, to);
+  const prevWin = previousWindow(from, to);
+  const prev = (prevWin.from && prevWin.to) ? sumPeriod(prevWin.from, prevWin.to) : {
+    revenue: null, cashin: null, cost: null, gross: null, margin: null, pending: null,
+  };
+  const periodWord = isDay ? "当日" : "期间";
 
-  const brandMap = {};
-  FIN_REVENUE_ROWS.forEach((r) => {
-    brandMap[r.brand] = (brandMap[r.brand] || 0) + r.amount;
+  const titles = {
+    today: "今日总览",
+    "7d": "近 7 天总览",
+    "30d": "近一个月总览",
+    custom: "区间总览",
+  };
+  const kickers = {
+    today: "财务日报 · T+1 确认 · 今日",
+    "7d": "财务日报 · T+1 确认 · 近 7 天",
+    "30d": "财务日报 · T+1 确认 · 近一个月",
+    custom: "财务日报 · T+1 确认 · 自选区间",
+  };
+  document.getElementById("fin-overview-title").textContent = titles[preset] || "总览";
+  document.getElementById("fin-overview-kicker").textContent = kickers[preset] || kickers.custom;
+  document.getElementById("fin-overview-asof").textContent = isDay ? `截至 ${to}` : `${from} – ${to}`;
+  document.getElementById("fin-overview-role-hint").textContent = isCeo ? "CEO 视角" : (state.role === "cfo" ? "CFO 视角" : "高管视角");
+  document.getElementById("fin-overview-lead").textContent = isDay
+    ? "执行单确认收入 · 较昨日 · 异常最多 3 条。人力不拆日，见成本页周锁定。"
+    : `执行单确认收入 · ${from} 至 ${to} 合计 · ${vs} · 异常最多 3 条。人力不拆日。`;
+  document.getElementById("fin-conc-head").textContent = `${periodWord}贡献浓度`;
+
+  const fromEl = document.getElementById("fin-ov-from");
+  const toEl = document.getElementById("fin-ov-to");
+  if (fromEl.value !== from) fromEl.value = from;
+  if (toEl.value !== to) toEl.value = to;
+  document.querySelectorAll("#fin-ov-presets .yc-seg-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.ovPreset === preset);
   });
-  const brandTotal = Object.values(brandMap).reduce((s, n) => s + n, 0);
-  const conc = Object.entries(brandMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  document.getElementById("fin-ov-range").classList.toggle("is-custom", preset === "custom");
+
+  const sparkOrTrail = (key) => {
+    if (cur.days.length > 1) return cur.sparks[key];
+    const trailFrom = addDaysISO(to, -6);
+    return sumPeriod(clampIso(trailFrom), to).sparks[key];
+  };
+
+  const kpis = [
+    { key: "revenue", label: `${periodWord}确认收入`, value: cur.revenue, prev: prev.revenue, unit: "元", invert: false, spark: sparkOrTrail("revenue") },
+    { key: "cashin", label: `${periodWord}回款`, value: cur.cashin, prev: prev.cashin, unit: "元", invert: false, spark: sparkOrTrail("cashin") },
+    { key: "cost", label: `${periodWord}成本（可归）`, value: cur.cost, prev: prev.cost, unit: "元", invert: true, spark: sparkOrTrail("cost") },
+    { key: "gross", label: `${periodWord}毛利`, value: cur.gross, prev: prev.gross, unit: "元", invert: false, spark: sparkOrTrail("gross") },
+    { key: "margin", label: `${periodWord}毛利率`, value: Math.round(cur.margin * 10) / 10, prev: prev.margin == null ? null : Math.round(prev.margin * 10) / 10, unit: "%", invert: false, spark: sparkOrTrail("margin") },
+    { key: "pending", label: "待确认 / 异常", value: cur.pending, prev: prev.pending, unit: "条", invert: true, spark: sparkOrTrail("pending") },
+  ];
+  document.getElementById("fin-kpi-grid").innerHTML = kpis.map((k) => kpiCell({
+    label: k.label,
+    main: kpiMain(k),
+    delta: fmtDelta(k.value, k.prev, k.unit, k.invert, vs),
+    spark: k.spark,
+    invert: k.invert,
+  })).join("");
+
+  const brandTotal = Object.values(cur.brands).reduce((s, n) => s + n, 0);
+  const conc = Object.entries(cur.brands).sort((a, b) => b[1] - a[1]).slice(0, 5);
   document.getElementById("fin-conc-list").innerHTML = conc.map(([brand, amt]) => {
     const pct = brandTotal ? (amt / brandTotal) * 100 : 0;
     return `<div class="yc-conc-row">
@@ -1319,7 +1536,8 @@ function renderFinOverview() {
     </div>`;
   }).join("");
 
-  document.getElementById("fin-alert-list").innerHTML = FIN_ALERTS.map((a) => {
+  const alerts = ovAlerts(preset, from, to);
+  document.getElementById("fin-alert-list").innerHTML = alerts.map((a) => {
     const goto = a.type.includes("回款") ? "fin-cash" : a.type.includes("毛利") ? "fin-margin" : "fin-revenue";
     return `<button type="button" class="yc-alert-row" data-fin-goto="${goto}">
       ${levelTag(a.level)}
@@ -1336,7 +1554,7 @@ function renderFinOverview() {
   });
   const hiddenTbody = document.querySelector("#fin-alert-table tbody");
   if (hiddenTbody) {
-    hiddenTbody.innerHTML = FIN_ALERTS.map((a) => `<tr><td>${a.type}</td></tr>`).join("");
+    hiddenTbody.innerHTML = alerts.map((a) => `<tr><td>${a.type}</td></tr>`).join("");
   }
 }
 
@@ -1514,6 +1732,21 @@ function renderFinMargin() {
     </tr>`;
   }).join("");
 }
+
+document.getElementById("fin-ov-presets").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-ov-preset]");
+  if (!btn) return;
+  applyOvPreset(btn.dataset.ovPreset);
+  renderFinOverview();
+});
+document.getElementById("fin-ov-from").addEventListener("change", (e) => {
+  applyOvPreset("custom", e.target.value, document.getElementById("fin-ov-to").value);
+  renderFinOverview();
+});
+document.getElementById("fin-ov-to").addEventListener("change", (e) => {
+  applyOvPreset("custom", document.getElementById("fin-ov-from").value, e.target.value);
+  renderFinOverview();
+});
 
 document.getElementById("fin-rev-query").addEventListener("click", () => renderFinRevenue());
 document.getElementById("fin-rev-type").addEventListener("change", () => renderFinRevenue());
