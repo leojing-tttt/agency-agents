@@ -1252,7 +1252,8 @@ function renderFinOverview() {
   document.getElementById("fin-overview-role-hint").textContent = isCeo ? "CEO 视角" : (state.role === "cfo" ? "CFO 视角" : "高管视角");
   const kpis = FIN_KPIS.filter((k) => (isCeo ? k.ceo : k.cfo));
   document.getElementById("fin-kpi-grid").innerHTML = kpis.map((k) => {
-    const delta = fmtDelta(k.value, k.prev, k.unit);
+    const invert = k.key === "cost" || k.key === "pending";
+    const delta = fmtDelta(k.value, k.prev, k.unit, invert);
     const main = k.unit === "%" ? `${k.value.toFixed(1)}%` : k.unit === "条" ? String(k.value) : `¥ ${fmtMoney(k.value)}`;
     return `
       <div class="a3-card yc-stat"><div class="a3-card-body">
