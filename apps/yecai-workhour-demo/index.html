@@ -440,10 +440,10 @@
             <div>
               <div class="yc-kicker" id="fin-overview-kicker">财务日报 · T+1 确认</div>
               <h1 class="yc-cockpit-title" id="fin-overview-title">
-                今日总览
-                <span class="yc-hint yc-hint-title" tabindex="0" aria-label="页面口径">
-                  <i class="far fa-circle-question"></i>
-                  <span class="yc-hint-pop" id="fin-overview-title-tip" role="tooltip">见下方口径条</span>
+                <span class="yc-cockpit-title-text">今日总览</span>
+                <span class="yc-hint yc-hint-title" aria-label="页面口径">
+                  <i class="far fa-circle-question" aria-hidden="true"></i>
+                  <span class="yc-hint-pop" id="fin-overview-title-tip" role="tooltip">展开下方「口径 / 计算公式」查看完整公式</span>
                 </span>
               </h1>
             </div>
@@ -478,8 +478,14 @@
               </div>
             </div>
           </div>
-          <div class="yc-formula-strip" id="fin-overview-formula"></div>
-          <p class="yc-cockpit-lead" id="fin-overview-lead">执行单确认收入 · 较昨日 / 近 7 日 · 异常最多 3 条。人力不拆日，见成本页周锁定。</p>
+          <div class="yc-formula" id="fin-overview-formula-wrap">
+            <button type="button" class="yc-formula-toggle" id="fin-overview-formula-toggle" aria-expanded="false" aria-controls="fin-overview-formula">
+              <span>口径 / 计算公式</span>
+              <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <div class="yc-formula-body" id="fin-overview-formula" hidden></div>
+          </div>
+          <p class="yc-cockpit-lead" id="fin-overview-lead">执行单确认收入 · 较昨日 / 近 7 日 · 异常最多 3 条。</p>
           <div class="yc-kpi-strip" id="fin-kpi-grid"></div>
           <div class="yc-cockpit-split">
             <div class="yc-panel">
@@ -512,10 +518,10 @@
             <div>
               <div class="yc-kicker">财务日报 · 贡献下钻</div>
               <h1 class="yc-cockpit-title">
-                收入与贡献
-                <span class="yc-hint yc-hint-title" tabindex="0" aria-label="页面口径">
-                  <i class="far fa-circle-question"></i>
-                  <span class="yc-hint-pop" id="fin-rev-title-tip" role="tooltip">见下方口径条</span>
+                <span class="yc-cockpit-title-text">收入与贡献</span>
+                <span class="yc-hint yc-hint-title" aria-label="页面口径">
+                  <i class="far fa-circle-question" aria-hidden="true"></i>
+                  <span class="yc-hint-pop" id="fin-rev-title-tip" role="tooltip">展开下方「口径 / 计算公式」查看完整公式</span>
                 </span>
               </h1>
             </div>
@@ -563,7 +569,13 @@
               <button type="button" class="a3-btn a3-btn-primary" id="fin-rev-query">筛选</button>
             </div>
           </div>
-          <div class="yc-formula-strip" id="fin-rev-formula"></div>
+          <div class="yc-formula" id="fin-rev-formula-wrap">
+            <button type="button" class="yc-formula-toggle" id="fin-rev-formula-toggle" aria-expanded="false" aria-controls="fin-rev-formula">
+              <span>口径 / 计算公式</span>
+              <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <div class="yc-formula-body" id="fin-rev-formula" hidden></div>
+          </div>
           <p class="yc-cockpit-lead" id="fin-rev-lead">当前切片：按品牌。客户与品牌是不同切面（如金佰利含好奇+高洁丝）。</p>
           <div class="yc-kpi-strip yc-kpi-strip-4" id="fin-rev-summary"></div>
           <div class="yc-panel">

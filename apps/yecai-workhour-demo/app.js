@@ -252,6 +252,7 @@ const FIN_BRAND_DAY0 = {
 };
 const FIN_COMPARE_KEY = "yecai-fin-compare-mode-v1";
 const FIN_COMPARE_MODES = ["both", "mom", "yoy", "none"];
+const FIN_FORMULA_OPEN_KEY = "yecai-fin-formula-open-v1";
 
 /** 客户 → 品牌（业财合同主体；一客户可多品牌） */
 const CLIENT_BRANDS = {
@@ -449,8 +450,51 @@ function showYoy() {
   return state.compareMode === "yoy" || state.compareMode === "both";
 }
 
-function tipIcon(html) {
-  return `<span class="yc-hint" tabindex="0" aria-label="计算公式"><i class="far fa-circle-question"></i><span class="yc-hint-pop" role="tooltip">${html}</span></span>`;
+function tipIcon(html, opts) {
+  const side = opts && opts.side ? " yc-hint-side" : "";
+  return `<span class="yc-hint${side}" aria-label="计算公式"><i class="far fa-circle-question" aria-hidden="true"></i><span class="yc-hint-pop" role="tooltip">${html}</span></span>`;
+}
+
+function loadFormulaOpen() {
+  try {
+    const raw = localStorage.getItem(FIN_FORMULA_OPEN_KEY);
+    if (raw === "1") return true;
+    if (raw === "0") return false;
+  } catch (_) { /* ignore */ }
+  return false; // default collapsed
+}
+
+function saveFormulaOpen(open) {
+  try { localStorage.setItem(FIN_FORMULA_OPEN_KEY, open ? "1" : "0"); } catch (_) { /* ignore */ }
+}
+
+function syncFormulaPanels() {
+  const open = state.formulaOpen;
+  [
+    ["fin-overview-formula-wrap", "fin-overview-formula-toggle", "fin-overview-formula"],
+    ["fin-rev-formula-wrap", "fin-rev-formula-toggle", "fin-rev-formula"],
+  ].forEach(([wrapId, toggleId, bodyId]) => {
+    const wrap = document.getElementById(wrapId);
+    const toggle = document.getElementById(toggleId);
+    const body = document.getElementById(bodyId);
+    if (!wrap || !toggle || !body) return;
+    wrap.classList.toggle("is-open", open);
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    body.hidden = !open;
+  });
+}
+
+function setFormulaOpen(open) {
+  state.formulaOpen = !!open;
+  saveFormulaOpen(state.formulaOpen);
+  syncFormulaPanels();
+}
+
+function fillFormulaBody(page) {
+  const id = page === "revenue" ? "fin-rev-formula" : "fin-overview-formula";
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = pageFormulaHtml(page);
+  syncFormulaPanels();
 }
 
 function fmtCompareStack(cur, momPrev, yoyPrev, unit, invert, momLabel, yoyLabel) {
@@ -471,22 +515,23 @@ function metricTip(kind, preset) {
   const mom = ovMomLabel(preset);
   const yoy = ovYoyLabel(preset);
   const periodHint = preset === "today"
-    ? "本期 = 快照日当日"
+    ? "本期=快照日"
     : preset === "7d"
-      ? "本期 = 含快照日在内近 7 个自然日合计"
+      ? "本期=近7日合计"
       : preset === "30d"
-        ? "本期 = 含快照日在内近 30 个自然日合计"
-        : "本期 = 自选区间内按日加总";
+        ? "本期=近30日合计"
+        : "本期=自选区间合计";
+  const cmp = `环比（${mom}）=本期−前一等长区间<br>同比（${yoy}）=本期−去年同日/同区间`;
   const tips = {
-    revenue: `${periodHint}<br>确认收入 = T+1 已财务确认的执行单金额合计<br>环比（${mom}）= 本期 − 等长前一区间<br>同比（${yoy}）= 本期 − 去年同日/同区间（日期减一年）`,
-    cashin: `${periodHint}<br>回款 = 区间内到账回款合计<br>环比（${mom}）= 本期 − 等长前一区间<br>同比（${yoy}）= 本期 − 去年同日/同区间`,
-    cost: `${periodHint}<br>可归成本 = 媒体 + 制作 + 其他（不含未锁定周人力）<br>环比（${mom}）= 本期 − 等长前一区间<br>同比（${yoy}）= 本期 − 去年同日/同区间`,
-    gross: `毛利 = 确认收入 − 可归成本<br>环比（${mom}）= 本期毛利 − 前一区间毛利<br>同比（${yoy}）= 本期毛利 − 去年同期毛利`,
-    margin: `毛利率 = 毛利 ÷ 确认收入 × 100%<br>环比（${mom}）= 本期毛利率 − 前一区间毛利率（百分点）<br>同比（${yoy}）= 本期毛利率 − 去年同期毛利率`,
-    pending: `待确认/异常 = 快照日未确认或异常执行单条数（时点，不加总）<br>环比（${mom}）= 本期条数 − 前一区间末日条数<br>同比（${yoy}）= 本期条数 − 去年同日条数`,
-    contrib: `贡献金额 = 该品牌/客户在本期的确认收入<br>按客户时：客户收入 = 其下品牌收入之和（金佰利 = 好奇 + 高洁丝）<br>环比（${mom}）= 本期 − 等长前一区间<br>同比（${yoy}）= 本期 − 去年同日/同区间`,
-    rev_total: `筛选后确认收入 = 当前筛选条件下执行单确认收入合计（快照日）<br>环比（较昨日）= 本日 − 昨日<br>同比（较去年同日）= 本日 − 去年同日`,
-    rev_row: `行确认收入 = 该品牌或客户在快照日的确认收入<br>环比（较昨日）= 本日 − 昨日<br>同比（较去年同日）= 本日 − 去年同日`,
+    revenue: `确认收入=T+1已确认执行单金额<br>${periodHint}<br>${cmp}`,
+    cashin: `回款=区间到账合计<br>${periodHint}<br>${cmp}`,
+    cost: `可归成本=媒体+制作+其他<br>人力不拆日，见成本页周锁定<br>${cmp}`,
+    gross: `毛利=确认收入−可归成本<br>${cmp}`,
+    margin: `毛利率=毛利÷确认收入×100%<br>${cmp}`,
+    pending: `待确认/异常=快照日时点条数<br>${cmp}`,
+    contrib: `贡献=该品牌/客户确认收入<br>按客户：金佰利=好奇+高洁丝<br>${cmp}`,
+    rev_total: `筛选后确认收入=快照日筛选合计<br>环比=本日−昨日 · 同比=本日−去年同日`,
+    rev_row: `行金额=该品牌/客户快照日确认收入<br>环比=本日−昨日 · 同比=本日−去年同日`,
   };
   return tips[kind] || "";
 }
@@ -494,21 +539,19 @@ function metricTip(kind, preset) {
 function pageFormulaHtml(page) {
   if (page === "overview") {
     return [
-      "<b>口径 / 计算公式</b>",
       "确认收入 = T+1 已财务确认执行单金额（区间按日加总）",
       "回款 = 区间到账合计 · 可归成本 = 媒体 + 制作 + 其他（人力不拆日）",
       "毛利 = 确认收入 − 可归成本 · 毛利率 = 毛利 ÷ 确认收入 × 100%",
       "环比 = 本期 − 等长前一区间（今日→昨日；近7天→前7天；近一个月→前30天；自定义→等长前段）",
       "同比 = 本期 − 去年同日/同区间（起止日期整体减一年）",
       "贡献：按品牌=品牌确认收入；按客户=客户下品牌之和",
-    ].map((line, i) => (i === 0 ? line : `· ${line}`)).join("<br>");
+    ].map((line) => `· ${line}`).join("<br>");
   }
   return [
-    "<b>口径 / 计算公式</b>",
     "明细确认收入 = 快照日、筛选后执行单确认金额（按品牌或按客户加总）",
     "按客户：金佰利 = 好奇 + 高洁丝（与按品牌分列不同口径）",
     "环比（较昨日）= 本日 − 昨日 · 同比（较去年同日）= 本日 − 去年同日",
-  ].map((line, i) => (i === 0 ? line : `· ${line}`)).join("<br>");
+  ].map((line) => `· ${line}`).join("<br>");
 }
 
 function applyOvPreset(preset, fromCustom, toCustom) {
@@ -718,6 +761,7 @@ const state = {
   ovTo: "2026-10-05",
   contribCut: "brand",
   compareMode: loadCompareMode(),
+  formulaOpen: loadFormulaOpen(),
 };
 
 const draftBoot = loadAdminDraft();
@@ -1624,7 +1668,7 @@ function renderContribRows(brandMap, prevBrandMap, yoyBrandMap, momLabel, yoyLab
         <b>${name}</b>
         <span class="yc-conc-sub">${sub}</span>
       </div>
-      <div class="yc-conc-amt">¥ ${fmtMoney(amt)} ${tipIcon(tip)}</div>
+      <div class="yc-conc-amt">¥ ${fmtMoney(amt)} ${tipIcon(tip, { side: true })}</div>
       <div class="yc-conc-delta">${compare}</div>
     </div>`;
   }).join("");
@@ -1636,7 +1680,7 @@ function kpiCell(opts) {
     ? compareHtml
     : (delta ? `<span class="${delta.cls}">${delta.text}</span>` : "");
   return `<div class="yc-kpi-cell">
-    <div class="yc-kpi-label">${label}${tip ? ` ${tipIcon(tip)}` : ""}</div>
+    <div class="yc-kpi-label"><span class="yc-kpi-label-text">${label}</span>${tip ? tipIcon(tip, { side: true }) : ""}</div>
     <div class="yc-kpi-value">${main}</div>
     <div class="yc-kpi-foot">
       ${deltaHtml}
@@ -1702,7 +1746,8 @@ function renderFinOverview() {
     "30d": "财务日报 · T+1 确认 · 近一个月",
     custom: "财务日报 · T+1 确认 · 自选区间",
   };
-  document.getElementById("fin-overview-title").textContent = titles[preset] || "总览";
+  const titleText = document.querySelector("#fin-overview-title .yc-cockpit-title-text");
+  if (titleText) titleText.textContent = titles[preset] || "总览";
   document.getElementById("fin-overview-kicker").textContent = kickers[preset] || kickers.custom;
   document.getElementById("fin-overview-asof").textContent = isDay ? `截至 ${to}` : `${from} – ${to}`;
   document.getElementById("fin-overview-role-hint").textContent = isCeo ? "CEO 视角" : (state.role === "cfo" ? "CFO 视角" : "高管视角");
@@ -1711,14 +1756,12 @@ function renderFinOverview() {
   if (showYoy()) cmpBits.push(yoyLabel);
   const cmpText = cmpBits.length ? cmpBits.join(" · ") : "不显示比较";
   document.getElementById("fin-overview-lead").textContent = isDay
-    ? `执行单确认收入 · ${cmpText} · 异常最多 3 条。人力不拆日，见成本页周锁定。`
-    : `执行单确认收入 · ${from} 至 ${to} 合计 · ${cmpText} · 异常最多 3 条。人力不拆日。`;
+    ? `执行单确认收入 · ${cmpText} · 异常最多 3 条。`
+    : `执行单确认收入 · ${from} 至 ${to} 合计 · ${cmpText} · 异常最多 3 条。`;
   document.getElementById("fin-conc-head").textContent = contribHead(periodWord);
-  const ovFormula = pageFormulaHtml("overview");
-  const formulaEl = document.getElementById("fin-overview-formula");
-  if (formulaEl) formulaEl.innerHTML = ovFormula;
+  fillFormulaBody("overview");
   const titleTip = document.getElementById("fin-overview-title-tip");
-  if (titleTip) titleTip.innerHTML = ovFormula;
+  if (titleTip) titleTip.textContent = "展开下方「口径 / 计算公式」查看完整公式";
   syncContribCut();
   syncCompareModeUi();
 
@@ -1838,11 +1881,9 @@ function renderFinRevenue() {
     groups[key].client = clientOf(r.brand);
   });
   const agg = Object.values(groups).sort((a, b) => b.amount - a.amount);
-  const revFormula = pageFormulaHtml("revenue");
-  const formulaEl = document.getElementById("fin-rev-formula");
-  if (formulaEl) formulaEl.innerHTML = revFormula;
+  fillFormulaBody("revenue");
   const titleTip = document.getElementById("fin-rev-title-tip");
-  if (titleTip) titleTip.innerHTML = revFormula;
+  if (titleTip) titleTip.textContent = "展开下方「口径 / 计算公式」查看完整公式";
   document.getElementById("fin-rev-cut-label").textContent = `明细 · ${cutLabel}`;
   document.getElementById("fin-rev-lead").textContent = byClient
     ? "当前切片：按客户。金佰利含好奇+高洁丝；与按品牌加总不同口径。"
@@ -1861,8 +1902,8 @@ function renderFinRevenue() {
     `<div class="yc-kpi-cell"><div class="yc-kpi-label">明细行</div><div class="yc-kpi-value">${agg.length}</div><div class="yc-kpi-foot"><span class="yc-muted">${cutLabel}</span></div></div>`,
   ].join("");
   const headLeft = byClient
-    ? `<th>客户</th><th>覆盖品牌</th><th class="yc-num">确认收入 ${tipIcon(metricTip("rev_row", "today"))}</th>`
-    : `<th>品牌</th><th>客户</th><th class="yc-num">确认收入 ${tipIcon(metricTip("rev_row", "today"))}</th>`;
+    ? `<th>客户</th><th>覆盖品牌</th><th class="yc-num">确认收入 ${tipIcon(metricTip("rev_row", "today"), { side: true })}</th>`
+    : `<th>品牌</th><th>客户</th><th class="yc-num">确认收入 ${tipIcon(metricTip("rev_row", "today"), { side: true })}</th>`;
   const headCmp = [
     showMom() ? `<th class="yc-num">环比</th>` : "",
     showYoy() ? `<th class="yc-num">同比</th>` : "",
@@ -2027,6 +2068,12 @@ document.querySelectorAll("[data-contrib-cut]").forEach((btn) => {
 document.querySelectorAll("[data-fin-compare-select]").forEach((el) => {
   el.addEventListener("change", (e) => setCompareMode(e.target.value));
 });
+["fin-overview-formula-toggle", "fin-rev-formula-toggle"].forEach((id) => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.addEventListener("click", () => setFormulaOpen(!state.formulaOpen));
+});
+syncFormulaPanels();
 
 document.getElementById("fin-rev-query").addEventListener("click", () => renderFinRevenue());
 document.getElementById("fin-rev-type").addEventListener("change", () => renderFinRevenue());
