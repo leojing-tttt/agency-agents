@@ -224,21 +224,25 @@ const FIN_ALERTS = [
 
 /** 部门→品牌→品线→L1 收入贡献（样例） */
 const FIN_REVENUE_ROWS = [
-  { group: "营销一部", brand: "好奇", line: "小森林", type: "INTERNAL_KOL", amount: 286000, prev: 251000 },
-  { group: "营销一部", brand: "好奇", line: "深睡大师", type: "INTERNAL_DSP", amount: 198000, prev: 210000 },
-  { group: "营销二部", brand: "好奇", line: "小桃裤", type: "INTERNAL_KOL", amount: 124000, prev: 98000 },
-  { group: "营销三部", brand: "高洁丝", line: "卫生巾", type: "HARD_AD", amount: 312000, prev: 275000 },
-  { group: "营销三部", brand: "高洁丝", line: "海岛奢宠纯棉", type: "INTERNAL_DSP", amount: 86000, prev: 92000 },
-  { group: "营销四部", brand: "高洁丝", line: "阳光烘烘抑菌纯棉", type: "HARD_AD", amount: 72000, prev: 68000 },
-  { group: "营销五部", brand: "拜耳", line: "心肝宝", type: "GEO", amount: 168000, prev: 155000 },
-  { group: "营销六部", brand: "拜耳", line: "时光片Pro", type: "SELF_MEDIA", amount: 94000, prev: 88000 },
-  { group: "营销七部", brand: "康王", line: "酮康唑洗发水", type: "PUBLIC_OPINION", amount: 156000, prev: 182000 },
-  { group: "营销八部", brand: "霞湖世家", line: "80支液氨棉T恤", type: "CUSTOMER_RELATIONSHIP", amount: 48000, prev: 52000 },
-  { group: "营销九部", brand: "霞湖世家", line: "120支液氨棉T恤", type: "OTHER", amount: 220000, prev: 195000 },
-  { group: "营销九部", brand: "霞湖世家", line: "200支液氨棉T恤", type: "INTERNAL_KOL", amount: 100200, prev: 84800 },
+  { group: "营销一部", brand: "好奇", line: "小森林", type: "INTERNAL_KOL", amount: 286000, prev: 251000, yoy: 238000 },
+  { group: "营销一部", brand: "好奇", line: "深睡大师", type: "INTERNAL_DSP", amount: 198000, prev: 210000, yoy: 172000 },
+  { group: "营销二部", brand: "好奇", line: "小桃裤", type: "INTERNAL_KOL", amount: 124000, prev: 98000, yoy: 105000 },
+  { group: "营销三部", brand: "高洁丝", line: "卫生巾", type: "HARD_AD", amount: 312000, prev: 275000, yoy: 268000 },
+  { group: "营销三部", brand: "高洁丝", line: "海岛奢宠纯棉", type: "INTERNAL_DSP", amount: 86000, prev: 92000, yoy: 74000 },
+  { group: "营销四部", brand: "高洁丝", line: "阳光烘烘抑菌纯棉", type: "HARD_AD", amount: 72000, prev: 68000, yoy: 61000 },
+  { group: "营销五部", brand: "拜耳", line: "心肝宝", type: "GEO", amount: 168000, prev: 155000, yoy: 142000 },
+  { group: "营销六部", brand: "拜耳", line: "时光片Pro", type: "SELF_MEDIA", amount: 94000, prev: 88000, yoy: 81000 },
+  { group: "营销七部", brand: "康王", line: "酮康唑洗发水", type: "PUBLIC_OPINION", amount: 156000, prev: 182000, yoy: 148000 },
+  { group: "营销八部", brand: "霞湖世家", line: "80支液氨棉T恤", type: "CUSTOMER_RELATIONSHIP", amount: 48000, prev: 52000, yoy: 41000 },
+  { group: "营销九部", brand: "霞湖世家", line: "120支液氨棉T恤", type: "OTHER", amount: 220000, prev: 195000, yoy: 186000 },
+  { group: "营销九部", brand: "霞湖世家", line: "200支液氨棉T恤", type: "INTERNAL_KOL", amount: 100200, prev: 84800, yoy: 86000 },
 ];
 
-const FIN_SAMPLE_MIN = "2026-08-01";
+/** 样例日数据覆盖去年同期，支撑同比；UI 自选区间仍从当年 8 月起 */
+const FIN_DATA_MIN = "2025-08-01";
+const FIN_UI_MIN = "2026-08-01";
+const FIN_SAMPLE_MIN = FIN_UI_MIN;
+const FIN_YOY_SCALE = 0.84;
 const FIN_BRAND_DAY0 = {
   好奇: 608000,
   高洁丝: 470000,
@@ -246,6 +250,8 @@ const FIN_BRAND_DAY0 = {
   康王: 156000,
   霞湖世家: 368200,
 };
+const FIN_COMPARE_KEY = "yecai-fin-compare-mode-v1";
+const FIN_COMPARE_MODES = ["both", "mom", "yoy", "none"];
 
 /** 客户 → 品牌（业财合同主体；一客户可多品牌） */
 const CLIENT_BRANDS = {
@@ -307,26 +313,40 @@ function dayMixFactor(iso) {
   if (wd === 0 || wd === 6) f = 0.58;
   else if (wd === 1) f = 0.86;
   else if (wd === 5) f = 1.1;
-  const n = daysBetween(FIN_SAMPLE_MIN, iso);
+  const n = daysBetween(FIN_DATA_MIN, iso);
   f *= 0.9 + 0.18 * Math.sin(n / 3.7);
   return f;
 }
 
-/** 日快照样例：2026-09-01 … 快照日；快照日对齐 FIN_KPIS */
+function shiftYearISO(iso, years) {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setFullYear(d.getFullYear() + years);
+  return isoDate(d);
+}
+
+/** 日快照样例：含去年同期（同比）+ 当年区间；快照日对齐 FIN_KPIS */
 const FIN_DAILY = (() => {
   const map = {};
-  listIsoDays(FIN_SAMPLE_MIN, FIN_SNAPSHOT_DAY).forEach((iso) => {
+  const yoyAnchor = shiftYearISO(FIN_SNAPSHOT_DAY, -1);
+  listIsoDays(FIN_DATA_MIN, FIN_SNAPSHOT_DAY).forEach((iso) => {
     const isSnap = iso === FIN_SNAPSHOT_DAY;
-    const f = isSnap ? 1 : dayMixFactor(iso);
+    const isYoyAnchor = iso === yoyAnchor;
+    const isPriorYear = iso < "2026-01-01";
+    // 去年同日用同年历波动的缩放，避免落在周末被压成接近空值
+    const mixSrc = isPriorYear ? shiftYearISO(iso, 1) : iso;
+    const yearScale = isPriorYear ? FIN_YOY_SCALE : 1;
+    const f = (isSnap || isYoyAnchor) ? yearScale : dayMixFactor(mixSrc) * yearScale;
     const revenue = isSnap ? 1864200 : Math.round(1864200 * f);
     const cashin = isSnap ? 942500 : Math.round(942500 * f * 0.97);
     const cost = isSnap ? 1126800 : Math.round(1126800 * f * 1.01);
     const gross = revenue - cost;
-    const n = daysBetween(FIN_SAMPLE_MIN, iso);
-    const pending = isSnap ? 3 : 2 + (n * 7) % 6;
+    const n = daysBetween(FIN_DATA_MIN, iso);
+    const pending = isSnap ? 3 : isYoyAnchor ? 5 : 2 + (n * 7) % 6;
     const brands = {};
     Object.entries(FIN_BRAND_DAY0).forEach(([b, v], i) => {
-      brands[b] = isSnap ? v : Math.max(8000, Math.round(v * f * (1 + (i - 2) * 0.03 * (f - 1))));
+      if (isSnap) brands[b] = v;
+      else if (isYoyAnchor) brands[b] = Math.round(v * FIN_YOY_SCALE);
+      else brands[b] = Math.max(8000, Math.round(v * f * (1 + (i - 2) * 0.03 * (f - 1))));
     });
     const brandSum = Object.values(brands).reduce((s, x) => s + x, 0);
     if (brandSum && !isSnap) {
@@ -340,7 +360,7 @@ const FIN_DAILY = (() => {
 })();
 
 function clampIso(iso) {
-  if (iso < FIN_SAMPLE_MIN) return FIN_SAMPLE_MIN;
+  if (iso < FIN_UI_MIN) return FIN_UI_MIN;
   if (iso > FIN_SNAPSHOT_DAY) return FIN_SNAPSHOT_DAY;
   return iso;
 }
@@ -380,17 +400,115 @@ function previousWindow(from, to) {
   const n = daysBetween(from, to) + 1;
   const prevTo = addDaysISO(from, -1);
   const prevFrom = addDaysISO(prevTo, -(n - 1));
-  if (prevFrom < FIN_SAMPLE_MIN) {
+  if (prevFrom < FIN_DATA_MIN || !FIN_DAILY[prevFrom] || !FIN_DAILY[prevTo]) {
     return { from: null, to: null };
   }
   return { from: prevFrom, to: prevTo };
 }
 
-function ovCompareLabel(preset) {
+function yoyWindow(from, to) {
+  const yFrom = shiftYearISO(from, -1);
+  const yTo = shiftYearISO(to, -1);
+  if (!FIN_DAILY[yFrom] || !FIN_DAILY[yTo]) return { from: null, to: null };
+  return { from: yFrom, to: yTo };
+}
+
+function ovMomLabel(preset) {
   if (preset === "today") return "较昨日";
   if (preset === "7d") return "较前 7 天";
   if (preset === "30d") return "较前一个月";
   return "较前一同期";
+}
+
+function ovYoyLabel(preset) {
+  if (preset === "today") return "较去年同日";
+  if (preset === "7d") return "较去年同7天";
+  if (preset === "30d") return "较去年同月";
+  return "较去年同期";
+}
+
+function loadCompareMode() {
+  try {
+    const raw = localStorage.getItem(FIN_COMPARE_KEY);
+    if (FIN_COMPARE_MODES.includes(raw)) return raw;
+  } catch (_) { /* ignore */ }
+  return "both";
+}
+
+function saveCompareMode(mode) {
+  const next = FIN_COMPARE_MODES.includes(mode) ? mode : "both";
+  state.compareMode = next;
+  try { localStorage.setItem(FIN_COMPARE_KEY, next); } catch (_) { /* ignore */ }
+}
+
+function showMom() {
+  return state.compareMode === "mom" || state.compareMode === "both";
+}
+
+function showYoy() {
+  return state.compareMode === "yoy" || state.compareMode === "both";
+}
+
+function tipIcon(html) {
+  return `<span class="yc-hint" tabindex="0" aria-label="计算公式"><i class="far fa-circle-question"></i><span class="yc-hint-pop" role="tooltip">${html}</span></span>`;
+}
+
+function fmtCompareStack(cur, momPrev, yoyPrev, unit, invert, momLabel, yoyLabel) {
+  const lines = [];
+  if (showMom()) {
+    const d = fmtDelta(cur, momPrev, unit, invert, momLabel);
+    lines.push(`<span class="${d.cls}">${d.text}</span>`);
+  }
+  if (showYoy()) {
+    const d = fmtDelta(cur, yoyPrev, unit, invert, yoyLabel);
+    lines.push(`<span class="${d.cls}">${d.text}</span>`);
+  }
+  if (!lines.length) return `<span class="yc-muted">—</span>`;
+  return `<span class="yc-compare-stack">${lines.join("")}</span>`;
+}
+
+function metricTip(kind, preset) {
+  const mom = ovMomLabel(preset);
+  const yoy = ovYoyLabel(preset);
+  const periodHint = preset === "today"
+    ? "本期 = 快照日当日"
+    : preset === "7d"
+      ? "本期 = 含快照日在内近 7 个自然日合计"
+      : preset === "30d"
+        ? "本期 = 含快照日在内近 30 个自然日合计"
+        : "本期 = 自选区间内按日加总";
+  const tips = {
+    revenue: `${periodHint}<br>确认收入 = T+1 已财务确认的执行单金额合计<br>环比（${mom}）= 本期 − 等长前一区间<br>同比（${yoy}）= 本期 − 去年同日/同区间（日期减一年）`,
+    cashin: `${periodHint}<br>回款 = 区间内到账回款合计<br>环比（${mom}）= 本期 − 等长前一区间<br>同比（${yoy}）= 本期 − 去年同日/同区间`,
+    cost: `${periodHint}<br>可归成本 = 媒体 + 制作 + 其他（不含未锁定周人力）<br>环比（${mom}）= 本期 − 等长前一区间<br>同比（${yoy}）= 本期 − 去年同日/同区间`,
+    gross: `毛利 = 确认收入 − 可归成本<br>环比（${mom}）= 本期毛利 − 前一区间毛利<br>同比（${yoy}）= 本期毛利 − 去年同期毛利`,
+    margin: `毛利率 = 毛利 ÷ 确认收入 × 100%<br>环比（${mom}）= 本期毛利率 − 前一区间毛利率（百分点）<br>同比（${yoy}）= 本期毛利率 − 去年同期毛利率`,
+    pending: `待确认/异常 = 快照日未确认或异常执行单条数（时点，不加总）<br>环比（${mom}）= 本期条数 − 前一区间末日条数<br>同比（${yoy}）= 本期条数 − 去年同日条数`,
+    contrib: `贡献金额 = 该品牌/客户在本期的确认收入<br>按客户时：客户收入 = 其下品牌收入之和（金佰利 = 好奇 + 高洁丝）<br>环比（${mom}）= 本期 − 等长前一区间<br>同比（${yoy}）= 本期 − 去年同日/同区间`,
+    rev_total: `筛选后确认收入 = 当前筛选条件下执行单确认收入合计（快照日）<br>环比（较昨日）= 本日 − 昨日<br>同比（较去年同日）= 本日 − 去年同日`,
+    rev_row: `行确认收入 = 该品牌或客户在快照日的确认收入<br>环比（较昨日）= 本日 − 昨日<br>同比（较去年同日）= 本日 − 去年同日`,
+  };
+  return tips[kind] || "";
+}
+
+function pageFormulaHtml(page) {
+  if (page === "overview") {
+    return [
+      "<b>口径 / 计算公式</b>",
+      "确认收入 = T+1 已财务确认执行单金额（区间按日加总）",
+      "回款 = 区间到账合计 · 可归成本 = 媒体 + 制作 + 其他（人力不拆日）",
+      "毛利 = 确认收入 − 可归成本 · 毛利率 = 毛利 ÷ 确认收入 × 100%",
+      "环比 = 本期 − 等长前一区间（今日→昨日；近7天→前7天；近一个月→前30天；自定义→等长前段）",
+      "同比 = 本期 − 去年同日/同区间（起止日期整体减一年）",
+      "贡献：按品牌=品牌确认收入；按客户=客户下品牌之和",
+    ].map((line, i) => (i === 0 ? line : `· ${line}`)).join("<br>");
+  }
+  return [
+    "<b>口径 / 计算公式</b>",
+    "明细确认收入 = 快照日、筛选后执行单确认金额（按品牌或按客户加总）",
+    "按客户：金佰利 = 好奇 + 高洁丝（与按品牌分列不同口径）",
+    "环比（较昨日）= 本日 − 昨日 · 同比（较去年同日）= 本日 − 去年同日",
+  ].map((line, i) => (i === 0 ? line : `· ${line}`)).join("<br>");
 }
 
 function applyOvPreset(preset, fromCustom, toCustom) {
@@ -599,6 +717,7 @@ const state = {
   ovFrom: "2026-10-05",
   ovTo: "2026-10-05",
   contribCut: "brand",
+  compareMode: loadCompareMode(),
 };
 
 const draftBoot = loadAdminDraft();
@@ -1481,33 +1600,46 @@ function contribHead(periodWord) {
   return `${periodWord}贡献 · ${state.contribCut === "client" ? "按客户" : "按品牌"}`;
 }
 
-function renderContribRows(brandMap, prevBrandMap, vsLabel) {
+function renderContribRows(brandMap, prevBrandMap, yoyBrandMap, momLabel, yoyLabel, preset) {
   const byClient = state.contribCut === "client";
   const map = byClient ? clientsFromBrands(brandMap) : brandMap;
   const prevMap = byClient ? clientsFromBrands(prevBrandMap || {}) : (prevBrandMap || {});
+  const yoyMap = byClient ? clientsFromBrands(yoyBrandMap || {}) : (yoyBrandMap || {});
+  const tip = metricTip("contrib", preset);
   return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([name, amt]) => {
     const sub = byClient
       ? `品牌 ${(CLIENT_BRANDS[name] || []).join("、")}`
       : `客户 ${clientOf(name)}`;
-    const d = fmtDelta(amt, prevMap[name] == null ? null : prevMap[name], "元", false, vsLabel);
+    const compare = fmtCompareStack(
+      amt,
+      prevMap[name] == null ? null : prevMap[name],
+      yoyMap[name] == null ? null : yoyMap[name],
+      "元",
+      false,
+      momLabel,
+      yoyLabel,
+    );
     return `<div class="yc-conc-row yc-conc-nums">
       <div class="yc-conc-name">
         <b>${name}</b>
         <span class="yc-conc-sub">${sub}</span>
       </div>
-      <div class="yc-conc-amt">¥ ${fmtMoney(amt)}</div>
-      <div class="yc-conc-delta ${d.cls}">${d.text}</div>
+      <div class="yc-conc-amt">¥ ${fmtMoney(amt)} ${tipIcon(tip)}</div>
+      <div class="yc-conc-delta">${compare}</div>
     </div>`;
   }).join("");
 }
 
 function kpiCell(opts) {
-  const { label, main, delta, spark, invert } = opts;
+  const { label, main, compareHtml, delta, spark, invert, tip } = opts;
+  const deltaHtml = compareHtml != null
+    ? compareHtml
+    : (delta ? `<span class="${delta.cls}">${delta.text}</span>` : "");
   return `<div class="yc-kpi-cell">
-    <div class="yc-kpi-label">${label}</div>
+    <div class="yc-kpi-label">${label}${tip ? ` ${tipIcon(tip)}` : ""}</div>
     <div class="yc-kpi-value">${main}</div>
     <div class="yc-kpi-foot">
-      <span class="${delta.cls}">${delta.text}</span>
+      ${deltaHtml}
       ${sparkline(spark, invert)}
     </div>
   </div>`;
@@ -1525,18 +1657,37 @@ function levelTag(level) {
   return `<span class="a3-tag a3-tag-default"><span class="a3-tag-dot"></span>${level}</span>`;
 }
 
+function syncCompareModeUi() {
+  document.querySelectorAll("[data-fin-compare-select]").forEach((el) => {
+    el.value = state.compareMode;
+  });
+}
+
+function setCompareMode(mode) {
+  saveCompareMode(mode);
+  syncCompareModeUi();
+  const ov = document.getElementById("page-fin-overview");
+  const rev = document.getElementById("page-fin-revenue");
+  if (ov && ov.classList.contains("active")) renderFinOverview();
+  if (rev && rev.classList.contains("active")) renderFinRevenue();
+}
+
 function renderFinOverview() {
   const isCeo = state.role === "ceo";
   const from = state.ovFrom;
   const to = state.ovTo;
   const preset = state.ovPreset;
   const isDay = from === to;
-  const vs = ovCompareLabel(preset);
+  const momLabel = ovMomLabel(preset);
+  const yoyLabel = ovYoyLabel(preset);
   const cur = sumPeriod(from, to);
   const prevWin = previousWindow(from, to);
-  const prev = (prevWin.from && prevWin.to) ? sumPeriod(prevWin.from, prevWin.to) : {
+  const yoyWin = yoyWindow(from, to);
+  const emptyPrev = {
     revenue: null, cashin: null, cost: null, gross: null, margin: null, pending: null, brands: {},
   };
+  const prev = (prevWin.from && prevWin.to) ? sumPeriod(prevWin.from, prevWin.to) : emptyPrev;
+  const yoy = (yoyWin.from && yoyWin.to) ? sumPeriod(yoyWin.from, yoyWin.to) : emptyPrev;
   const periodWord = isDay ? "当日" : "期间";
 
   const titles = {
@@ -1555,11 +1706,21 @@ function renderFinOverview() {
   document.getElementById("fin-overview-kicker").textContent = kickers[preset] || kickers.custom;
   document.getElementById("fin-overview-asof").textContent = isDay ? `截至 ${to}` : `${from} – ${to}`;
   document.getElementById("fin-overview-role-hint").textContent = isCeo ? "CEO 视角" : (state.role === "cfo" ? "CFO 视角" : "高管视角");
+  const cmpBits = [];
+  if (showMom()) cmpBits.push(momLabel);
+  if (showYoy()) cmpBits.push(yoyLabel);
+  const cmpText = cmpBits.length ? cmpBits.join(" · ") : "不显示比较";
   document.getElementById("fin-overview-lead").textContent = isDay
-    ? "执行单确认收入 · 较昨日 · 异常最多 3 条。人力不拆日，见成本页周锁定。"
-    : `执行单确认收入 · ${from} 至 ${to} 合计 · ${vs} · 异常最多 3 条。人力不拆日。`;
+    ? `执行单确认收入 · ${cmpText} · 异常最多 3 条。人力不拆日，见成本页周锁定。`
+    : `执行单确认收入 · ${from} 至 ${to} 合计 · ${cmpText} · 异常最多 3 条。人力不拆日。`;
   document.getElementById("fin-conc-head").textContent = contribHead(periodWord);
+  const ovFormula = pageFormulaHtml("overview");
+  const formulaEl = document.getElementById("fin-overview-formula");
+  if (formulaEl) formulaEl.innerHTML = ovFormula;
+  const titleTip = document.getElementById("fin-overview-title-tip");
+  if (titleTip) titleTip.innerHTML = ovFormula;
   syncContribCut();
+  syncCompareModeUi();
 
   const fromEl = document.getElementById("fin-ov-from");
   const toEl = document.getElementById("fin-ov-to");
@@ -1576,23 +1737,28 @@ function renderFinOverview() {
     return sumPeriod(clampIso(trailFrom), to).sparks[key];
   };
 
+  const yoyMargin = yoy.margin == null ? null : Math.round(yoy.margin * 10) / 10;
+  const momMargin = prev.margin == null ? null : Math.round(prev.margin * 10) / 10;
   const kpis = [
-    { key: "revenue", label: `${periodWord}确认收入`, value: cur.revenue, prev: prev.revenue, unit: "元", invert: false, spark: sparkOrTrail("revenue") },
-    { key: "cashin", label: `${periodWord}回款`, value: cur.cashin, prev: prev.cashin, unit: "元", invert: false, spark: sparkOrTrail("cashin") },
-    { key: "cost", label: `${periodWord}成本（可归）`, value: cur.cost, prev: prev.cost, unit: "元", invert: true, spark: sparkOrTrail("cost") },
-    { key: "gross", label: `${periodWord}毛利`, value: cur.gross, prev: prev.gross, unit: "元", invert: false, spark: sparkOrTrail("gross") },
-    { key: "margin", label: `${periodWord}毛利率`, value: Math.round(cur.margin * 10) / 10, prev: prev.margin == null ? null : Math.round(prev.margin * 10) / 10, unit: "%", invert: false, spark: sparkOrTrail("margin") },
-    { key: "pending", label: "待确认 / 异常", value: cur.pending, prev: prev.pending, unit: "条", invert: true, spark: sparkOrTrail("pending") },
+    { key: "revenue", label: `${periodWord}确认收入`, value: cur.revenue, prev: prev.revenue, yoy: yoy.revenue, unit: "元", invert: false, spark: sparkOrTrail("revenue") },
+    { key: "cashin", label: `${periodWord}回款`, value: cur.cashin, prev: prev.cashin, yoy: yoy.cashin, unit: "元", invert: false, spark: sparkOrTrail("cashin") },
+    { key: "cost", label: `${periodWord}成本（可归）`, value: cur.cost, prev: prev.cost, yoy: yoy.cost, unit: "元", invert: true, spark: sparkOrTrail("cost") },
+    { key: "gross", label: `${periodWord}毛利`, value: cur.gross, prev: prev.gross, yoy: yoy.gross, unit: "元", invert: false, spark: sparkOrTrail("gross") },
+    { key: "margin", label: `${periodWord}毛利率`, value: Math.round(cur.margin * 10) / 10, prev: momMargin, yoy: yoyMargin, unit: "%", invert: false, spark: sparkOrTrail("margin") },
+    { key: "pending", label: "待确认 / 异常", value: cur.pending, prev: prev.pending, yoy: yoy.pending, unit: "条", invert: true, spark: sparkOrTrail("pending") },
   ];
   document.getElementById("fin-kpi-grid").innerHTML = kpis.map((k) => kpiCell({
     label: k.label,
     main: kpiMain(k),
-    delta: fmtDelta(k.value, k.prev, k.unit, k.invert, vs),
+    compareHtml: fmtCompareStack(k.value, k.prev, k.yoy, k.unit, k.invert, momLabel, yoyLabel),
     spark: k.spark,
     invert: k.invert,
+    tip: metricTip(k.key, preset),
   })).join("");
 
-  document.getElementById("fin-conc-list").innerHTML = renderContribRows(cur.brands, prev.brands, vs);
+  document.getElementById("fin-conc-list").innerHTML = renderContribRows(
+    cur.brands, prev.brands, yoy.brands, momLabel, yoyLabel, preset,
+  );
 
   const alerts = ovAlerts(preset, from, to);
   document.getElementById("fin-alert-list").innerHTML = alerts.map((a) => {
@@ -1640,6 +1806,7 @@ function ensureFinRevFilters() {
 function renderFinRevenue() {
   ensureFinRevFilters();
   syncContribCut();
+  syncCompareModeUi();
   const byClient = state.contribCut === "client";
   const type = document.getElementById("fin-rev-type").value;
   const group = document.getElementById("fin-rev-group").value;
@@ -1653,48 +1820,72 @@ function renderFinRevenue() {
   }
   const total = rows.reduce((s, r) => s + r.amount, 0);
   const prevTotal = rows.reduce((s, r) => s + r.prev, 0);
+  const yoyTotal = rows.reduce((s, r) => s + (r.yoy || 0), 0);
   const depts = new Set(rows.map((r) => r.group)).size;
   const brands = new Set(rows.map((r) => r.brand)).size;
   const clients = new Set(rows.map((r) => r.client)).size;
-  const delta = fmtDelta(total, prevTotal, "元");
   const cutLabel = byClient ? "按客户" : "按品牌";
   const groups = {};
   rows.forEach((r) => {
     const key = byClient ? r.client : r.brand;
     if (!groups[key]) {
-      groups[key] = { name: key, client: r.client, brands: new Set(), amount: 0, prev: 0 };
+      groups[key] = { name: key, client: r.client, brands: new Set(), amount: 0, prev: 0, yoy: 0 };
     }
     groups[key].amount += r.amount;
     groups[key].prev += r.prev;
+    groups[key].yoy += r.yoy || 0;
     groups[key].brands.add(r.brand);
     groups[key].client = clientOf(r.brand);
   });
   const agg = Object.values(groups).sort((a, b) => b.amount - a.amount);
+  const revFormula = pageFormulaHtml("revenue");
+  const formulaEl = document.getElementById("fin-rev-formula");
+  if (formulaEl) formulaEl.innerHTML = revFormula;
+  const titleTip = document.getElementById("fin-rev-title-tip");
+  if (titleTip) titleTip.innerHTML = revFormula;
   document.getElementById("fin-rev-cut-label").textContent = `明细 · ${cutLabel}`;
   document.getElementById("fin-rev-lead").textContent = byClient
     ? "当前切片：按客户。金佰利含好奇+高洁丝；与按品牌加总不同口径。"
     : "当前切片：按品牌。同一客户下的品牌分开计；可切到按客户。";
   document.getElementById("fin-rev-summary").innerHTML = [
-    kpiCell({ label: "筛选后确认收入", main: `¥ ${fmtMoney(total)}`, delta, spark: [12, 13, 12.5, 14, 15, 16, total / 100000], invert: false }),
+    kpiCell({
+      label: "筛选后确认收入",
+      main: `¥ ${fmtMoney(total)}`,
+      compareHtml: fmtCompareStack(total, prevTotal, yoyTotal, "元", false, "较昨日", "较去年同日"),
+      spark: [12, 13, 12.5, 14, 15, 16, total / 100000],
+      invert: false,
+      tip: metricTip("rev_total", "today"),
+    }),
     `<div class="yc-kpi-cell"><div class="yc-kpi-label">涉及营销部</div><div class="yc-kpi-value">${depts}</div><div class="yc-kpi-foot"><span class="yc-muted">一部–九部</span></div></div>`,
     `<div class="yc-kpi-cell"><div class="yc-kpi-label">${byClient ? "涉及客户" : "涉及品牌"}</div><div class="yc-kpi-value">${byClient ? clients : brands}</div><div class="yc-kpi-foot"><span class="yc-muted">${byClient ? "合同主体" : "BRAND_LINE_MASTER"}</span></div></div>`,
     `<div class="yc-kpi-cell"><div class="yc-kpi-label">明细行</div><div class="yc-kpi-value">${agg.length}</div><div class="yc-kpi-foot"><span class="yc-muted">${cutLabel}</span></div></div>`,
   ].join("");
-  document.getElementById("fin-rev-thead-row").innerHTML = byClient
-    ? `<th>客户</th><th>覆盖品牌</th><th class="yc-num">确认收入</th><th class="yc-num">较昨日</th>`
-    : `<th>品牌</th><th>客户</th><th class="yc-num">确认收入</th><th class="yc-num">较昨日</th>`;
+  const headLeft = byClient
+    ? `<th>客户</th><th>覆盖品牌</th><th class="yc-num">确认收入 ${tipIcon(metricTip("rev_row", "today"))}</th>`
+    : `<th>品牌</th><th>客户</th><th class="yc-num">确认收入 ${tipIcon(metricTip("rev_row", "today"))}</th>`;
+  const headCmp = [
+    showMom() ? `<th class="yc-num">环比</th>` : "",
+    showYoy() ? `<th class="yc-num">同比</th>` : "",
+  ].join("");
+  document.getElementById("fin-rev-thead-row").innerHTML = `${headLeft}${headCmp}`;
+  const colSpan = 3 + (showMom() ? 1 : 0) + (showYoy() ? 1 : 0);
   document.querySelector("#fin-rev-table tbody").innerHTML = agg.length ? agg.map((r) => {
-    const d = fmtDelta(r.amount, r.prev, "元");
     const second = byClient ? [...r.brands].join("、") : r.client;
+    const mom = fmtDelta(r.amount, r.prev, "元", false, "较昨日");
+    const yoy = fmtDelta(r.amount, r.yoy, "元", false, "较去年同日");
+    const cmpCells = [
+      showMom() ? `<td class="yc-num ${mom.cls}">${mom.text.replace("较昨日 ", "")}</td>` : "",
+      showYoy() ? `<td class="yc-num ${yoy.cls}">${yoy.text.replace("较去年同日 ", "")}</td>` : "",
+    ].join("");
     return `
       <tr>
         <td>${r.name}</td>
         <td>${second}</td>
         <td class="yc-num">¥ ${fmtMoney(r.amount)}</td>
-        <td class="yc-num ${d.cls}">${d.text.replace("较昨日 ", "")}</td>
+        ${cmpCells}
       </tr>
     `;
-  }).join("") : `<tr><td colspan="4" class="a3-text-secondary">无匹配数据</td></tr>`;
+  }).join("") : `<tr><td colspan="${colSpan}" class="a3-text-secondary">无匹配数据</td></tr>`;
 }
 
 function renderFinCash() {
@@ -1832,6 +2023,9 @@ document.getElementById("fin-ov-to").addEventListener("change", (e) => {
 });
 document.querySelectorAll("[data-contrib-cut]").forEach((btn) => {
   btn.addEventListener("click", () => setContribCut(btn.dataset.contribCut));
+});
+document.querySelectorAll("[data-fin-compare-select]").forEach((el) => {
+  el.addEventListener("change", (e) => setCompareMode(e.target.value));
 });
 
 document.getElementById("fin-rev-query").addEventListener("click", () => renderFinRevenue());

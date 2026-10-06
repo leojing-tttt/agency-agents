@@ -439,7 +439,13 @@
           <div class="yc-cockpit-mast">
             <div>
               <div class="yc-kicker" id="fin-overview-kicker">财务日报 · T+1 确认</div>
-              <h1 class="yc-cockpit-title" id="fin-overview-title">今日总览</h1>
+              <h1 class="yc-cockpit-title" id="fin-overview-title">
+                今日总览
+                <span class="yc-hint yc-hint-title" tabindex="0" aria-label="页面口径">
+                  <i class="far fa-circle-question"></i>
+                  <span class="yc-hint-pop" id="fin-overview-title-tip" role="tooltip">见下方口径条</span>
+                </span>
+              </h1>
             </div>
             <div class="yc-cockpit-meta">
               <span class="yc-pill" id="fin-overview-asof">截至 2026-10-05</span>
@@ -459,7 +465,20 @@
               <span class="yc-muted">到</span>
               <input class="a3-input yc-ov-date" type="date" id="fin-ov-to" min="2026-08-01" max="2026-10-05" value="2026-10-05" />
             </div>
+            <div class="yc-field yc-compare-field">
+              <label for="fin-ov-compare">比较显示</label>
+              <div class="a3-select-wrapper">
+                <select class="a3-select" id="fin-ov-compare" data-fin-compare-select>
+                  <option value="both">环比 + 同比</option>
+                  <option value="mom">仅环比</option>
+                  <option value="yoy">仅同比</option>
+                  <option value="none">不显示</option>
+                </select>
+                <i class="fas fa-chevron-down a3-select-arrow"></i>
+              </div>
+            </div>
           </div>
+          <div class="yc-formula-strip" id="fin-overview-formula"></div>
           <p class="yc-cockpit-lead" id="fin-overview-lead">执行单确认收入 · 较昨日 / 近 7 日 · 异常最多 3 条。人力不拆日，见成本页周锁定。</p>
           <div class="yc-kpi-strip" id="fin-kpi-grid"></div>
           <div class="yc-cockpit-split">
@@ -492,7 +511,13 @@
           <div class="yc-cockpit-mast">
             <div>
               <div class="yc-kicker">财务日报 · 贡献下钻</div>
-              <h1 class="yc-cockpit-title">收入与贡献</h1>
+              <h1 class="yc-cockpit-title">
+                收入与贡献
+                <span class="yc-hint yc-hint-title" tabindex="0" aria-label="页面口径">
+                  <i class="far fa-circle-question"></i>
+                  <span class="yc-hint-pop" id="fin-rev-title-tip" role="tooltip">见下方口径条</span>
+                </span>
+              </h1>
             </div>
             <div class="yc-cockpit-filters">
               <div class="yc-field">
@@ -523,9 +548,22 @@
                   <i class="fas fa-chevron-down a3-select-arrow"></i>
                 </div>
               </div>
+              <div class="yc-field yc-compare-field">
+                <label for="fin-rev-compare">比较显示</label>
+                <div class="a3-select-wrapper">
+                  <select class="a3-select" id="fin-rev-compare" data-fin-compare-select>
+                    <option value="both">环比 + 同比</option>
+                    <option value="mom">仅环比</option>
+                    <option value="yoy">仅同比</option>
+                    <option value="none">不显示</option>
+                  </select>
+                  <i class="fas fa-chevron-down a3-select-arrow"></i>
+                </div>
+              </div>
               <button type="button" class="a3-btn a3-btn-primary" id="fin-rev-query">筛选</button>
             </div>
           </div>
+          <div class="yc-formula-strip" id="fin-rev-formula"></div>
           <p class="yc-cockpit-lead" id="fin-rev-lead">当前切片：按品牌。客户与品牌是不同切面（如金佰利含好奇+高洁丝）。</p>
           <div class="yc-kpi-strip yc-kpi-strip-4" id="fin-rev-summary"></div>
           <div class="yc-panel">

@@ -268,6 +268,8 @@ body.yc-fin-active .a3-page-content {
   letter-spacing: -0.03em;
   color: var(--a3-text-primary);
   line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
 }
 
 .yc-ov-filter {
@@ -277,6 +279,94 @@ body.yc-fin-active .a3-page-content {
   gap: 12px;
   margin: 10px 0 12px;
 }
+
+.yc-compare-field {
+  min-width: 148px;
+  margin: 0;
+}
+.yc-compare-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--a3-text-secondary);
+  margin-bottom: 4px;
+}
+.yc-compare-field .a3-select { min-width: 148px; height: 32px; }
+
+.yc-formula-strip {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #ead0d6;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff8f9 0%, #fff 100%);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--a3-text-secondary);
+}
+.yc-formula-strip b {
+  color: var(--a3-text-primary);
+  font-weight: 600;
+}
+
+.yc-hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  color: var(--a3-text-secondary);
+  cursor: help;
+  vertical-align: middle;
+}
+.yc-hint i { font-size: 12px; }
+.yc-hint-title {
+  width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  color: var(--a3-primary);
+}
+.yc-hint-title i { font-size: 14px; }
+.yc-hint-pop {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  z-index: 1600;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(33, 37, 41, 0.92);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+  text-align: left;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+.yc-hint:hover .yc-hint-pop,
+.yc-hint:focus .yc-hint-pop,
+.yc-hint:focus-within .yc-hint-pop {
+  opacity: 1;
+  visibility: visible;
+}
+
+.yc-compare-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.yc-kpi-foot .yc-compare-stack { flex: 1; min-width: 0; }
+.yc-conc-delta .yc-compare-stack { align-items: flex-end; }
 
 .yc-seg {
   display: inline-flex;
@@ -423,7 +513,7 @@ body.yc-fin-active .a3-page-content {
   justify-content: space-between;
   gap: 8px;
   margin-top: 8px;
-  min-height: 28px;
+  min-height: 36px;
   font-size: 12px;
 }
 
