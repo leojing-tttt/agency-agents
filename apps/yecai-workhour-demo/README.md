@@ -8,7 +8,8 @@ Uses **A3 SaaS UI** from `apps/campaign-agent/public/a3-components.css`（《A3 
 cd apps/yecai-workhour-demo
 npx --yes serve -l 5179 .
 # http://localhost:5179/
-# 高管日报：#fin-overview | #fin-revenue | #fin-cash | #fin-margin（切换身份 CEO / CFO）
+# 观测台（高管财务）：顶栏「观测台」· #obs / #fin-overview | #fin-revenue | #fin-cash | #fin-margin
+# 切换身份 CEO / CFO 后自动进入观测台总览
 ```
 
 ## Skill / design source

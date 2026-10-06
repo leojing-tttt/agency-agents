@@ -24,11 +24,6 @@
         <li class="a3-menu-group-title">报表</li>
         <li class="a3-menu-item" data-page="project"><i class="fas fa-diagram-project"></i><span>项目人力</span></li>
         <li class="a3-menu-item" data-page="brand"><i class="fas fa-tags"></i><span>品牌品线人力</span></li>
-        <li class="a3-menu-group-title fin-only">财务 / 日报</li>
-        <li class="a3-menu-item fin-only" data-page="fin-overview"><i class="fas fa-gauge-high"></i><span>今日总览</span></li>
-        <li class="a3-menu-item fin-only" data-page="fin-revenue"><i class="fas fa-chart-column"></i><span>收入与贡献</span></li>
-        <li class="a3-menu-item fin-only" data-page="fin-cash"><i class="fas fa-wallet"></i><span>回款与现金</span></li>
-        <li class="a3-menu-item fin-only" data-page="fin-margin"><i class="fas fa-chart-pie"></i><span>成本与毛利</span></li>
         <li class="a3-menu-group-title admin-only">管理 / 配置</li>
         <li class="a3-menu-item admin-only" data-page="admin-config"><i class="fas fa-sliders"></i><span>配置面板</span></li>
         <li class="a3-menu-item admin-only" data-page="admin-watch"><i class="fas fa-chart-line"></i><span>填报进度面板</span></li>
@@ -36,35 +31,61 @@
         <li class="a3-menu-item" data-page="master"><i class="fas fa-database"></i><span>主数据来源</span></li>
       </ul>
       <div class="yc-role a3-p-16">
-        <div class="a3-text-disabled a3-mb-8" style="font-size:12px">演示身份切换</div>
-        <div class="a3-select-wrapper">
-          <select class="a3-select" id="role-select">
-            <option value="filler">填报人 · 林可（媒介）</option>
-            <option value="leader">Leader · 周衡（营销一部）</option>
-            <option value="finance">财务 · 沈岚</option>
-            <option value="ceo">CEO · 顾岑</option>
-            <option value="cfo">CFO · 沈岚</option>
-            <option value="admin">管理员 · 顾澄</option>
-          </select>
-          <i class="fas fa-chevron-down a3-select-arrow"></i>
-        </div>
+        <div class="a3-text-disabled a3-mb-8" style="font-size:12px">身份在顶栏切换</div>
+        <div class="a3-text-secondary" style="font-size:12px;line-height:1.5">CEO / CFO 请点顶栏「观测台」进入高管财务视图。</div>
       </div>
     </aside>
 
     <div class="yc-main a3-flex-1">
-      <header class="a3-page-header a3-flex-between">
-        <div class="a3-breadcrumb">
+      <header class="a3-page-header a3-flex-between yc-topbar">
+        <div class="a3-breadcrumb" id="yc-breadcrumb">
           <span class="a3-breadcrumb-item"><a>人效</a></span>
           <span class="a3-breadcrumb-separator">/</span>
           <span class="a3-breadcrumb-item"><a>工时</a></span>
           <span class="a3-breadcrumb-separator">/</span>
           <span class="a3-breadcrumb-item" id="crumb">周填报</span>
         </div>
-        <span class="a3-tag a3-tag-default" id="user-chip">
-          <i class="fas fa-user"></i>
-          林可 · 媒介
-        </span>
+        <div class="yc-topbar-actions">
+          <button type="button" class="yc-obs-entry fin-only" id="obs-entry" title="高管财务观测台">
+            <span class="yc-obs-entry-mark">观</span>
+            <span>观测台</span>
+          </button>
+          <div class="a3-select-wrapper yc-role-select-wrap">
+            <select class="a3-select" id="role-select">
+              <option value="filler">填报人 · 林可（媒介）</option>
+              <option value="leader">Leader · 周衡（营销一部）</option>
+              <option value="finance">财务 · 沈岚</option>
+              <option value="ceo">CEO · 顾岑</option>
+              <option value="cfo">CFO · 沈岚</option>
+              <option value="admin">管理员 · 顾澄</option>
+            </select>
+            <i class="fas fa-chevron-down a3-select-arrow"></i>
+          </div>
+          <span class="a3-tag a3-tag-default" id="user-chip">
+            <i class="fas fa-user"></i>
+            林可 · 媒介
+          </span>
+        </div>
       </header>
+
+      <div class="yc-obs-rail" id="obs-rail" hidden>
+        <div class="yc-obs-rail-inner">
+          <div class="yc-obs-brand">
+            <div class="yc-obs-brand-mark">观测台</div>
+            <div class="yc-obs-brand-sub">Executive Finance · Daily</div>
+          </div>
+          <nav class="yc-obs-tabs" aria-label="观测台视图">
+            <button type="button" class="yc-obs-tab active" data-page="fin-overview">总览</button>
+            <button type="button" class="yc-obs-tab" data-page="fin-revenue">收入</button>
+            <button type="button" class="yc-obs-tab" data-page="fin-cash">回款</button>
+            <button type="button" class="yc-obs-tab" data-page="fin-margin">毛利</button>
+          </nav>
+          <button type="button" class="yc-obs-exit" id="obs-exit">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            返回工作台
+          </button>
+        </div>
+      </div>
 
       <div class="a3-page-content">
         <!-- 1 Fill: 按营销部区块分组 -->
@@ -438,7 +459,7 @@
         <section class="page yc-cockpit" id="page-fin-overview">
           <div class="yc-cockpit-mast">
             <div>
-              <div class="yc-kicker" id="fin-overview-kicker">财务日报 · T+1 确认</div>
+              <div class="yc-kicker" id="fin-overview-kicker">观测台 · T+1 确认</div>
               <h1 class="yc-cockpit-title" id="fin-overview-title">
                 <span class="yc-cockpit-title-text">今日总览</span>
                 <span class="yc-hint yc-hint-title" aria-label="页面口径">
@@ -516,7 +537,7 @@
         <section class="page yc-cockpit" id="page-fin-revenue">
           <div class="yc-cockpit-mast">
             <div>
-              <div class="yc-kicker">财务日报 · 贡献下钻</div>
+              <div class="yc-kicker">观测台 · 贡献下钻</div>
               <h1 class="yc-cockpit-title">
                 <span class="yc-cockpit-title-text">收入与贡献</span>
                 <span class="yc-hint yc-hint-title" aria-label="页面口径">
@@ -606,7 +627,7 @@
         <section class="page yc-cockpit" id="page-fin-cash">
           <div class="yc-cockpit-mast">
             <div>
-              <div class="yc-kicker">财务日报 · 工作资本</div>
+              <div class="yc-kicker">观测台 · 工作资本</div>
               <h1 class="yc-cockpit-title">回款与现金</h1>
             </div>
             <span class="yc-pill yc-pill-brand" id="fin-cash-role-hint">CFO 视角</span>
@@ -656,7 +677,7 @@
         <section class="page yc-cockpit" id="page-fin-margin">
           <div class="yc-cockpit-mast">
             <div>
-              <div class="yc-kicker">财务日报 · 盈利质量</div>
+              <div class="yc-kicker">观测台 · 盈利质量</div>
               <h1 class="yc-cockpit-title">成本与毛利</h1>
             </div>
             <span class="yc-pill">人力仅周锁定 · 不拆日</span>

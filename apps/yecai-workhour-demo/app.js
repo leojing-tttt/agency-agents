@@ -880,13 +880,11 @@ function syncRoleMenus() {
 }
 
 function updateFinBreadcrumb(page) {
-  const crumbs = document.querySelector(".a3-breadcrumb");
+  const crumbs = document.getElementById("yc-breadcrumb") || document.querySelector(".a3-breadcrumb");
   if (!crumbs) return;
   if (FIN_PAGES.includes(page)) {
     crumbs.innerHTML = `
-      <span class="a3-breadcrumb-item"><a>财务</a></span>
-      <span class="a3-breadcrumb-separator">/</span>
-      <span class="a3-breadcrumb-item"><a>日报</a></span>
+      <span class="a3-breadcrumb-item"><a href="#fin-overview">观测台</a></span>
       <span class="a3-breadcrumb-separator">/</span>
       <span class="a3-breadcrumb-item" id="crumb">${TITLES[page] || page}</span>
     `;
@@ -901,18 +899,28 @@ function updateFinBreadcrumb(page) {
   }
 }
 
+function syncObsChrome(page) {
+  const onObs = FIN_PAGES.includes(page);
+  const rail = document.getElementById("obs-rail");
+  if (rail) rail.hidden = !onObs;
+  document.querySelectorAll(".yc-obs-tab").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.page === page);
+  });
+  document.body.classList.toggle("yc-fin-active", onObs);
+}
+
 function go(page) {
   if ((page === "admin-config" || page === "admin-watch") && state.role !== "admin") {
     toast("warning", "请先切换为管理员身份");
     page = "fill";
   }
   if (FIN_PAGES.includes(page) && !isExecRole(state.role)) {
-    toast("warning", "请切换为 CEO / CFO（或财务）后查看日报");
+    toast("warning", "请切换为 CEO / CFO（或财务）后进入观测台");
     page = "fill";
   }
   document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + page));
   document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => m.classList.toggle("active", m.dataset.page === page));
-  document.body.classList.toggle("yc-fin-active", FIN_PAGES.includes(page));
+  syncObsChrome(page);
   updateFinBreadcrumb(page);
   if (page === "fill") renderFill();
   if (page === "fill-cmp") renderFillCmp();
@@ -945,18 +953,36 @@ document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => {
   m.addEventListener("click", () => go(m.dataset.page));
 });
 
+document.querySelectorAll(".yc-obs-tab[data-page]").forEach((tab) => {
+  tab.addEventListener("click", () => go(tab.dataset.page));
+});
+
+document.getElementById("obs-entry")?.addEventListener("click", () => {
+  if (!isExecRole(state.role)) {
+    toast("warning", "请切换为 CEO / CFO（或财务）后进入观测台");
+    return;
+  }
+  go("fin-overview");
+});
+
+document.getElementById("obs-exit")?.addEventListener("click", () => {
+  go(state.role === "admin" ? "admin-config" : "fill");
+});
+
 document.getElementById("role-select").addEventListener("change", (e) => {
   state.role = e.target.value;
   document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
   syncRoleMenus();
-  const active = document.querySelector(".a3-menu-item.active");
-  const onAdminPage = active && (active.dataset.page === "admin-config" || active.dataset.page === "admin-watch");
-  const onFinPage = active && FIN_PAGES.includes(active.dataset.page);
-  if (state.role === "ceo") go("fin-overview");
-  else if (state.role === "cfo") go("fin-cash");
-  else if (state.role === "admin") go(onAdminPage ? active.dataset.page : "admin-config");
+  const active = document.querySelector(".page.active");
+  const activePage = active ? active.id.replace(/^page-/, "") : "fill";
+  const onAdminPage = activePage === "admin-config" || activePage === "admin-watch";
+  const onFinPage = FIN_PAGES.includes(activePage);
+  /* CEO / CFO 打开观测台 → 一律落在 elevated 总览 */
+  if (state.role === "ceo" || state.role === "cfo") go("fin-overview");
+  else if (state.role === "finance") go("fin-overview");
+  else if (state.role === "admin") go(onAdminPage ? activePage : "admin-config");
   else if (onAdminPage || (onFinPage && !isExecRole(state.role))) go("fill");
-  else go(active ? active.dataset.page : "fill");
+  else go(activePage || "fill");
 });
 
 document.getElementById("fill-week").addEventListener("change", (e) => {
@@ -1741,10 +1767,10 @@ function renderFinOverview() {
     custom: "区间总览",
   };
   const kickers = {
-    today: "财务日报 · T+1 确认 · 今日",
-    "7d": "财务日报 · T+1 确认 · 近 7 天",
-    "30d": "财务日报 · T+1 确认 · 近一个月",
-    custom: "财务日报 · T+1 确认 · 自选区间",
+    today: "观测台 · T+1 确认 · 今日",
+    "7d": "观测台 · T+1 确认 · 近 7 天",
+    "30d": "观测台 · T+1 确认 · 近一个月",
+    custom: "观测台 · T+1 确认 · 自选区间",
   };
   const titleText = document.querySelector("#fin-overview-title .yc-cockpit-title-text");
   if (titleText) titleText.textContent = titles[preset] || "总览";
@@ -2086,7 +2112,8 @@ document.querySelectorAll(".cost-col").forEach((el) => { el.style.display = "non
 syncRoleMenus();
 const bootHash = (location.hash || "").replace("#", "");
 const adminBoot = bootHash === "admin-config" || bootHash === "admin-watch" || bootHash === "admin-progress";
-const finBoot = FIN_PAGES.includes(bootHash);
+const obsBoot = bootHash === "obs" || bootHash === "observatory";
+const finBoot = FIN_PAGES.includes(bootHash) || obsBoot;
 if (adminBoot) {
   state.role = "admin";
   document.getElementById("role-select").value = "admin";
@@ -2094,17 +2121,26 @@ if (adminBoot) {
   syncRoleMenus();
   go(bootHash === "admin-config" ? "admin-config" : "admin-watch");
 } else if (finBoot) {
-  state.role = bootHash === "fin-cash" || bootHash === "fin-margin" ? "cfo" : "ceo";
+  const land = obsBoot ? "fin-overview" : bootHash;
+  state.role = land === "fin-cash" || land === "fin-margin" ? "cfo" : "ceo";
   document.getElementById("role-select").value = state.role;
   document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
   syncRoleMenus();
-  go(bootHash);
+  go(land);
 } else if (bootHash === "fill-cmp" || bootHash === "brand") go(bootHash);
 else renderFill();
 
 window.addEventListener("hashchange", () => {
   const h = (location.hash || "").replace("#", "");
-  if (FIN_PAGES.includes(h)) {
+  if (h === "obs" || h === "observatory") {
+    if (!isExecRole(state.role)) {
+      state.role = "ceo";
+      document.getElementById("role-select").value = state.role;
+      document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
+      syncRoleMenus();
+    }
+    go("fin-overview");
+  } else if (FIN_PAGES.includes(h)) {
     if (!isExecRole(state.role)) {
       state.role = h === "fin-cash" || h === "fin-margin" ? "cfo" : "ceo";
       document.getElementById("role-select").value = state.role;
