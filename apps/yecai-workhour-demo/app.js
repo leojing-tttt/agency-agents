@@ -190,12 +190,12 @@ const TITLES = {
 /** 高管日报 · 脱敏日快照（方案 A；非正式财务数） */
 const FIN_SNAPSHOT_DAY = "2026-10-05";
 const FIN_KPIS = [
-  { key: "revenue", label: "当日确认收入", value: 1864200, prev: 1720800, unit: "元", ceo: true, cfo: true },
-  { key: "cashin", label: "当日回款", value: 942500, prev: 1103200, unit: "元", ceo: true, cfo: true },
-  { key: "cost", label: "当日成本（可归）", value: 1126800, prev: 1084500, unit: "元", ceo: true, cfo: true },
-  { key: "gross", label: "当日毛利", value: 737400, prev: 636300, unit: "元", ceo: true, cfo: true },
-  { key: "margin", label: "当日毛利率", value: 39.6, prev: 37.0, unit: "%", ceo: true, cfo: true },
-  { key: "pending", label: "待确认 / 异常", value: 3, prev: 5, unit: "条", ceo: true, cfo: true },
+  { key: "revenue", label: "当日确认收入", value: 1864200, prev: 1720800, unit: "元", ceo: true, cfo: true, spark: [152, 148, 161, 170, 165, 172, 186] },
+  { key: "cashin", label: "当日回款", value: 942500, prev: 1103200, unit: "元", ceo: true, cfo: true, spark: [110, 88, 121, 95, 105, 110, 94] },
+  { key: "cost", label: "当日成本（可归）", value: 1126800, prev: 1084500, unit: "元", ceo: true, cfo: true, spark: [101, 104, 108, 106, 110, 108, 113] },
+  { key: "gross", label: "当日毛利", value: 737400, prev: 636300, unit: "元", ceo: true, cfo: true, spark: [51, 44, 53, 64, 55, 64, 74] },
+  { key: "margin", label: "当日毛利率", value: 39.6, prev: 37.0, unit: "%", ceo: true, cfo: true, spark: [33.5, 32, 34, 37, 36, 37, 39.6] },
+  { key: "pending", label: "待确认 / 异常", value: 3, prev: 5, unit: "条", ceo: true, cfo: true, spark: [7, 6, 6, 5, 4, 5, 3] },
 ];
 
 const FIN_ALERTS = [
@@ -552,6 +552,7 @@ function go(page) {
   }
   document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + page));
   document.querySelectorAll(".a3-menu-item[data-page]").forEach((m) => m.classList.toggle("active", m.dataset.page === page));
+  document.body.classList.toggle("yc-fin-active", FIN_PAGES.includes(page));
   updateFinBreadcrumb(page);
   if (page === "fill") renderFill();
   if (page === "fill-cmp") renderFillCmp();
@@ -1240,6 +1241,47 @@ document.getElementById("watch-week-select").addEventListener("change", (e) => {
   renderAdminWatch();
 });
 
+function sparkline(values, invert) {
+  if (!values || values.length < 2) return "";
+  const w = 72;
+  const h = 28;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w;
+    const y = h - ((v - min) / span) * (h - 6) - 3;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const up = values[values.length - 1] >= values[0];
+  const good = invert ? !up : up;
+  const color = good ? "#52C41A" : "#ff4d4f";
+  return `<svg class="yc-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline fill="none" stroke="${color}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" points="${pts}"/></svg>`;
+}
+
+function shareBar(pct) {
+  const n = Math.max(0, Math.min(100, Number(pct) || 0));
+  return `<span class="yc-share"><span class="yc-share-track"><i style="width:${n}%"></i></span><em>${n.toFixed(1)}%</em></span>`;
+}
+
+function kpiCell(opts) {
+  const { label, main, delta, spark, invert } = opts;
+  return `<div class="yc-kpi-cell">
+    <div class="yc-kpi-label">${label}</div>
+    <div class="yc-kpi-value">${main}</div>
+    <div class="yc-kpi-foot">
+      <span class="${delta.cls}">${delta.text}</span>
+      ${sparkline(spark, invert)}
+    </div>
+  </div>`;
+}
+
+function kpiMain(k) {
+  if (k.unit === "%") return `${k.value.toFixed(1)}%`;
+  if (k.unit === "条") return String(k.value);
+  return `¥ ${fmtMoney(k.value)}`;
+}
+
 function levelTag(level) {
   if (level === "高") return `<span class="a3-tag a3-tag-danger"><span class="a3-tag-dot"></span>高</span>`;
   if (level === "中") return `<span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>中</span>`;
@@ -1253,25 +1295,49 @@ function renderFinOverview() {
   const kpis = FIN_KPIS.filter((k) => (isCeo ? k.ceo : k.cfo));
   document.getElementById("fin-kpi-grid").innerHTML = kpis.map((k) => {
     const invert = k.key === "cost" || k.key === "pending";
-    const delta = fmtDelta(k.value, k.prev, k.unit, invert);
-    const main = k.unit === "%" ? `${k.value.toFixed(1)}%` : k.unit === "条" ? String(k.value) : `¥ ${fmtMoney(k.value)}`;
-    return `
-      <div class="a3-card yc-stat"><div class="a3-card-body">
-        <div class="a3-text-secondary" style="font-size:12px">${k.label}</div>
-        <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${main}</div>
-        <div class="a3-mt-8 ${delta.cls}" style="font-size:12px">${delta.text}</div>
-      </div></div>
-    `;
+    return kpiCell({
+      label: k.label,
+      main: kpiMain(k),
+      delta: fmtDelta(k.value, k.prev, k.unit, invert),
+      spark: k.spark,
+      invert,
+    });
   }).join("");
-  document.querySelector("#fin-alert-table tbody").innerHTML = FIN_ALERTS.map((a) => `
-    <tr>
-      <td>${levelTag(a.level)}</td>
-      <td>${a.type}</td>
-      <td>${a.summary}</td>
-      <td>${a.impact}</td>
-      <td>${a.action}</td>
-    </tr>
-  `).join("");
+
+  const brandMap = {};
+  FIN_REVENUE_ROWS.forEach((r) => {
+    brandMap[r.brand] = (brandMap[r.brand] || 0) + r.amount;
+  });
+  const brandTotal = Object.values(brandMap).reduce((s, n) => s + n, 0);
+  const conc = Object.entries(brandMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  document.getElementById("fin-conc-list").innerHTML = conc.map(([brand, amt]) => {
+    const pct = brandTotal ? (amt / brandTotal) * 100 : 0;
+    return `<div class="yc-conc-row">
+      <div class="yc-conc-name">${brand}</div>
+      <div class="yc-conc-amt">¥ ${fmtMoney(amt)}</div>
+      ${shareBar(pct)}
+    </div>`;
+  }).join("");
+
+  document.getElementById("fin-alert-list").innerHTML = FIN_ALERTS.map((a) => {
+    const goto = a.type.includes("回款") ? "fin-cash" : a.type.includes("毛利") ? "fin-margin" : "fin-revenue";
+    return `<button type="button" class="yc-alert-row" data-fin-goto="${goto}">
+      ${levelTag(a.level)}
+      <span class="yc-alert-body">
+        <b>${a.type}</b>
+        <span>${a.summary}</span>
+      </span>
+      <span class="yc-alert-impact">${a.impact}</span>
+      <span class="yc-alert-act">${a.action}</span>
+    </button>`;
+  }).join("");
+  document.querySelectorAll("#fin-alert-list [data-fin-goto]").forEach((btn) => {
+    btn.addEventListener("click", () => go(btn.getAttribute("data-fin-goto")));
+  });
+  const hiddenTbody = document.querySelector("#fin-alert-table tbody");
+  if (hiddenTbody) {
+    hiddenTbody.innerHTML = FIN_ALERTS.map((a) => `<tr><td>${a.type}</td></tr>`).join("");
+  }
 }
 
 function ensureFinRevFilters() {
@@ -1307,37 +1373,24 @@ function renderFinRevenue() {
   const depts = new Set(rows.map((r) => r.group)).size;
   const brands = new Set(rows.map((r) => r.brand)).size;
   const delta = fmtDelta(total, prevTotal, "元");
-  document.getElementById("fin-rev-summary").innerHTML = `
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">筛选后确认收入</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(total)}</div>
-      <div class="a3-mt-8 ${delta.cls}" style="font-size:12px">${delta.text}</div>
-    </div></div>
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">涉及营销部</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${depts}</div>
-    </div></div>
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">涉及品牌</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${brands}</div>
-    </div></div>
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">明细行</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${rows.length}</div>
-    </div></div>
-  `;
+  document.getElementById("fin-rev-summary").innerHTML = [
+    kpiCell({ label: "筛选后确认收入", main: `¥ ${fmtMoney(total)}`, delta, spark: [12, 13, 12.5, 14, 15, 16, total / 100000], invert: false }),
+    `<div class="yc-kpi-cell"><div class="yc-kpi-label">涉及营销部</div><div class="yc-kpi-value">${depts}</div><div class="yc-kpi-foot"><span class="yc-muted">一部–九部</span></div></div>`,
+    `<div class="yc-kpi-cell"><div class="yc-kpi-label">涉及品牌</div><div class="yc-kpi-value">${brands}</div><div class="yc-kpi-foot"><span class="yc-muted">BRAND_LINE_MASTER</span></div></div>`,
+    `<div class="yc-kpi-cell"><div class="yc-kpi-label">明细行</div><div class="yc-kpi-value">${rows.length}</div><div class="yc-kpi-foot"><span class="yc-muted">部门 → 品牌 → 品线</span></div></div>`,
+  ].join("");
   document.querySelector("#fin-rev-table tbody").innerHTML = rows.length ? rows.map((r) => {
     const d = fmtDelta(r.amount, r.prev, "元");
-    const share = total ? ((r.amount / total) * 100).toFixed(1) : "0.0";
+    const share = total ? ((r.amount / total) * 100) : 0;
     return `
       <tr>
         <td>${r.group}</td>
         <td>${r.brand}</td>
         <td>${r.line}</td>
         <td>${EXECUTE_LABEL[r.type] || r.type}</td>
-        <td>¥ ${fmtMoney(r.amount)}</td>
-        <td class="${d.cls}">${d.text}</td>
-        <td>${share}%</td>
+        <td class="yc-num">¥ ${fmtMoney(r.amount)}</td>
+        <td class="yc-num ${d.cls}">${d.text.replace("较昨日 ", "")}</td>
+        <td>${shareBar(share)}</td>
       </tr>
     `;
   }).join("") : `<tr><td colspan="7" class="a3-text-secondary">无匹配数据</td></tr>`;
@@ -1345,39 +1398,30 @@ function renderFinRevenue() {
 
 function renderFinCash() {
   const isCfo = state.role === "cfo" || state.role === "finance" || state.role === "admin";
-  document.getElementById("fin-cash-role-hint").textContent = isCfo ? "CFO 视角（含账龄）" : "CEO 摘要视角";
+  document.getElementById("fin-cash-role-hint").textContent = isCfo ? "CFO 视角" : "CEO 摘要";
   const cashIn = FIN_KPIS.find((k) => k.key === "cashin");
   const notDue = FIN_AGING.find((a) => a.bucket === "未到期");
   const overdue = FIN_AGING.filter((a) => a.bucket !== "未到期").reduce((s, a) => s + a.amount, 0);
   const overduePrev = 1680000;
-  document.getElementById("fin-cash-kpis").innerHTML = `
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">当日回款</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(cashIn.value)}</div>
-      <div class="a3-mt-8 ${fmtDelta(cashIn.value, cashIn.prev, "元").cls}" style="font-size:12px">${fmtDelta(cashIn.value, cashIn.prev, "元").text}</div>
-    </div></div>
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">未到期应收</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(notDue.amount)}</div>
-      <div class="a3-text-secondary a3-mt-8" style="font-size:12px">${notDue.clients} 家客户</div>
-    </div></div>
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">逾期合计</div>
-      <div class="a3-text-brand a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(overdue)}</div>
-      <div class="a3-mt-8 ${fmtDelta(overdue, overduePrev, "元", true).cls}" style="font-size:12px">${fmtDelta(overdue, overduePrev, "元", true).text}</div>
-    </div></div>
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">当日入账笔数</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">${FIN_CASH_FLOWS.filter((f) => f.amount > 0).length}</div>
-    </div></div>
-  `;
+  document.getElementById("fin-cash-kpis").innerHTML = [
+    kpiCell({ label: "当日回款", main: `¥ ${fmtMoney(cashIn.value)}`, delta: fmtDelta(cashIn.value, cashIn.prev, "元"), spark: cashIn.spark }),
+    `<div class="yc-kpi-cell"><div class="yc-kpi-label">未到期应收</div><div class="yc-kpi-value">¥ ${fmtMoney(notDue.amount)}</div><div class="yc-kpi-foot"><span class="yc-muted">${notDue.clients} 家客户</span></div></div>`,
+    kpiCell({ label: "逾期合计", main: `¥ ${fmtMoney(overdue)}`, delta: fmtDelta(overdue, overduePrev, "元", true), spark: [15, 16, 16.5, 17, 16.8, 17.2, 18.9], invert: true }),
+    `<div class="yc-kpi-cell"><div class="yc-kpi-label">DSO（占位）</div><div class="yc-kpi-value">42<span class="yc-kpi-unit">天</span></div><div class="yc-kpi-foot"><span class="yc-muted">需财务公式 / 真接口</span></div></div>`,
+  ].join("");
   const agingTotal = FIN_AGING.reduce((s, a) => s + a.amount, 0);
+  const tones = ["#52C41A", "#FAAD14", "#c9677d", "#ff4d4f"];
+  document.getElementById("fin-aging-bars").innerHTML = `<div class="yc-stack">${FIN_AGING.map((a, i) => {
+    const pct = agingTotal ? (a.amount / agingTotal) * 100 : 0;
+    return `<i style="width:${pct}%;background:${tones[i]}" title="${a.bucket}"></i>`;
+  }).join("")}</div>
+  <div class="yc-stack-legend">${FIN_AGING.map((a, i) => `<span><i style="background:${tones[i]}"></i>${a.bucket}</span>`).join("")}</div>`;
   document.querySelector("#fin-aging-table tbody").innerHTML = FIN_AGING.map((a) => `
     <tr>
       <td>${a.bucket}</td>
-      <td>${a.clients}</td>
-      <td>¥ ${fmtMoney(a.amount)}</td>
-      <td>${((a.amount / agingTotal) * 100).toFixed(1)}%</td>
+      <td class="yc-num">${a.clients}</td>
+      <td class="yc-num">¥ ${fmtMoney(a.amount)}</td>
+      <td>${shareBar(agingTotal ? (a.amount / agingTotal) * 100 : 0)}</td>
       <td class="cfo-only">${a.focus}</td>
     </tr>
   `).join("");
@@ -1391,7 +1435,7 @@ function renderFinCash() {
       <tr>
         <td>${f.client}</td>
         <td>${f.brand}</td>
-        <td>${f.amount ? `¥ ${fmtMoney(f.amount)}` : "—"}</td>
+        <td class="yc-num">${f.amount ? `¥ ${fmtMoney(f.amount)}` : "—"}</td>
         <td>${f.method}</td>
         <td>${st}</td>
       </tr>
@@ -1407,64 +1451,49 @@ function renderFinMargin() {
   const gross = FIN_KPIS.find((k) => k.key === "gross");
   const margin = FIN_KPIS.find((k) => k.key === "margin");
   const cost = FIN_KPIS.find((k) => k.key === "cost");
-  document.getElementById("fin-margin-kpis").innerHTML = `
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">当日可归成本</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(cost.value)}</div>
-      <div class="a3-mt-8 ${fmtDelta(cost.value, cost.prev, "元", true).cls}" style="font-size:12px">${fmtDelta(cost.value, cost.prev, "元", true).text}</div>
-    </div></div>
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">当日毛利</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600">¥ ${fmtMoney(gross.value)}</div>
-      <div class="a3-mt-8 ${fmtDelta(gross.value, gross.prev, "元").cls}" style="font-size:12px">${fmtDelta(gross.value, gross.prev, "元").text}</div>
-    </div></div>
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">当日毛利率</div>
-      <div class="a3-text-brand a3-mt-8" style="font-size:22px;font-weight:600">${margin.value.toFixed(1)}%</div>
-      <div class="a3-mt-8 ${fmtDelta(margin.value, margin.prev, "%").cls}" style="font-size:12px">${fmtDelta(margin.value, margin.prev, "%").text}</div>
-    </div></div>
-    <div class="a3-card yc-stat"><div class="a3-card-body">
-      <div class="a3-text-secondary" style="font-size:12px">人力日成本</div>
-      <div class="a3-text-primary a3-mt-8" style="font-size:18px;font-weight:600">不拆日</div>
-      <div class="a3-text-secondary a3-mt-8" style="font-size:12px">见已锁定周工时对照</div>
-    </div></div>
-  `;
+  document.getElementById("fin-margin-kpis").innerHTML = [
+    kpiCell({ label: "当日可归成本", main: `¥ ${fmtMoney(cost.value)}`, delta: fmtDelta(cost.value, cost.prev, "元", true), spark: cost.spark, invert: true }),
+    kpiCell({ label: "当日毛利", main: `¥ ${fmtMoney(gross.value)}`, delta: fmtDelta(gross.value, gross.prev, "元"), spark: gross.spark }),
+    kpiCell({ label: "当日毛利率", main: `${margin.value.toFixed(1)}%`, delta: fmtDelta(margin.value, margin.prev, "%"), spark: margin.spark }),
+    `<div class="yc-kpi-cell"><div class="yc-kpi-label">人力日成本</div><div class="yc-kpi-value">不拆日</div><div class="yc-kpi-foot"><span class="yc-muted">见已锁定周工时</span></div></div>`,
+  ].join("");
   const mixSum = FIN_COST_MIX.filter((c) => c.amount != null).reduce((s, c) => s + c.amount, 0);
+  document.getElementById("fin-cost-bars").innerHTML = FIN_COST_MIX.filter((c) => c.amount != null).map((c) => {
+    const pct = mixSum ? (c.amount / mixSum) * 100 : 0;
+    return `<div class="yc-conc-row">
+      <div class="yc-conc-name">${c.name}</div>
+      <div class="yc-conc-amt">¥ ${fmtMoney(c.amount)}</div>
+      ${shareBar(pct)}
+    </div>`;
+  }).join("");
   document.querySelector("#fin-cost-mix-table tbody").innerHTML = FIN_COST_MIX.map((c) => {
     if (c.amount == null) {
-      return `
-        <tr>
-          <td>${c.name}</td>
-          <td class="a3-text-secondary">—</td>
-          <td class="a3-text-secondary">—</td>
-          <td class="a3-text-secondary">—</td>
-          <td>${c.note}</td>
-        </tr>
-      `;
-    }
-    const d = fmtDelta(c.amount, c.prev, "元");
-    return `
-      <tr>
+      return `<tr>
         <td>${c.name}</td>
-        <td>¥ ${fmtMoney(c.amount)}</td>
-        <td class="${d.cls}">${d.text}</td>
-        <td>${((c.amount / mixSum) * 100).toFixed(1)}%</td>
-        <td>${c.note}</td>
-      </tr>
-    `;
+        <td class="yc-num yc-muted">—</td>
+        <td class="yc-num yc-muted">—</td>
+        <td class="yc-muted">${c.note}</td>
+      </tr>`;
+    }
+    const d = fmtDelta(c.amount, c.prev, "元", true);
+    return `<tr>
+      <td>${c.name}</td>
+      <td class="yc-num">¥ ${fmtMoney(c.amount)}</td>
+      <td class="yc-num ${d.cls}">${d.text.replace("较昨日 ", "")}</td>
+      <td>${shareBar(mixSum ? (c.amount / mixSum) * 100 : 0)}</td>
+    </tr>`;
   }).join("");
   document.querySelector("#fin-brand-margin-table tbody").innerHTML = FIN_BRAND_MARGIN.map((b) => {
     const g = b.revenue - b.cost;
-    const rate = b.revenue ? ((g / b.revenue) * 100).toFixed(1) : "0.0";
-    return `
-      <tr>
-        <td>${b.brand}</td>
-        <td>¥ ${fmtMoney(b.revenue)}</td>
-        <td>¥ ${fmtMoney(b.cost)}</td>
-        <td>¥ ${fmtMoney(g)}</td>
-        <td>${rate}%</td>
-      </tr>
-    `;
+    const rate = b.revenue ? (g / b.revenue) * 100 : 0;
+    const warn = rate < 25;
+    return `<tr class="${warn ? "yc-row-warn" : ""}">
+      <td>${b.brand}</td>
+      <td class="yc-num">¥ ${fmtMoney(b.revenue)}</td>
+      <td class="yc-num">¥ ${fmtMoney(b.cost)}</td>
+      <td class="yc-num">¥ ${fmtMoney(g)}</td>
+      <td>${rate.toFixed(1)}%${warn ? " <span class=\"yc-muted\">偏低</span>" : ""}</td>
+    </tr>`;
   }).join("");
   document.querySelector("#fin-labor-week-table tbody").innerHTML = FIN_LABOR_WEEK.map((w) => {
     const locked = w.status === "locked";
@@ -1475,16 +1504,14 @@ function renderFinMargin() {
     const efficiency = locked && w.days
       ? `¥ ${fmtMoney(Math.round(w.weekRevenue / w.days))} / 人天`
       : "人天未锁定";
-    return `
-      <tr>
-        <td>${w.week}</td>
-        <td>${tag}</td>
-        <td>${days}</td>
-        <td>¥ ${fmtMoney(w.weekRevenue)}</td>
-        <td>${efficiency}</td>
-        <td>${w.note}</td>
-      </tr>
-    `;
+    return `<tr>
+      <td>${w.week}</td>
+      <td>${tag}</td>
+      <td class="yc-num">${days}</td>
+      <td class="yc-num">¥ ${fmtMoney(w.weekRevenue)}</td>
+      <td>${efficiency}</td>
+      <td class="yc-muted">${w.note}</td>
+    </tr>`;
   }).join("");
 }
 

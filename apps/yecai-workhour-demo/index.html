@@ -435,36 +435,92 @@
         </section>
 
         <!-- Finance: 今日总览 -->
-        <section class="page" id="page-fin-overview">
-          <div class="yc-title-row a3-mb-16 a3-flex-between" style="align-items:flex-start">
+        <section class="page yc-cockpit" id="page-fin-overview">
+          <div class="yc-cockpit-mast">
             <div>
-              <h1 class="yc-title a3-text-primary">今日总览</h1>
-              <p class="a3-text-secondary a3-mt-4">日快照（T+1 财务确认口径 · 脱敏样例）。CEO 默认落地页；较昨日对照，异常最多 3 条。</p>
+              <div class="yc-kicker">财务日报 · T+1 确认</div>
+              <h1 class="yc-cockpit-title">今日总览</h1>
             </div>
-            <div class="yc-fin-meta">
-              <span class="a3-tag a3-tag-default" id="fin-overview-asof">截至 2026-10-05</span>
-              <span class="a3-tag a3-tag-info" id="fin-overview-role-hint">CEO 视角</span>
+            <div class="yc-cockpit-meta">
+              <span class="yc-pill" id="fin-overview-asof">截至 2026-10-05</span>
+              <span class="yc-pill yc-pill-brand" id="fin-overview-role-hint">CEO 视角</span>
             </div>
           </div>
-          <div class="a3-alert a3-alert-info a3-mb-16">
-            <i class="fas fa-info-circle"></i>
-            <span>样例日快照，非正式财务数。收入=执行单确认额；人力成本不拆「今日」——仅周锁定工时对照见成本页。</span>
-          </div>
-          <div class="yc-stats yc-stats-6 a3-mb-16" id="fin-kpi-grid"></div>
-          <div class="a3-card">
-            <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
-              <span class="a3-card-title">异常 / 待拍板（3）</span>
-              <button type="button" class="a3-btn a3-btn-default a3-btn-sm" data-fin-goto="fin-cash"><i class="fas fa-arrow-right"></i> 回款明细</button>
+          <p class="yc-cockpit-lead">执行单确认收入 · 较昨日 / 近 7 日 · 异常最多 3 条。人力不拆今日，见成本页周锁定。</p>
+          <div class="yc-kpi-strip" id="fin-kpi-grid"></div>
+          <div class="yc-cockpit-split">
+            <div class="yc-panel">
+              <div class="yc-panel-head">
+                <span>当日贡献浓度</span>
+                <button type="button" class="a3-btn a3-btn-text a3-btn-sm" data-fin-goto="fin-revenue">收入下钻</button>
+              </div>
+              <div id="fin-conc-list" class="yc-conc"></div>
             </div>
-            <div class="a3-table-wrapper">
-              <table class="a3-table" id="fin-alert-table">
+            <div class="yc-panel">
+              <div class="yc-panel-head">
+                <span>待拍板</span>
+                <button type="button" class="a3-btn a3-btn-text a3-btn-sm" data-fin-goto="fin-cash">回款</button>
+              </div>
+              <div id="fin-alert-list" class="yc-alerts"></div>
+            </div>
+          </div>
+          <table class="a3-table" id="fin-alert-table" hidden><tbody></tbody></table>
+        </section>
+
+        <!-- Finance: 收入与贡献 -->
+        <section class="page yc-cockpit" id="page-fin-revenue">
+          <div class="yc-cockpit-mast">
+            <div>
+              <div class="yc-kicker">财务日报 · 贡献下钻</div>
+              <h1 class="yc-cockpit-title">收入与贡献</h1>
+            </div>
+            <div class="yc-cockpit-filters">
+              <div class="yc-field">
+                <label>快照日</label>
+                <div class="a3-select-wrapper">
+                  <select class="a3-select" id="fin-rev-day">
+                    <option value="2026-10-05" selected>2026-10-05（T+1）</option>
+                    <option value="2026-10-04">2026-10-04</option>
+                  </select>
+                  <i class="fas fa-chevron-down a3-select-arrow"></i>
+                </div>
+              </div>
+              <div class="yc-field">
+                <label>执行单类型 L1</label>
+                <div class="a3-select-wrapper">
+                  <select class="a3-select" id="fin-rev-type">
+                    <option value="">全部类型</option>
+                  </select>
+                  <i class="fas fa-chevron-down a3-select-arrow"></i>
+                </div>
+              </div>
+              <div class="yc-field">
+                <label>营销部</label>
+                <div class="a3-select-wrapper">
+                  <select class="a3-select" id="fin-rev-group">
+                    <option value="">全部</option>
+                  </select>
+                  <i class="fas fa-chevron-down a3-select-arrow"></i>
+                </div>
+              </div>
+              <button type="button" class="a3-btn a3-btn-primary" id="fin-rev-query">筛选</button>
+            </div>
+          </div>
+          <p class="yc-cockpit-lead">营销一部–九部 → 品牌 → 品线。L1 可选。金额脱敏样例。</p>
+          <div class="yc-kpi-strip yc-kpi-strip-4" id="fin-rev-summary"></div>
+          <div class="yc-panel">
+            <div class="yc-panel-head"><span>明细</span><span class="yc-muted">部门 · 品牌 · 品线 · 类型</span></div>
+            <div class="a3-table-wrapper yc-dense-table">
+              <table class="a3-table" id="fin-rev-table">
                 <thead>
                   <tr>
-                    <th>优先级</th>
-                    <th>类型</th>
-                    <th>摘要</th>
-                    <th>影响</th>
-                    <th>建议动作</th>
+                    <th>营销部</th>
+                    <th>品牌</th>
+                    <th>品线</th>
+                    <th>执行单类型</th>
+                    <th class="yc-num">确认收入</th>
+                    <th class="yc-num">较昨日</th>
+                    <th>占比</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -473,57 +529,47 @@
           </div>
         </section>
 
-        <!-- Finance: 收入与贡献 -->
-        <section class="page" id="page-fin-revenue">
-          <div class="yc-title-row a3-mb-16">
-            <h1 class="yc-title a3-text-primary">收入与贡献</h1>
-            <p class="a3-text-secondary a3-mt-4">部门（营销一部–九部）→ 品牌 → 品线下钻。可选执行单类型 L1 过滤。金额为脱敏样例。</p>
+        <!-- Finance: 回款与现金 -->
+        <section class="page yc-cockpit" id="page-fin-cash">
+          <div class="yc-cockpit-mast">
+            <div>
+              <div class="yc-kicker">财务日报 · 工作资本</div>
+              <h1 class="yc-cockpit-title">回款与现金</h1>
+            </div>
+            <span class="yc-pill yc-pill-brand" id="fin-cash-role-hint">CFO 视角</span>
           </div>
-          <div class="a3-card">
-            <div class="a3-card-body">
-              <div class="yc-toolbar a3-mb-16">
-                <div class="yc-field">
-                  <label class="a3-text-secondary">快照日</label>
-                  <div class="a3-select-wrapper">
-                    <select class="a3-select" id="fin-rev-day">
-                      <option value="2026-10-05" selected>2026-10-05（T+1）</option>
-                      <option value="2026-10-04">2026-10-04</option>
-                    </select>
-                    <i class="fas fa-chevron-down a3-select-arrow"></i>
-                  </div>
-                </div>
-                <div class="yc-field">
-                  <label class="a3-text-secondary">执行单类型 L1</label>
-                  <div class="a3-select-wrapper">
-                    <select class="a3-select" id="fin-rev-type">
-                      <option value="">全部类型</option>
-                    </select>
-                    <i class="fas fa-chevron-down a3-select-arrow"></i>
-                  </div>
-                </div>
-                <div class="yc-field">
-                  <label class="a3-text-secondary">营销部</label>
-                  <div class="a3-select-wrapper">
-                    <select class="a3-select" id="fin-rev-group">
-                      <option value="">全部</option>
-                    </select>
-                    <i class="fas fa-chevron-down a3-select-arrow"></i>
-                  </div>
-                </div>
-                <button type="button" class="a3-btn a3-btn-primary" id="fin-rev-query"><i class="fas fa-search"></i> 查询</button>
-              </div>
-              <div class="yc-stats a3-mb-16" id="fin-rev-summary"></div>
-              <div class="a3-table-wrapper">
-                <table class="a3-table" id="fin-rev-table">
+          <p class="yc-cockpit-lead">当日回款、未到期、逾期。CFO 默认页；CEO 看总额。账龄为脱敏样例，DSO 仅占位。</p>
+          <div class="yc-kpi-strip yc-kpi-strip-4" id="fin-cash-kpis"></div>
+          <div class="yc-cockpit-split">
+            <div class="yc-panel">
+              <div class="yc-panel-head"><span>账龄构成</span><span class="yc-muted">时点余额 · 样例</span></div>
+              <div id="fin-aging-bars" class="yc-aging"></div>
+              <div class="a3-table-wrapper yc-dense-table">
+                <table class="a3-table" id="fin-aging-table">
                   <thead>
                     <tr>
-                      <th>营销部</th>
-                      <th>品牌</th>
-                      <th>品线</th>
-                      <th>执行单类型</th>
-                      <th>确认收入(元)</th>
-                      <th>较昨日</th>
+                      <th>账龄桶</th>
+                      <th class="yc-num">客户</th>
+                      <th class="yc-num">应收</th>
                       <th>占比</th>
+                      <th class="cfo-only">关注</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="yc-panel" id="fin-cash-detail-card">
+              <div class="yc-panel-head"><span>当日流水</span><span class="yc-muted">脱敏客户</span></div>
+              <div class="a3-table-wrapper yc-dense-table">
+                <table class="a3-table" id="fin-cash-flow-table">
+                  <thead>
+                    <tr>
+                      <th>客户</th>
+                      <th>品牌</th>
+                      <th class="yc-num">回款</th>
+                      <th>方式</th>
+                      <th>状态</th>
                     </tr>
                   </thead>
                   <tbody></tbody>
@@ -533,110 +579,63 @@
           </div>
         </section>
 
-        <!-- Finance: 回款与现金 -->
-        <section class="page" id="page-fin-cash">
-          <div class="yc-title-row a3-mb-16 a3-flex-between" style="align-items:flex-start">
-            <div>
-              <h1 class="yc-title a3-text-primary">回款与现金</h1>
-              <p class="a3-text-secondary a3-mt-4">当日回款、未到期应收、逾期。CFO 默认落地页；CEO 仅看总额摘要。</p>
-            </div>
-            <span class="a3-tag a3-tag-info" id="fin-cash-role-hint">CFO 视角</span>
-          </div>
-          <div class="yc-stats a3-mb-16" id="fin-cash-kpis"></div>
-          <div class="a3-card a3-mb-16">
-            <div class="a3-card-header"><span class="a3-card-title">账龄桶（脱敏客户）</span></div>
-            <div class="a3-table-wrapper">
-              <table class="a3-table" id="fin-aging-table">
-                <thead>
-                  <tr>
-                    <th>账龄桶</th>
-                    <th>客户数</th>
-                    <th>应收余额(元)</th>
-                    <th>占比</th>
-                    <th class="cfo-only">关注</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="a3-card" id="fin-cash-detail-card">
-            <div class="a3-card-header"><span class="a3-card-title">当日回款流水（样例）</span></div>
-            <div class="a3-table-wrapper">
-              <table class="a3-table" id="fin-cash-flow-table">
-                <thead>
-                  <tr>
-                    <th>客户（脱敏）</th>
-                    <th>关联品牌</th>
-                    <th>回款额(元)</th>
-                    <th>方式</th>
-                    <th>状态</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
         <!-- Finance: 成本与毛利 -->
-        <section class="page" id="page-fin-margin">
-          <div class="yc-title-row a3-mb-16">
-            <h1 class="yc-title a3-text-primary">成本与毛利</h1>
-            <p class="a3-text-secondary a3-mt-4">当日成本结构 + 毛利。人力仅引用<strong>已锁定周工时</strong>人天对照，不伪造「今日人力成本」。</p>
+        <section class="page yc-cockpit" id="page-fin-margin">
+          <div class="yc-cockpit-mast">
+            <div>
+              <div class="yc-kicker">财务日报 · 盈利质量</div>
+              <h1 class="yc-cockpit-title">成本与毛利</h1>
+            </div>
+            <span class="yc-pill">人力仅周锁定 · 不拆日</span>
           </div>
-          <div class="a3-alert a3-alert-warning a3-mb-16">
-            <i class="fas fa-lock"></i>
-            <span>工时为周粒度锁定（W38 已锁 / W39 填报中）。下方「人力」行为周对照，非日成本拆分。</span>
-          </div>
-          <div class="yc-stats a3-mb-16" id="fin-margin-kpis"></div>
-          <div class="a3-card a3-mb-16">
-            <div class="a3-card-header"><span class="a3-card-title">当日成本结构（媒体 / 制作 / 其他）</span></div>
-            <div class="a3-table-wrapper">
-              <table class="a3-table" id="fin-cost-mix-table">
-                <thead>
-                  <tr>
-                    <th>成本项</th>
-                    <th>金额(元)</th>
-                    <th>较昨日</th>
-                    <th>占比</th>
-                    <th>说明</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
+          <p class="yc-cockpit-lead">可归成本 = 媒体 / 制作 / 其他。确认收入 − 可归成本。W38 已锁人天；W39 填报中不展示日人力成本。</p>
+          <div class="yc-kpi-strip yc-kpi-strip-4" id="fin-margin-kpis"></div>
+          <div class="yc-cockpit-split">
+            <div class="yc-panel">
+              <div class="yc-panel-head"><span>当日成本结构</span></div>
+              <div id="fin-cost-bars" class="yc-conc"></div>
+              <div class="a3-table-wrapper yc-dense-table">
+                <table class="a3-table" id="fin-cost-mix-table">
+                  <thead>
+                    <tr>
+                      <th>成本项</th>
+                      <th class="yc-num">金额</th>
+                      <th class="yc-num">较昨日</th>
+                      <th>占比</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="yc-panel">
+              <div class="yc-panel-head"><span>品牌毛利</span><span class="yc-muted">不含日人力</span></div>
+              <div class="a3-table-wrapper yc-dense-table">
+                <table class="a3-table" id="fin-brand-margin-table">
+                  <thead>
+                    <tr>
+                      <th>品牌</th>
+                      <th class="yc-num">收入</th>
+                      <th class="yc-num">成本</th>
+                      <th class="yc-num">毛利</th>
+                      <th>毛利率</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
             </div>
           </div>
-          <div class="a3-card a3-mb-16">
-            <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
-              <span class="a3-card-title">品牌毛利（样例）</span>
-              <span class="a3-text-secondary" style="font-size:12px">确认收入 − 当日可归成本（不含日人力）</span>
-            </div>
-            <div class="a3-table-wrapper">
-              <table class="a3-table" id="fin-brand-margin-table">
-                <thead>
-                  <tr>
-                    <th>品牌</th>
-                    <th>确认收入</th>
-                    <th>可归成本</th>
-                    <th>毛利</th>
-                    <th>毛利率</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="a3-card">
-            <div class="a3-card-header"><span class="a3-card-title">人力投入周对照（已锁定工时）</span></div>
-            <div class="a3-table-wrapper">
+          <div class="yc-panel">
+            <div class="yc-panel-head"><span>人力周对照</span><span class="yc-muted">已锁定才出人天</span></div>
+            <div class="a3-table-wrapper yc-dense-table">
               <table class="a3-table" id="fin-labor-week-table">
                 <thead>
                   <tr>
                     <th>周次</th>
                     <th>状态</th>
-                    <th>锁定人天</th>
-                    <th>本周确认收入(元)</th>
+                    <th class="yc-num">锁定人天</th>
+                    <th class="yc-num">本周确认收入</th>
                     <th>人效对照</th>
                     <th>备注</th>
                   </tr>
