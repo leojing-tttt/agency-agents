@@ -10,6 +10,7 @@ npx --yes serve -l 5179 .
 # http://localhost:5179/
 # 观测台（高管财务）：顶栏「观测台」· #obs / #fin-overview | #fin-revenue | #fin-cash | #fin-margin
 # 切换身份 CEO / CFO 后自动进入观测台总览
+# 顶栏「配色」：冷静（默认冷蓝灰）| 经典（上一版 A3 暖色），localStorage: yecai-theme-v1
 ```
 
 ## Skill / design source

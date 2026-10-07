@@ -253,6 +253,29 @@ const FIN_BRAND_DAY0 = {
 const FIN_COMPARE_KEY = "yecai-fin-compare-mode-v1";
 const FIN_COMPARE_MODES = ["both", "mom", "yoy", "none"];
 const FIN_FORMULA_OPEN_KEY = "yecai-fin-formula-open-v1";
+const THEME_KEY = "yecai-theme-v1";
+
+function currentTheme() {
+  const t = document.documentElement.getAttribute("data-yc-theme");
+  return t === "warm" ? "warm" : "cool";
+}
+
+function syncThemeControls() {
+  const t = currentTheme();
+  document.querySelectorAll(".yc-theme-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.getAttribute("data-yc-theme") === t);
+  });
+}
+
+function setTheme(next) {
+  const t = next === "warm" ? "warm" : "cool";
+  document.documentElement.setAttribute("data-yc-theme", t);
+  try { localStorage.setItem(THEME_KEY, t); } catch (_) { /* ignore */ }
+  syncThemeControls();
+  const active = document.querySelector(".page.active");
+  const page = active ? active.id.replace(/^page-/, "") : "";
+  if (page && typeof go === "function") go(page);
+}
 
 /** 客户 → 品牌（业财合同主体；一客户可多品牌） */
 const CLIENT_BRANDS = {
@@ -957,6 +980,11 @@ document.querySelectorAll(".yc-obs-tab[data-page]").forEach((tab) => {
   tab.addEventListener("click", () => go(tab.dataset.page));
 });
 
+document.querySelectorAll(".yc-theme-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setTheme(btn.getAttribute("data-yc-theme")));
+});
+syncThemeControls();
+
 document.getElementById("obs-entry")?.addEventListener("click", () => {
   if (!isExecRole(state.role)) {
     toast("warning", "请切换为 CEO / CFO（或财务）后进入观测台");
@@ -1641,7 +1669,8 @@ function sparkline(values, invert) {
   }).join(" ");
   const up = values[values.length - 1] >= values[0];
   const good = invert ? !up : up;
-  const color = good ? "#2F9B6A" : "#D4524A";
+  const warm = currentTheme() === "warm";
+  const color = good ? (warm ? "#52C41A" : "#2F9B6A") : (warm ? "#ff4d4f" : "#D4524A");
   return `<svg class="yc-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline fill="none" stroke="${color}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" points="${pts}"/></svg>`;
 }
 
@@ -1969,7 +1998,9 @@ function renderFinCash() {
     `<div class="yc-kpi-cell"><div class="yc-kpi-label">DSO（占位）</div><div class="yc-kpi-value">42<span class="yc-kpi-unit">天</span></div><div class="yc-kpi-foot"><span class="yc-muted">需财务公式 / 真接口</span></div></div>`,
   ].join("");
   const agingTotal = FIN_AGING.reduce((s, a) => s + a.amount, 0);
-  const tones = ["#2F9B6A", "#C9912A", "#2F6F8F", "#D4524A"];
+  const tones = currentTheme() === "warm"
+    ? ["#52C41A", "#FAAD14", "#c9677d", "#ff4d4f"]
+    : ["#2F9B6A", "#C9912A", "#2F6F8F", "#D4524A"];
   document.getElementById("fin-aging-bars").innerHTML = `<div class="yc-stack">${FIN_AGING.map((a, i) => {
     const pct = agingTotal ? (a.amount / agingTotal) * 100 : 0;
     return `<i style="width:${pct}%;background:${tones[i]}" title="${a.bucket}"></i>`;

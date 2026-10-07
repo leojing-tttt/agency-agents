@@ -1,6 +1,7 @@
 /* Layout chrome on top of A3 SaaS UI (a3-components.css).
-   Cool finance palette: ink / steel / blue-gray. Custom classes yc-*. */
-:root {
+   Dual theme via html[data-yc-theme=cool|warm]. Custom classes yc-*. */
+:root,
+html[data-yc-theme="cool"] {
   --yc-ink: #0F1724;
   --yc-ink-mid: #1A2433;
   --yc-ink-soft: #243044;
@@ -11,6 +12,29 @@
   --yc-line: #D5DEE8;
   --yc-on-ink: #E8EEF4;
   --yc-on-ink-muted: rgba(232, 238, 244, 0.62);
+  --yc-tab-accent: #5BA3C4;
+  --yc-kicker: #6B7C8F;
+  --yc-formula-border: #C5D5E2;
+  --yc-formula-bg: #F5F9FC;
+  --yc-formula-divider: #D7E3ED;
+}
+
+html[data-yc-theme="warm"] {
+  --yc-ink: #1c1917;
+  --yc-ink-mid: #241f1c;
+  --yc-ink-soft: #2a2624;
+  --yc-steel: #c9677d;
+  --yc-steel-soft: rgba(201, 103, 125, 0.22);
+  --yc-surface: #f6f2ee;
+  --yc-surface-deep: #ece7e1;
+  --yc-line: #e4ddd6;
+  --yc-on-ink: #f7f1ea;
+  --yc-on-ink-muted: rgba(247, 241, 234, 0.72);
+  --yc-tab-accent: #c9677d;
+  --yc-kicker: #8a7a74;
+  --yc-formula-border: #ead0d6;
+  --yc-formula-bg: #fff8f9;
+  --yc-formula-divider: #f0e0e4;
 }
 
 *,
@@ -171,6 +195,62 @@ body.yc-role-fin .fin-only { display: inline-flex !important; }
   align-items: center;
   gap: 12px;
 }
+
+/* 配色切换：冷静 | 经典 */
+.yc-theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--a3-border);
+  border-radius: 999px;
+  background: var(--a3-bg-card);
+  color: var(--a3-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.yc-theme-chip-label {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.yc-theme-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--a3-bg-body);
+  gap: 2px;
+}
+.yc-theme-btn {
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--a3-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.yc-theme-btn:hover { color: var(--a3-primary); }
+.yc-theme-btn.active {
+  background: var(--a3-primary);
+  color: #fff;
+  font-weight: 600;
+}
+body.yc-fin-active .yc-theme-chip {
+  background: rgba(232, 238, 244, 0.08);
+  border-color: rgba(232, 238, 244, 0.18);
+  color: var(--yc-on-ink-muted);
+}
+body.yc-fin-active .yc-theme-seg {
+  background: rgba(15, 23, 36, 0.35);
+}
+body.yc-fin-active .yc-theme-btn { color: var(--yc-on-ink-muted); }
+body.yc-fin-active .yc-theme-btn:hover { color: #fff; }
+body.yc-fin-active .yc-theme-btn.active {
+  background: var(--yc-steel);
+  color: #fff;
+}
 .yc-role-select-wrap {
   width: auto;
   max-width: 200px;
@@ -290,7 +370,7 @@ body.yc-fin-active .yc-obs-entry {
   right: 14px;
   bottom: 2px;
   height: 2px;
-  background: #5BA3C4;
+  background: var(--yc-tab-accent);
   border-radius: 2px;
 }
 .yc-obs-exit {
@@ -347,7 +427,7 @@ body.yc-fin-active .yc-cockpit-title {
 body.yc-fin-active .yc-kicker {
   letter-spacing: 0.18em;
   text-transform: none;
-  color: #6B7C8F;
+  color: var(--yc-kicker);
 }
 body.yc-fin-active .yc-kpi-strip,
 body.yc-fin-active .yc-panel {
@@ -527,9 +607,9 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 
 .yc-formula {
   margin: 0 0 10px;
-  border: 1px solid #C5D5E2;
+  border: 1px solid var(--yc-formula-border);
   border-radius: 8px;
-  background: linear-gradient(180deg, #F5F9FC 0%, #fff 100%);
+  background: linear-gradient(180deg, var(--yc-formula-bg) 0%, #fff 100%);
   overflow: hidden;
 }
 .yc-formula-toggle {
@@ -556,7 +636,7 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 .yc-formula.is-open .yc-formula-toggle i { transform: rotate(180deg); }
 .yc-formula-body {
   padding: 0 12px 10px;
-  border-top: 1px solid #D7E3ED;
+  border-top: 1px solid var(--yc-formula-divider);
   font-size: 12px;
   line-height: 1.55;
   color: var(--a3-text-secondary);
@@ -731,7 +811,7 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 
 .yc-pill-brand {
   color: var(--a3-primary);
-  border-color: #C5D5E2;
+  border-color: var(--yc-formula-border);
   background: var(--a3-primary-light);
 }
 

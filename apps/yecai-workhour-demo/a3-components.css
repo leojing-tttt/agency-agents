@@ -5,15 +5,15 @@
    使用前提：页面需同时引入 Font Awesome 6.4.0
    ============================================================ */
 
-/* ========== 1. 色彩系统（本 demo 冷静财务调：钢蓝 / 墨色） ========== */
-:root {
-    /* 品牌色 — cool steel（非 A3 玫瑰红） */
+/* ========== 1. 色彩系统（双主题：默认冷静；经典 = 上一版 A3 暖色） ========== */
+:root,
+html[data-yc-theme="cool"] {
+    /* 冷静 / 财务冷蓝灰 */
     --a3-primary: #2F6F8F;
     --a3-primary-light: #E8F1F6;
     --a3-primary-hover: #255A74;
     --a3-focus-ring: rgba(47, 111, 143, 0.16);
 
-    /* 功能色 */
     --a3-success: #2F9B6A;
     --a3-success-light: #EAF7F1;
     --a3-info: #2F6F8F;
@@ -23,7 +23,6 @@
     --a3-danger: #D4524A;
     --a3-danger-light: #FDEEEC;
 
-    /* 中性色 — cool blue-gray / ink */
     --a3-text-primary: #1B2430;
     --a3-text-secondary: #5B6B7C;
     --a3-text-disabled: #9AA8B5;
@@ -32,10 +31,38 @@
     --a3-bg-card: #FFFFFF;
     --a3-bg-layout: #F4F7FA;
 
-    /* 通用 */
     --a3-radius: 4px;
     --a3-shadow: 0 2px 8px rgba(15, 23, 36, 0.08);
     --a3-shadow-lg: 0 4px 16px rgba(15, 23, 36, 0.12);
+}
+
+html[data-yc-theme="warm"] {
+    /* 经典 — 上一版 A3 玫瑰红 / 暖灰 */
+    --a3-primary: #c9677d;
+    --a3-primary-light: #fff8f0;
+    --a3-primary-hover: #b55570;
+    --a3-focus-ring: rgba(201, 103, 125, 0.12);
+
+    --a3-success: #52C41A;
+    --a3-success-light: #F6FFED;
+    --a3-info: #1890FF;
+    --a3-info-light: #E6F7FF;
+    --a3-warning: #FAAD14;
+    --a3-warning-light: #FFFBE6;
+    --a3-danger: #ff4d4f;
+    --a3-danger-light: #FFF2F0;
+
+    --a3-text-primary: #333333;
+    --a3-text-secondary: #666666;
+    --a3-text-disabled: #BFBFBF;
+    --a3-border: #F0F0F0;
+    --a3-bg-body: #F0F2F5;
+    --a3-bg-card: #FFFFFF;
+    --a3-bg-layout: #fafafa;
+
+    --a3-radius: 4px;
+    --a3-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    --a3-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.16);
 }
 
 /* ========== 2. 基础 ========== */

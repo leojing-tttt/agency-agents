@@ -4,6 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>业财系统 · 工时归集</title>
+  <script>
+    (function () {
+      var t = "cool";
+      try {
+        var raw = localStorage.getItem("yecai-theme-v1");
+        if (raw === "warm" || raw === "cool") t = raw;
+      } catch (e) { /* ignore */ }
+      document.documentElement.setAttribute("data-yc-theme", t);
+    })();
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="a3-components.css" />
   <link rel="stylesheet" href="styles.css" />
@@ -46,6 +56,13 @@
           <span class="a3-breadcrumb-item" id="crumb">周填报</span>
         </div>
         <div class="yc-topbar-actions">
+          <div class="yc-theme-chip" title="整站配色（观测台与工作台同步）">
+            <span class="yc-theme-chip-label">配色</span>
+            <div class="yc-theme-seg" role="group" aria-label="配色主题">
+              <button type="button" class="yc-theme-btn active" data-yc-theme="cool" id="theme-cool">冷静</button>
+              <button type="button" class="yc-theme-btn" data-yc-theme="warm" id="theme-warm">经典</button>
+            </div>
+          </div>
           <button type="button" class="yc-obs-entry fin-only" id="obs-entry" title="高管财务观测台">
             <span class="yc-obs-entry-mark">观</span>
             <span>观测台</span>
