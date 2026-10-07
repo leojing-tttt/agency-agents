@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="a3-components.css" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js" defer></script>
 </head>
 <body class="a3-page">
   <div class="yc-shell a3-flex">
@@ -56,6 +57,10 @@
           <span class="a3-breadcrumb-item" id="crumb">周填报</span>
         </div>
         <div class="yc-topbar-actions">
+          <button type="button" class="yc-docs-entry" id="docs-entry" title="产品需求文档：预览 / 下载给程序员与 AI">
+            <i class="fas fa-book-open" aria-hidden="true"></i>
+            <span>产品文档</span>
+          </button>
           <div class="yc-theme-chip" title="整站配色（观测台与工作台同步）">
             <span class="yc-theme-chip-label">配色</span>
             <div class="yc-theme-seg" role="group" aria-label="配色主题">
@@ -781,6 +786,43 @@
             </div>
           </div>
         </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="yc-docs-overlay" id="docs-overlay" hidden>
+    <div class="yc-docs-drawer" role="dialog" aria-modal="true" aria-labelledby="docs-drawer-title">
+      <div class="yc-docs-drawer-head">
+        <div>
+          <div class="yc-docs-kicker">给程序员 / AI</div>
+          <h2 class="yc-docs-drawer-title" id="docs-drawer-title">产品需求文档</h2>
+        </div>
+        <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="docs-close" aria-label="关闭">
+          <i class="fas fa-times"></i> 关闭
+        </button>
+      </div>
+      <div class="yc-docs-drawer-body">
+        <aside class="yc-docs-list" id="docs-list" aria-label="文档列表"></aside>
+        <section class="yc-docs-preview">
+          <div class="yc-docs-preview-toolbar">
+            <span class="yc-docs-preview-name" id="docs-preview-name">选择左侧文档</span>
+            <div class="yc-docs-preview-actions">
+              <a class="a3-btn a3-btn-default a3-btn-sm" id="docs-open-raw" href="#" target="_blank" rel="noopener">原始 MD</a>
+              <button type="button" class="a3-btn a3-btn-primary a3-btn-sm" id="docs-download" disabled>
+                <i class="fas fa-download"></i> 下载
+              </button>
+            </div>
+          </div>
+          <div class="yc-docs-preview-scroll" id="docs-preview-body">
+            <p class="a3-text-secondary">点击左侧文档预览；可下载 `.md` 交给 AI 阅读。</p>
+          </div>
+        </section>
+      </div>
+      <div class="yc-docs-drawer-foot">
+        <span class="a3-text-secondary" style="font-size:12px">静态路径：<code>/docs/*.md</code> · 合集适合一次丢给 AI</span>
+        <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="docs-download-all">
+          <i class="fas fa-file-arrow-down"></i> 下载合集
+        </button>
       </div>
     </div>
   </div>

@@ -2182,7 +2182,7 @@ window.addEventListener("hashchange", () => {
       syncRoleMenus();
     }
     go(h);
-  } else if (h === "fill-cmp" || h === "brand") go(h);
+  }   else if (h === "fill-cmp" || h === "brand") go(h);
   else if (h === "admin-config" || h === "admin-watch" || h === "admin-progress") {
     if (state.role !== "admin") {
       state.role = "admin";
@@ -2192,4 +2192,150 @@ window.addEventListener("hashchange", () => {
     }
     go(h === "admin-config" ? "admin-config" : "admin-watch");
   }
+});
+
+/* —— 产品文档：顶栏预览 + 下载（纯 MD，供 AI 读取） —— */
+const PRD_DOCS = [
+  {
+    id: "workhour",
+    title: "工时与项目人力",
+    desc: "周填报、拆分确认、项目/品牌品线人力报表",
+    file: "prd-workhour-manpower.md",
+    path: "docs/prd-workhour-manpower.md",
+  },
+  {
+    id: "observatory",
+    title: "观测台",
+    desc: "CEO/CFO 高管财务：入口、四视图、口径与验收",
+    file: "prd-observatory.md",
+    path: "docs/prd-observatory.md",
+  },
+  {
+    id: "all",
+    title: "合集（推荐给 AI）",
+    desc: "两份 PRD 合并，一次下载即可喂给 AI",
+    file: "prd-all.md",
+    path: "docs/prd-all.md",
+  },
+  {
+    id: "index",
+    title: "文档索引",
+    desc: "路径说明与 AI 用法",
+    file: "README.md",
+    path: "docs/README.md",
+  },
+];
+
+const docsState = { current: null, cache: {} };
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderMarkdown(md) {
+  if (typeof marked !== "undefined" && marked.parse) {
+    try { return marked.parse(md); } catch (_) { /* fall through */ }
+  }
+  return `<pre>${escapeHtml(md)}</pre>`;
+}
+
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function fetchDoc(doc) {
+  if (docsState.cache[doc.id]) return docsState.cache[doc.id];
+  const res = await fetch(doc.path, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`无法加载 ${doc.path}（${res.status}）`);
+  const text = await res.text();
+  docsState.cache[doc.id] = text;
+  return text;
+}
+
+function renderDocsList() {
+  const list = document.getElementById("docs-list");
+  if (!list) return;
+  list.innerHTML = PRD_DOCS.map((d) => `
+    <button type="button" class="yc-docs-item${docsState.current === d.id ? " active" : ""}" data-doc-id="${d.id}">
+      <b>${d.title}</b>
+      <span>${d.desc}</span>
+    </button>
+  `).join("");
+  list.querySelectorAll("[data-doc-id]").forEach((btn) => {
+    btn.addEventListener("click", () => openDoc(btn.getAttribute("data-doc-id")));
+  });
+}
+
+async function openDoc(id) {
+  const doc = PRD_DOCS.find((d) => d.id === id);
+  if (!doc) return;
+  docsState.current = id;
+  renderDocsList();
+  const nameEl = document.getElementById("docs-preview-name");
+  const bodyEl = document.getElementById("docs-preview-body");
+  const rawEl = document.getElementById("docs-open-raw");
+  const dlBtn = document.getElementById("docs-download");
+  if (nameEl) nameEl.textContent = `${doc.title} · ${doc.file}`;
+  if (rawEl) rawEl.href = doc.path;
+  if (bodyEl) bodyEl.innerHTML = `<p class="a3-text-secondary">加载中…</p>`;
+  if (dlBtn) dlBtn.disabled = true;
+  try {
+    const text = await fetchDoc(doc);
+    if (bodyEl) bodyEl.innerHTML = renderMarkdown(text);
+    if (dlBtn) {
+      dlBtn.disabled = false;
+      dlBtn.onclick = () => {
+        downloadText(doc.file, text);
+        toast("success", `已下载 ${doc.file}`);
+      };
+    }
+  } catch (err) {
+    if (bodyEl) {
+      bodyEl.innerHTML = `<p class="a3-text-secondary">加载失败：${escapeHtml(err.message || String(err))}<br/>请确认本地 serve 根目录为 demo，且存在 <code>${escapeHtml(doc.path)}</code>。</p>`;
+    }
+  }
+}
+
+function openDocsDrawer(preferId) {
+  const overlay = document.getElementById("docs-overlay");
+  if (!overlay) return;
+  overlay.hidden = false;
+  renderDocsList();
+  openDoc(preferId || docsState.current || "all");
+}
+
+function closeDocsDrawer() {
+  const overlay = document.getElementById("docs-overlay");
+  if (overlay) overlay.hidden = true;
+}
+
+document.getElementById("docs-entry")?.addEventListener("click", () => openDocsDrawer("all"));
+document.getElementById("docs-close")?.addEventListener("click", closeDocsDrawer);
+document.getElementById("docs-overlay")?.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "docs-overlay") closeDocsDrawer();
+});
+document.getElementById("docs-download-all")?.addEventListener("click", async () => {
+  try {
+    const doc = PRD_DOCS.find((d) => d.id === "all");
+    const text = await fetchDoc(doc);
+    downloadText(doc.file, text);
+    toast("success", "已下载合集 prd-all.md，可直接交给 AI");
+  } catch (err) {
+    toast("danger", err.message || "下载失败");
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeDocsDrawer();
 });

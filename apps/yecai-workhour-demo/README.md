@@ -11,7 +11,9 @@ npx --yes serve -l 5179 .
 # 观测台：顶栏始终可见「观测台」（点即进总览；非高管身份会切到 CEO 演示）
 # 直达：#obs / #fin-overview | #fin-revenue | #fin-cash | #fin-margin
 # 顶栏「配色」：冷静（默认）| 经典，localStorage: yecai-theme-v1
+# 顶栏「产品文档」：预览 / 下载 PRD（docs/*.md，合集可喂给 AI）
 ```
+
 
 ## Skill / design source
 
