@@ -8,9 +8,9 @@ Uses **A3 SaaS UI** from `apps/campaign-agent/public/a3-components.css`（《A3 
 cd apps/yecai-workhour-demo
 npx --yes serve -l 5179 .
 # http://localhost:5179/
-# 观测台（高管财务）：顶栏「观测台」· #obs / #fin-overview | #fin-revenue | #fin-cash | #fin-margin
-# 切换身份 CEO / CFO 后自动进入观测台总览
-# 顶栏「配色」：冷静（默认冷蓝灰）| 经典（上一版 A3 暖色），localStorage: yecai-theme-v1
+# 观测台：顶栏始终可见「观测台」（点即进总览；非高管身份会切到 CEO 演示）
+# 直达：#obs / #fin-overview | #fin-revenue | #fin-cash | #fin-margin
+# 顶栏「配色」：冷静（默认）| 经典，localStorage: yecai-theme-v1
 ```
 
 ## Skill / design source

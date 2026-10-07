@@ -271,7 +271,7 @@ body.yc-fin-active .yc-role-select-wrap .a3-select-arrow {
 }
 
 .yc-obs-entry {
-  display: none;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   height: 32px;

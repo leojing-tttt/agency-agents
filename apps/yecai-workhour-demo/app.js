@@ -987,8 +987,11 @@ syncThemeControls();
 
 document.getElementById("obs-entry")?.addEventListener("click", () => {
   if (!isExecRole(state.role)) {
-    toast("warning", "请切换为 CEO / CFO（或财务）后进入观测台");
-    return;
+    state.role = "ceo";
+    document.getElementById("role-select").value = "ceo";
+    document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.ceo.name}`;
+    syncRoleMenus();
+    toast("info", "已切换为 CEO 演示身份，进入观测台");
   }
   go("fin-overview");
 });
