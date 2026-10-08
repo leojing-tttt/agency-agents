@@ -200,8 +200,8 @@ const PROJECT_REPORT = [
   { project: "霞湖世家 液氨棉种草", brand: "霞湖世家 / 120支液氨棉T恤", types: "策划与比稿费用", days: 1.5, cost: 6000 },
 ];
 
-/** 基础报表：执行单类型 → 业务组 → 品牌 → 品线（投入人天 + 成本） */
-const BASIC_REPORT = [
+/** 基础报表种子行（按周展开为全年 mock） */
+const BASIC_SEED = [
   { group: "营销一部", brand: "好奇", line: "小森林", type: "INTERNAL_KOL", days: 5.2, cost: 20800 },
   { group: "营销一部", brand: "好奇", line: "深睡大师", type: "INTERNAL_DSP", days: 2.1, cost: 8400 },
   { group: "营销一部", brand: "好奇", line: "屁屁面膜", type: "HARD_AD", days: 1.0, cost: 4000 },
@@ -219,6 +219,53 @@ const BASIC_REPORT = [
   { group: "营销九部", brand: "霞湖世家", line: "120支液氨棉T恤", type: "OTHER", days: 1.5, cost: 6000 },
   { group: "营销九部", brand: "霞湖世家", line: "200支液氨棉T恤", type: "OTHER", days: 0.6, cost: 2400 },
 ];
+
+/** 2026 ISO 周 → 月份（以该周周四所在月为准，便于年/月快捷筛选） */
+function isoWeekMeta(year, week) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
+  const dow = simple.getUTCDay();
+  const ISOweekStart = new Date(simple);
+  ISOweekStart.setUTCDate(simple.getUTCDate() - ((dow + 6) % 7));
+  const thu = new Date(ISOweekStart);
+  thu.setUTCDate(ISOweekStart.getUTCDate() + 3);
+  const month = thu.getUTCMonth() + 1;
+  const mon = new Date(ISOweekStart);
+  const sun = new Date(ISOweekStart);
+  sun.setUTCDate(mon.getUTCDate() + 6);
+  const fmt = (d) => `${pad(d.getUTCMonth() + 1)}/${pad(d.getUTCDate())}`;
+  const id = `${year}-W${pad(week)}`;
+  return {
+    id,
+    week,
+    year,
+    month,
+    label: id,
+    labelFull: `${id} · ${month}月 · ${fmt(mon)}–${fmt(sun)}`,
+  };
+}
+
+const BASIC_PERIODS = Array.from({ length: 52 }, (_, i) => isoWeekMeta(2026, i + 1));
+
+/** 全年按周展开：每周含种子行，人天/成本随周次略有波动，便于年/月合计演示 */
+const BASIC_REPORT = BASIC_PERIODS.flatMap((p) =>
+  BASIC_SEED.map((seed, si) => {
+    const wave = 0.72 + ((p.week + si) % 7) * 0.06;
+    const days = Math.round(seed.days * wave * 10) / 10;
+    const cost = Math.round(seed.cost * wave);
+    return {
+      ...seed,
+      period: p.id,
+      periodLabel: p.label,
+      periodFull: p.labelFull,
+      year: p.year,
+      month: p.month,
+      week: p.week,
+      days,
+      cost,
+    };
+  }),
+);
 
 /** 基础报表人天下钻：填报人 + 占其本周工时%（mock，与行人天合计对齐） */
 const BASIC_FILLERS = {
@@ -1695,6 +1742,59 @@ function renderProject() {
     </tr>`).join("");
 }
 
+function periodsInYearMonth(year, month) {
+  const y = Number(year) || 2026;
+  const m = month === "" || month == null ? null : Number(month);
+  return BASIC_PERIODS.filter((p) => p.year === y && (m == null || p.month === m));
+}
+
+function selectedBasicPeriods() {
+  return [...document.querySelectorAll('#basic-period-panel input[name="basic-period"]:checked')].map((el) => el.value);
+}
+
+function syncBasicPeriodHint() {
+  const year = document.getElementById("basic-filter-year")?.value || "2026";
+  const month = document.getElementById("basic-filter-month")?.value || "";
+  const selected = selectedBasicPeriods();
+  const scope = periodsInYearMonth(year, month);
+  const hint = document.getElementById("basic-period-hint");
+  const countEl = document.getElementById("basic-period-count");
+  if (hint) {
+    hint.textContent = month
+      ? `${year}年${Number(month)}月 · 已选 ${selected.length}/${scope.length} 周`
+      : `${year}年全年 · 已选 ${selected.length}/${scope.length} 周`;
+  }
+  if (countEl) countEl.textContent = `${selected.length || scope.length} 个周期`;
+}
+
+function renderBasicPeriodPanel({ preserveUnchecked } = {}) {
+  const panel = document.getElementById("basic-period-panel");
+  if (!panel) return;
+  const year = document.getElementById("basic-filter-year")?.value || "2026";
+  const month = document.getElementById("basic-filter-month")?.value || "";
+  const scope = periodsInYearMonth(year, month);
+  const prevChecked = new Set(selectedBasicPeriods());
+  const defaultAll = !preserveUnchecked || prevChecked.size === 0;
+  panel.innerHTML = scope
+    .map((p) => {
+      const checked = defaultAll ? true : prevChecked.has(p.id);
+      return `
+      <label class="yc-period-chip${checked ? " is-checked" : ""}" title="${p.labelFull}">
+        <input type="checkbox" name="basic-period" value="${p.id}" ${checked ? "checked" : ""} />
+        <span>${p.label}</span>
+      </label>`;
+    })
+    .join("");
+  panel.querySelectorAll('input[name="basic-period"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      el.closest(".yc-period-chip")?.classList.toggle("is-checked", el.checked);
+      syncBasicPeriodHint();
+      if (document.getElementById("page-basic")?.classList.contains("active")) renderBasic();
+    });
+  });
+  syncBasicPeriodHint();
+}
+
 function ensureBasicFilters() {
   const brandEl = document.getElementById("basic-filter-brand");
   const groupEl = document.getElementById("basic-filter-group");
@@ -1723,6 +1823,11 @@ function ensureBasicFilters() {
       typeEl.appendChild(o);
     });
   }
+  const panel = document.getElementById("basic-period-panel");
+  if (panel && !panel.dataset.ready) {
+    panel.dataset.ready = "1";
+    renderBasicPeriodPanel();
+  }
 }
 
 function filteredBasicRows() {
@@ -1730,17 +1835,32 @@ function filteredBasicRows() {
   const brand = document.getElementById("basic-filter-brand")?.value || "";
   const group = document.getElementById("basic-filter-group")?.value || "";
   const type = document.getElementById("basic-filter-type")?.value || "";
+  const year = Number(document.getElementById("basic-filter-year")?.value || 2026);
+  const monthRaw = document.getElementById("basic-filter-month")?.value || "";
+  const month = monthRaw === "" ? null : Number(monthRaw);
+  let periods = selectedBasicPeriods();
+  if (!periods.length) {
+    periods = periodsInYearMonth(year, monthRaw).map((p) => p.id);
+  }
+  const periodSet = new Set(periods);
   return BASIC_REPORT.filter((r) => {
+    if (r.year !== year) return false;
+    if (month != null && r.month !== month) return false;
+    if (!periodSet.has(r.period)) return false;
     if (brand && r.brand !== brand) return false;
     if (group && r.group !== group) return false;
     if (type && r.type !== type) return false;
     return true;
-  }).slice().sort((a, b) =>
-    (EXECUTE_LABEL[a.type] || a.type).localeCompare(EXECUTE_LABEL[b.type] || b.type, "zh") ||
-    a.group.localeCompare(b.group, "zh") ||
-    a.brand.localeCompare(b.brand, "zh") ||
-    a.line.localeCompare(b.line, "zh")
-  );
+  })
+    .slice()
+    .sort(
+      (a, b) =>
+        a.week - b.week ||
+        (EXECUTE_LABEL[a.type] || a.type).localeCompare(EXECUTE_LABEL[b.type] || b.type, "zh") ||
+        a.group.localeCompare(b.group, "zh") ||
+        a.brand.localeCompare(b.brand, "zh") ||
+        a.line.localeCompare(b.line, "zh"),
+    );
 }
 
 function closeBasicDrawer() {
@@ -1799,20 +1919,30 @@ function renderBasic() {
   const rows = filteredBasicRows();
   const totalDays = Math.round(rows.reduce((s, r) => s + r.days, 0) * 10) / 10;
   const totalCost = rows.reduce((s, r) => s + r.cost, 0);
+  const periodN = new Set(rows.map((r) => r.period)).size;
   const totalBtn = document.getElementById("basic-total-days");
   if (totalBtn) totalBtn.innerHTML = `总人天 <b>${totalDays}</b>`;
   const costEl = document.getElementById("basic-total-cost");
   if (costEl) costEl.textContent = totalCost.toLocaleString();
+  const countEl = document.getElementById("basic-period-count");
+  if (countEl) countEl.textContent = `${periodN} 个周期`;
+  syncBasicPeriodHint();
 
-  document.querySelector("#basic-table tbody").innerHTML = rows.map((r, i) => `
+  document.querySelector("#basic-table tbody").innerHTML =
+    rows
+      .map(
+        (r, i) => `
     <tr data-basic-idx="${i}">
+      <td title="${r.periodFull || r.period}"><span class="yc-period-cell">${r.periodLabel || r.period}</span><span class="yc-period-cell-sub">${r.month}月</span></td>
       <td>${EXECUTE_LABEL[r.type] || r.type}</td>
       <td>${r.group}</td>
       <td>${r.brand}</td>
       <td>${r.line}</td>
       <td><button type="button" class="yc-days-link" data-basic-days="${i}" title="查看填报人明细">${r.days}</button></td>
       <td>${r.cost.toLocaleString()}</td>
-    </tr>`).join("") || `<tr><td colspan="6"><div class="a3-table-empty">无匹配数据</div></td></tr>`;
+    </tr>`,
+      )
+      .join("") || `<tr><td colspan="7"><div class="a3-table-empty">无匹配数据</div></td></tr>`;
 
   document.querySelectorAll("[data-basic-days]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1821,14 +1951,18 @@ function renderBasic() {
       openBasicDrawer(
         [r],
         "人天明细",
-        `${EXECUTE_LABEL[r.type] || r.type} · ${r.group} · ${r.brand} / ${r.line} · ${r.days} 人天`,
+        `${r.period} · ${EXECUTE_LABEL[r.type] || r.type} · ${r.group} · ${r.brand} / ${r.line} · ${r.days} 人天`,
       );
     });
   });
   if (totalBtn) {
     totalBtn.onclick = () => {
       if (!rows.length) return toast("info", "当前筛选无数据");
-      openBasicDrawer(rows, "合计人天明细", `当前筛选合计 ${totalDays} 人天 · 成本 ${totalCost.toLocaleString()} 元`);
+      openBasicDrawer(
+        rows,
+        "合计人天明细",
+        `当前筛选 ${periodN} 个周期 · 合计 ${totalDays} 人天 · 成本 ${totalCost.toLocaleString()} 元`,
+      );
     };
   }
 }
@@ -1836,6 +1970,12 @@ function renderBasic() {
 document.getElementById("basic-query")?.addEventListener("click", () => renderBasic());
 ["basic-filter-brand", "basic-filter-group", "basic-filter-type"].forEach((id) => {
   document.getElementById(id)?.addEventListener("change", () => {
+    if (document.getElementById("page-basic")?.classList.contains("active")) renderBasic();
+  });
+});
+["basic-filter-year", "basic-filter-month"].forEach((id) => {
+  document.getElementById(id)?.addEventListener("change", () => {
+    renderBasicPeriodPanel();
     if (document.getElementById("page-basic")?.classList.contains("active")) renderBasic();
   });
 });

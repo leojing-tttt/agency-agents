@@ -283,14 +283,27 @@
         <section class="page" id="page-basic">
           <div class="yc-title-row a3-mb-16">
             <h1 class="yc-title a3-text-primary">基础报表</h1>
-            <p class="a3-text-secondary a3-mt-4">按执行单类型、营销部、品牌、品线汇总投入人天与成本。点击人天可查看填报人及占各自工时百分比。</p>
+            <p class="a3-text-secondary a3-mt-4">按时间周期、执行单类型、营销部、品牌、品线汇总投入人天与成本。可用年份/月份快捷圈选周期，或在周期多选中细调；点击人天查看填报人占比。</p>
           </div>
           <div class="a3-card">
             <div class="a3-card-body">
-              <div class="yc-toolbar a3-mb-16">
+              <div class="yc-toolbar a3-mb-12">
                 <div class="yc-field">
-                  <label class="a3-text-secondary">周期</label>
-                  <div class="a3-select-wrapper"><select class="a3-select" id="basic-period"><option>2026-W39</option><option>2026-Q3</option></select><i class="fas fa-chevron-down a3-select-arrow"></i></div>
+                  <label class="a3-text-secondary">年份</label>
+                  <div class="a3-select-wrapper"><select class="a3-select" id="basic-filter-year"><option value="2026">2026</option></select><i class="fas fa-chevron-down a3-select-arrow"></i></div>
+                </div>
+                <div class="yc-field">
+                  <label class="a3-text-secondary">月份</label>
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="basic-filter-month">
+                      <option value="">全年</option>
+                      <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                      <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                      <option value="7">7月</option><option value="8">8月</option><option value="9" selected>9月</option>
+                      <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+                    </select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
                 </div>
                 <div class="yc-field">
                   <label class="a3-text-secondary">品牌</label>
@@ -306,15 +319,24 @@
                 </div>
                 <button type="button" class="a3-btn a3-btn-primary" id="basic-query"><i class="fas fa-search"></i> 查询</button>
               </div>
+              <div class="yc-field a3-mb-16" style="max-width:100%">
+                <div class="a3-flex-between a3-mb-8" style="justify-content:space-between;align-items:center">
+                  <label class="a3-text-secondary">周期（多选）</label>
+                  <span class="a3-text-secondary" style="font-size:12px" id="basic-period-hint">随年份/月份快捷圈选，可再勾选调整</span>
+                </div>
+                <div class="yc-period-multi" id="basic-period-panel" role="group" aria-label="周期多选"></div>
+              </div>
               <div class="yc-basic-summary a3-mb-16" id="basic-summary">
                 <span class="a3-text-secondary">筛选合计</span>
                 <button type="button" class="yc-days-link" id="basic-total-days" title="查看合计填报明细">总人天 <b>0</b></button>
                 <span class="a3-text-secondary">成本 <b class="a3-text-primary" id="basic-total-cost">0</b> 元</span>
+                <span class="a3-text-secondary" id="basic-period-count">0 个周期</span>
               </div>
               <div class="a3-table-wrapper">
                 <table class="a3-table" id="basic-table">
                   <thead>
                     <tr>
+                      <th>时间周期</th>
                       <th>执行单类型</th>
                       <th>业务组</th>
                       <th>品牌</th>
