@@ -118,12 +118,20 @@ body {
 
 .yc-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.yc-stats > .a3-card,
+.yc-stats > .yc-stat {
+  min-width: 0;
 }
 
 @media (max-width: 960px) {
-  .yc-stats { grid-template-columns: repeat(2, 1fr); }
+  .yc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .yc-sider { width: 64px; }
   .yc-logo span,
   .a3-menu-group-title,
@@ -648,9 +656,21 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 #watch-week-cards {
   cursor: pointer;
   user-select: none;
+  /* 侧栏 + 内边距下 4 卡易被裁切：允许缩窄，窄屏改 2×2 */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.yc-watch-stat .a3-card-body { min-height: 96px; }
+.yc-watch-stat .a3-card-body {
+  min-height: 96px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1280px) {
+  #watch-week-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
 .yc-brand-tags {
   display: flex;
