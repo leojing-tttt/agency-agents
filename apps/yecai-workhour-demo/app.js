@@ -1877,7 +1877,7 @@ function readAllocShareInputs() {
   return shares;
 }
 
-/** 同来源「本周分摊占比」合计校验；返回 { ok, bySrc } */
+/** 同来源「上周分摊占比」合计校验；返回 { ok, bySrc } */
 function validateAllocShares(shares) {
   const bySrc = {};
   Object.keys(shares).forEach((rk) => {
@@ -1930,9 +1930,9 @@ function renderReviewAlloc() {
   const isLeader = state.role === "leader";
   const gate = document.getElementById("alloc-gate-text");
   if (gate) {
-    if (isOwner) gate.textContent = "当前为业务一号位：核对本周分摊占比后确认锁定。上周支出比例仅供参考。";
-    else if (isLeader) gate.textContent = "当前为部门 Leader：可编辑本周分摊占比（默认=上周支出比例）；确认需业务一号位。";
-    else gate.textContent = "请切换为「部门 Leader」编辑本周分摊占比，或「业务一号位」确认分配。";
+    if (isOwner) gate.textContent = "当前为业务一号位：核对上周分摊占比后确认锁定（用于拆本周填报）。上周支出比例仅供参考。";
+    else if (isLeader) gate.textContent = "当前为部门 Leader：可编辑上周分摊占比（默认=上周支出比例，同属上期）；确认需业务一号位。";
+    else gate.textContent = "请切换为「部门 Leader」编辑上周分摊占比，或「业务一号位」确认分配。";
   }
 
   const { rows, status, prevWeek } = buildAllocRows(week);
@@ -1946,7 +1946,7 @@ function renderReviewAlloc() {
   document.getElementById("alloc-meta").textContent = effective
     ? status === "confirmed"
       ? "分配已锁定"
-      : `参考周 ${prevWeek || "—"} 支出比例（只读）；编辑本周分摊占比，同来源合计须 100%`
+      : `参考周 ${prevWeek || "—"}：支出比例只读；编辑上周分摊占比（合计须 100%），用于拆本周填报`
     : "需先在「部门审核」确认填报人生效后，才能分配到项目";
 
   const editable = effective && status !== "confirmed" && (isLeader || isOwner);
@@ -1987,10 +1987,10 @@ function renderReviewAlloc() {
       return;
     }
     if (ok) {
-      warnEl.innerHTML = `<span class="a3-text-secondary">本周分摊占比校验通过（各来源合计 100%）。上周支出比例合计亦为 100%（参考 ${prevWeek || "—"}）。</span>`;
+      warnEl.innerHTML = `<span class="a3-text-secondary">上周分摊占比校验通过（各来源合计 100%）。上周支出比例合计亦为 100%（参考周 ${prevWeek || "—"}）。</span>`;
     } else {
       const detail = bad.map(([src, v]) => `${src} → ${v}%`).join("；");
-      warnEl.innerHTML = `<span style="color:var(--a3-warning)">警告：本周分摊占比未凑满 100%（${detail}）。仍可保存草稿，确认前请改到 100%。</span>`;
+      warnEl.innerHTML = `<span style="color:var(--a3-warning)">警告：上周分摊占比未凑满 100%（${detail}）。仍可保存草稿；一号位确认前请改到 100%。</span>`;
     }
   };
   tbody.querySelectorAll("[data-alloc-share]").forEach((el) => {
@@ -2010,7 +2010,7 @@ function renderReviewAlloc() {
         const detail = bad.map(([src, v]) => `${src}=${v}%`).join("，");
         toast("warning", `已保存草稿，但分摊占比未达 100%：${detail}`);
       } else {
-        toast("info", "本周分摊占比已保存（草稿）");
+        toast("info", "上周分摊占比已保存（草稿）");
       }
       renderReviewAlloc();
     };
@@ -2023,10 +2023,10 @@ function renderReviewAlloc() {
       const { ok, bad } = validateAllocShares(shares);
       if (!ok) {
         const detail = bad.map(([src, v]) => `${src}=${v}%`).join("，");
-        return toast("warning", `无法确认：本周分摊占比须合计 100%（${detail}）`);
+        return toast("warning", `无法确认：上周分摊占比须合计 100%（${detail}）`);
       }
       state.allocByWeek[week] = { status: "confirmed", shares };
-      toast("success", "业务一号位已确认工时分配（按本周分摊占比）");
+      toast("success", "业务一号位已确认工时分配（按上周分摊占比拆本周填报）");
       renderReviewAlloc();
     };
   }
