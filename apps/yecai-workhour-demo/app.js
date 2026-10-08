@@ -92,14 +92,28 @@ function subLabel(type, sub) {
   return (list.find((s) => s.value === sub) || {}).label || "—";
 }
 
-/** 工时填报可选周（ISO week 标签 + 日期区间） */
-const FILL_WEEK_OPTIONS = [
-  { id: "2026-W36", short: "W36", range: "09/01–09/07" },
-  { id: "2026-W37", short: "W37", range: "09/08–09/14" },
-  { id: "2026-W38", short: "W38", range: "09/15–09/21" },
-  { id: "2026-W39", short: "W39", range: "09/22–09/28" },
-  { id: "2026-W40", short: "W40", range: "09/29–10/05" },
-];
+/** 工时填报可选周：以 2026-W36（周一 09/01）为锚，生成可横滑的历史/近期周 */
+function buildFillWeekOptions(startWeek = 20, endWeek = 44) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmt = (d) => `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+  const anchorMon = new Date(2026, 8, 1); // 2026-09-01 = W36 Mon
+  const anchorWeek = 36;
+  const out = [];
+  for (let w = startWeek; w <= endWeek; w++) {
+    const mon = new Date(anchorMon);
+    mon.setDate(anchorMon.getDate() + (w - anchorWeek) * 7);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    out.push({
+      id: `2026-W${pad(w)}`,
+      short: `W${w}`,
+      range: `${fmt(mon)}–${fmt(sun)}`,
+      weekNum: w,
+    });
+  }
+  return out;
+}
+const FILL_WEEK_OPTIONS = buildFillWeekOptions(20, 44);
 
 /** 工时填报 mock：rows 含 group/brand/line/type/sub/pct，每周合计 100 */
 const FILL_BY_WEEK = {
@@ -742,6 +756,11 @@ function weekMeta(weekId) {
   return FILL_WEEK_OPTIONS.find((w) => w.id === weekId) || { id: weekId, short: weekId, range: "—" };
 }
 
+function weekNumOf(weekId) {
+  const m = /^2026-W(\d+)$/.exec(weekId);
+  return m ? Number(m[1]) : 0;
+}
+
 function weekFillStatus(weekId) {
   const hist = state.history.find((h) => h.week === weekId);
   if (hist?.status === "locked" || weekId === "2026-W38") return "locked";
@@ -753,6 +772,10 @@ function weekFillStatus(weekId) {
   }
   const rows = FILL_BY_WEEK[weekId] || [];
   if (rows.length && sumPct(rows) > 0) return "draft";
+  /* 演示用历史样例：更早周有锁定/已提交，便于左右滑动查看 */
+  const n = weekNumOf(weekId);
+  if (n >= 20 && n <= 29) return "locked";
+  if (n >= 30 && n <= 35) return "submitted";
   return "empty";
 }
 
@@ -775,12 +798,39 @@ function selectFillWeek(weekId, { force } = {}) {
   renderFill();
 }
 
+function scrollFillWeekStrip(dir) {
+  const strip = document.getElementById("fill-week-strip");
+  if (!strip) return;
+  const step = Math.max(240, Math.floor(strip.clientWidth * 0.75));
+  strip.scrollBy({ left: dir * step, behavior: "smooth" });
+}
+
+function syncFillWeekNav() {
+  const strip = document.getElementById("fill-week-strip");
+  const prev = document.getElementById("fill-week-prev");
+  const next = document.getElementById("fill-week-next");
+  if (!strip || !prev || !next) return;
+  const max = strip.scrollWidth - strip.clientWidth - 2;
+  prev.disabled = strip.scrollLeft <= 2;
+  next.disabled = strip.scrollLeft >= max;
+}
+
+function scrollActiveWeekIntoView({ smooth } = {}) {
+  const strip = document.getElementById("fill-week-strip");
+  const active = strip && strip.querySelector(".yc-week-chip.is-active");
+  if (!strip || !active) return;
+  const left = active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2;
+  strip.scrollTo({ left: Math.max(0, left), behavior: smooth ? "smooth" : "auto" });
+  syncFillWeekNav();
+}
+
 function renderFillWeekStrip() {
   const strip = document.getElementById("fill-week-strip");
   const current = document.getElementById("fill-week-current");
   if (!strip) return;
   const meta = weekMeta(state.week);
   if (current) current.textContent = `${state.week} · ${meta.range}`;
+  const keepScroll = strip.scrollLeft;
   strip.innerHTML = FILL_WEEK_OPTIONS.map((w) => {
     const status = weekFillStatus(w.id);
     const active = w.id === state.week ? " is-active" : "";
@@ -797,6 +847,16 @@ function renderFillWeekStrip() {
   }).join("");
   strip.querySelectorAll("[data-week]").forEach((btn) => {
     btn.addEventListener("click", () => selectFillWeek(btn.getAttribute("data-week")));
+  });
+  if (!strip.dataset.navBound) {
+    strip.dataset.navBound = "1";
+    strip.addEventListener("scroll", () => syncFillWeekNav(), { passive: true });
+    document.getElementById("fill-week-prev")?.addEventListener("click", () => scrollFillWeekStrip(-1));
+    document.getElementById("fill-week-next")?.addEventListener("click", () => scrollFillWeekStrip(1));
+  }
+  requestAnimationFrame(() => {
+    if (keepScroll > 0) strip.scrollLeft = keepScroll;
+    scrollActiveWeekIntoView({ smooth: false });
   });
 }
 

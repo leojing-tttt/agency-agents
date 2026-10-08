@@ -1095,15 +1095,60 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 .yc-week-dot.is-draft { background: var(--a3-warning); }
 .yc-week-dot.is-submitted { background: var(--a3-info, var(--a3-primary)); }
 .yc-week-dot.is-locked { background: var(--a3-success); }
+.yc-week-strip-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+.yc-week-nav {
+  flex: none;
+  width: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--a3-border);
+  border-radius: 8px;
+  background: var(--a3-bg-card);
+  color: var(--a3-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.yc-week-nav:hover:not(:disabled) {
+  border-color: var(--a3-primary);
+  color: var(--a3-primary);
+  background: var(--a3-primary-light);
+}
+.yc-week-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 .yc-week-strip {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 2px;
+}
+.yc-week-strip::-webkit-scrollbar {
+  height: 6px;
+}
+.yc-week-strip::-webkit-scrollbar-thumb {
+  background: var(--a3-border);
+  border-radius: 999px;
 }
 .yc-week-chip {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: none;
+  width: 108px;
   padding: 10px 10px 8px;
   border: 1px solid var(--a3-border);
   border-radius: 8px;
@@ -1111,6 +1156,7 @@ body.yc-role-admin .cfo-only { display: table-cell; }
   color: var(--a3-text-primary);
   text-align: left;
   cursor: pointer;
+  scroll-snap-align: start;
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 .yc-week-chip:hover {
@@ -1145,7 +1191,8 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 .yc-week-chip.status-locked .yc-week-chip-status { color: var(--a3-success); }
 
 @media (max-width: 900px) {
-  .yc-week-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .yc-week-chip { width: 96px; }
+  .yc-week-nav { width: 30px; }
 }
 
 @media (max-width: 1200px) {
