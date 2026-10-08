@@ -160,7 +160,7 @@
         <section class="page" id="page-review">
           <div class="yc-title-row a3-mb-16">
             <h1 class="yc-title a3-text-primary">部门审核</h1>
-            <p class="a3-text-secondary a3-mt-4">营销部 Leader 按周审核本组填报人；确认后填报才生效。审核通过后，可在「工时分配」将人天按项目执行单支出比例分摊，并由业务一号位确认。</p>
+            <p class="a3-text-secondary a3-mt-4">营销部 Leader 按周审核本组填报人；确认后填报才生效。审核通过后，可在「工时分配」参考上周执行单支出比例，编辑本周分摊占比并拆到项目，由业务一号位确认。</p>
           </div>
           <div class="yc-seg a3-mb-16" id="review-tabs" role="tablist" aria-label="部门审核视图">
             <button type="button" class="yc-seg-btn active" data-review-tab="audit" role="tab" aria-selected="true">部门审核</button>
@@ -244,24 +244,26 @@
                 <div class="a3-text-secondary" style="align-self:flex-end;padding-bottom:6px" id="alloc-status-line">分摊状态 —</div>
               </div>
               <div class="a3-card a3-mb-16">
-                <div class="a3-card-header"><span class="a3-card-title">按项目执行单支出比例分配</span></div>
+                <div class="a3-card-header"><span class="a3-card-title">工时分配（参考上周支出 · 编辑本周分摊）</span></div>
                 <div class="a3-card-body">
-                  <p class="a3-text-secondary a3-mb-12">将已确认生效的填报（品牌 / 品线 / 业务类型）按本部项目执行单支出比例拆到项目。比例可微调，合计须为 100%。</p>
+                  <p class="a3-text-secondary a3-mb-12"><b>上周支出比例</b>为只读参考（该来源下各执行单/项目上期支出占比，合计 100%）。<b>本周分摊占比</b>默认同支出比例、可改；按分摊占比把本周填报拆到项目，同来源分摊合计须为 100%。</p>
                   <div class="a3-table-wrapper">
                     <table class="a3-table" id="alloc-table">
                       <thead>
                         <tr>
                           <th>来源（品牌/品线/类型）</th>
-                          <th>填报占比</th>
+                          <th>本周填报占比</th>
                           <th>项目</th>
                           <th>执行单</th>
-                          <th>支出比例(%)</th>
-                          <th>分摊占比(%)</th>
+                          <th>上周支出比例(%)</th>
+                          <th>本周分摊占比(%)</th>
+                          <th>分摊后占比(%)</th>
                         </tr>
                       </thead>
                       <tbody></tbody>
                     </table>
                   </div>
+                  <div class="a3-text-secondary a3-mt-12" style="font-size:12px" id="alloc-sum-warn"></div>
                 </div>
                 <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
                   <span class="a3-text-secondary" style="font-size:12px" id="alloc-meta">需先完成部门审核确认</span>

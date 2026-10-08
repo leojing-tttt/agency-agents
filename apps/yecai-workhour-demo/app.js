@@ -1837,6 +1837,57 @@ function renderReviewAudit() {
   }
 }
 
+/** 上一 ISO 周 id（用于「上周支出比例」参考） */
+function prevIsoWeekId(weekId) {
+  const m = /^(\d{4})-W(\d+)$/.exec(weekId || "");
+  if (!m) return "";
+  const year = Number(m[1]);
+  let week = Number(m[2]) - 1;
+  if (week < 1) return `${year - 1}-W52`;
+  return `${year}-W${String(week).padStart(2, "0")}`;
+}
+
+/**
+ * 上周各执行单/项目支出占比（只读参考，同来源合计 100）。
+ * Demo：以 SPLIT_CATALOG 权重为基线，按上周周号微调，再归一到 100。
+ */
+function lastWeekSpendRatios(week, brand, line, type) {
+  const prev = prevIsoWeekId(week);
+  const prevWeekNum = Number((/^(\d{4})-W(\d+)$/.exec(prev) || [])[2]) || 1;
+  const parts = SPLIT_CATALOG[sourceKey(brand, line, type)] || [{ project: "待匹配项目", order: "—", w: 1 }];
+  const raw = parts.map((part, i) => {
+    const wave = 0.85 + ((prevWeekNum + i) % 5) * 0.04;
+    return { ...part, raw: part.w * wave };
+  });
+  const sum = raw.reduce((s, x) => s + x.raw, 0) || 1;
+  let acc = 0;
+  return raw.map((x, i) => {
+    let pct = Math.round((x.raw / sum) * 100);
+    if (i === raw.length - 1) pct = Math.max(0, 100 - acc);
+    acc += pct;
+    return { project: x.project, order: x.order, spendPct: pct };
+  });
+}
+
+function readAllocShareInputs() {
+  const shares = {};
+  document.querySelectorAll("[data-alloc-share]").forEach((el) => {
+    shares[el.getAttribute("data-alloc-share")] = Number(el.value) || 0;
+  });
+  return shares;
+}
+
+/** 同来源「本周分摊占比」合计校验；返回 { ok, bySrc } */
+function validateAllocShares(shares) {
+  const bySrc = {};
+  Object.keys(shares).forEach((rk) => {
+    const src = rk.split("|").slice(0, 3).join("|");
+    bySrc[src] = (bySrc[src] || 0) + shares[rk];
+  });
+  const bad = Object.entries(bySrc).filter(([, v]) => Math.abs(v - 100) > 0.5);
+  return { ok: !bad.length, bySrc, bad };
+}
+
 function buildAllocRows(week) {
   const people = buildReviewPeople(week).filter((p) => p.status === "confirmed");
   const bySource = new Map();
@@ -1846,15 +1897,14 @@ function buildAllocRows(week) {
     cur.pct += p.pct;
     bySource.set(sk, cur);
   });
-  const bag = state.allocByWeek[week] || { status: "draft", ratios: {} };
+  const bag = state.allocByWeek[week] || { status: "draft", shares: {} };
+  const shareBag = bag.shares || bag.ratios || {};
   const rows = [];
   bySource.forEach((src) => {
-    const parts = SPLIT_CATALOG[sourceKey(src.brand, src.line, src.type)] || [
-      { project: "待匹配项目", order: "—", w: 1 },
-    ];
-    parts.forEach((part) => {
+    const spendParts = lastWeekSpendRatios(week, src.brand, src.line, src.type);
+    spendParts.forEach((part) => {
       const rk = `${sourceKey(src.brand, src.line, src.type)}|${part.project}|${part.order}`;
-      const ratioPct = bag.ratios[rk] != null ? bag.ratios[rk] : Math.round(part.w * 100);
+      const sharePct = shareBag[rk] != null ? shareBag[rk] : part.spendPct;
       rows.push({
         brand: src.brand,
         line: src.line,
@@ -1863,12 +1913,14 @@ function buildAllocRows(week) {
         project: part.project,
         order: part.order,
         ratioKey: rk,
-        ratioPct,
-        allocPct: Math.round((src.pct * ratioPct) / 1000) / 10,
+        spendPct: part.spendPct,
+        sharePct,
+        allocPct: Math.round((src.pct * sharePct) / 1000) / 10,
+        prevWeek: prevIsoWeekId(week),
       });
     });
   });
-  return { rows, status: bag.status || "draft" };
+  return { rows, status: bag.status || "draft", prevWeek: prevIsoWeekId(week) };
 }
 
 function renderReviewAlloc() {
@@ -1878,12 +1930,12 @@ function renderReviewAlloc() {
   const isLeader = state.role === "leader";
   const gate = document.getElementById("alloc-gate-text");
   if (gate) {
-    if (isOwner) gate.textContent = "当前为业务一号位：可确认工时分配并锁定。";
-    else if (isLeader) gate.textContent = "当前为部门 Leader：可按支出比例调整分摊并保存；确认需业务一号位。";
-    else gate.textContent = "请切换为「部门 Leader」调整分摊，或「业务一号位」确认分配。";
+    if (isOwner) gate.textContent = "当前为业务一号位：核对本周分摊占比后确认锁定。上周支出比例仅供参考。";
+    else if (isLeader) gate.textContent = "当前为部门 Leader：可编辑本周分摊占比（默认=上周支出比例）；确认需业务一号位。";
+    else gate.textContent = "请切换为「部门 Leader」编辑本周分摊占比，或「业务一号位」确认分配。";
   }
 
-  const { rows, status } = buildAllocRows(week);
+  const { rows, status, prevWeek } = buildAllocRows(week);
   const effective = weekReviewEffective(week);
   document.getElementById("alloc-status-line").innerHTML =
     status === "confirmed"
@@ -1894,48 +1946,72 @@ function renderReviewAlloc() {
   document.getElementById("alloc-meta").textContent = effective
     ? status === "confirmed"
       ? "分配已锁定"
-      : "分摊按项目执行单支出比例；同来源比例合计须为 100%"
+      : `参考周 ${prevWeek || "—"} 支出比例（只读）；编辑本周分摊占比，同来源合计须 100%`
     : "需先在「部门审核」确认填报人生效后，才能分配到项目";
 
-  const locked = status === "confirmed" || !effective;
+  const editable = effective && status !== "confirmed" && (isLeader || isOwner);
   const tbody = document.querySelector("#alloc-table tbody");
   tbody.innerHTML = rows.length
     ? rows
         .map((r) => {
           const typeLabel = EXECUTE_LABEL[r.type] || r.type;
+          const shareDisabled = editable ? "" : "disabled";
           return `<tr>
           <td>${r.brand} / ${r.line}<div class="a3-text-secondary" style="font-size:12px">${typeLabel}</div></td>
           <td>${r.filledPct}%</td>
           <td>${r.project}</td>
           <td>${r.order}</td>
+          <td title="参考 ${r.prevWeek} 支出占比（只读）"><span class="a3-text-secondary">${r.spendPct}%</span></td>
           <td><div class="a3-input-wrapper" style="max-width:100px">
-            <input class="a3-input" type="number" min="0" max="100" step="1" value="${r.ratioPct}" data-alloc-ratio="${r.ratioKey}" ${locked && !isLeader ? "disabled" : status === "confirmed" ? "disabled" : ""} />
+            <input class="a3-input" type="number" min="0" max="100" step="1" value="${r.sharePct}" data-alloc-share="${r.ratioKey}" ${shareDisabled} />
           </div></td>
-          <td>${r.allocPct}%</td>
+          <td><b class="a3-text-primary" data-alloc-result="${r.ratioKey}">${r.allocPct}%</b></td>
         </tr>`;
         })
         .join("")
-    : `<tr><td colspan="6"><div class="a3-table-empty">${effective ? "无已确认填报可分配" : "请先完成部门审核确认"}</div></td></tr>`;
+    : `<tr><td colspan="7"><div class="a3-table-empty">${effective ? "无已确认填报可分配" : "请先完成部门审核确认"}</div></td></tr>`;
+
+  const warnEl = document.getElementById("alloc-sum-warn");
+  const refreshShareWarn = () => {
+    const shares = readAllocShareInputs();
+    const { ok, bad, bySrc } = validateAllocShares(shares);
+    rows.forEach((r) => {
+      const el = document.querySelector(`[data-alloc-result="${r.ratioKey}"]`);
+      if (!el) return;
+      const share = shares[r.ratioKey] != null ? shares[r.ratioKey] : r.sharePct;
+      el.textContent = `${Math.round((r.filledPct * share) / 1000) / 10}%`;
+    });
+    if (!warnEl) return;
+    if (!rows.length) {
+      warnEl.textContent = "";
+      return;
+    }
+    if (ok) {
+      warnEl.innerHTML = `<span class="a3-text-secondary">本周分摊占比校验通过（各来源合计 100%）。上周支出比例合计亦为 100%（参考 ${prevWeek || "—"}）。</span>`;
+    } else {
+      const detail = bad.map(([src, v]) => `${src} → ${v}%`).join("；");
+      warnEl.innerHTML = `<span style="color:var(--a3-warning)">警告：本周分摊占比未凑满 100%（${detail}）。仍可保存草稿，确认前请改到 100%。</span>`;
+    }
+  };
+  tbody.querySelectorAll("[data-alloc-share]").forEach((el) => {
+    el.addEventListener("input", () => refreshShareWarn());
+  });
+  refreshShareWarn();
 
   const saveBtn = document.getElementById("alloc-save");
   const confBtn = document.getElementById("alloc-confirm");
   if (saveBtn) {
     saveBtn.disabled = !effective || status === "confirmed" || (!isLeader && !isOwner);
     saveBtn.onclick = () => {
-      const ratios = {};
-      document.querySelectorAll("[data-alloc-ratio]").forEach((el) => {
-        ratios[el.getAttribute("data-alloc-ratio")] = Number(el.value) || 0;
-      });
-      /* 校验同来源合计 100 */
-      const bySrc = {};
-      Object.keys(ratios).forEach((rk) => {
-        const src = rk.split("|").slice(0, 3).join("|");
-        bySrc[src] = (bySrc[src] || 0) + ratios[rk];
-      });
-      const bad = Object.entries(bySrc).find(([, v]) => Math.abs(v - 100) > 0.5);
-      if (bad) return toast("warning", `来源 ${bad[0]} 支出比例合计为 ${bad[1]}%，须为 100%`);
-      state.allocByWeek[week] = { status: "draft", ratios };
-      toast("info", "分摊已保存（草稿）");
+      const shares = readAllocShareInputs();
+      const { ok, bad } = validateAllocShares(shares);
+      state.allocByWeek[week] = { status: "draft", shares };
+      if (!ok) {
+        const detail = bad.map(([src, v]) => `${src}=${v}%`).join("，");
+        toast("warning", `已保存草稿，但分摊占比未达 100%：${detail}`);
+      } else {
+        toast("info", "本周分摊占比已保存（草稿）");
+      }
       renderReviewAlloc();
     };
   }
@@ -1943,18 +2019,14 @@ function renderReviewAlloc() {
     confBtn.disabled = !effective || status === "confirmed" || !isOwner;
     confBtn.onclick = () => {
       if (!isOwner) return toast("warning", "请切换为业务一号位后确认");
-      const cur = state.allocByWeek[week] || { ratios: {} };
-      if (!Object.keys(cur.ratios || {}).length) {
-        /* 用当前输入 */
-        const ratios = {};
-        document.querySelectorAll("[data-alloc-ratio]").forEach((el) => {
-          ratios[el.getAttribute("data-alloc-ratio")] = Number(el.value) || 0;
-        });
-        state.allocByWeek[week] = { status: "confirmed", ratios };
-      } else {
-        state.allocByWeek[week] = { ...cur, status: "confirmed" };
+      const shares = readAllocShareInputs();
+      const { ok, bad } = validateAllocShares(shares);
+      if (!ok) {
+        const detail = bad.map(([src, v]) => `${src}=${v}%`).join("，");
+        return toast("warning", `无法确认：本周分摊占比须合计 100%（${detail}）`);
       }
-      toast("success", "业务一号位已确认工时分配");
+      state.allocByWeek[week] = { status: "confirmed", shares };
+      toast("success", "业务一号位已确认工时分配（按本周分摊占比）");
       renderReviewAlloc();
     };
   }
