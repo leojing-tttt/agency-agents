@@ -3506,7 +3506,7 @@ const PRD_DOCS = [
   {
     id: "workhour",
     title: "工时与项目人力",
-    desc: "工时填报、部门审核、工时分配、基础报表、项目人力",
+    desc: "工时填报、部门审核、工时分配、基础报表、项目人力、配置（部门负责人/填报范围）",
     file: "prd-workhour-manpower.md",
     path: "docs/prd-workhour-manpower.md",
   },
