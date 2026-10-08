@@ -1045,6 +1045,109 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 
 .yc-row-warn td { background: var(--a3-warning-light); }
 
+/* —— 工时填报：周状态条 —— */
+.yc-week-picker {
+  padding: 12px 14px;
+  border: 1px solid var(--a3-border);
+  border-radius: 10px;
+  background: var(--a3-bg-body);
+}
+.yc-week-picker-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.yc-week-picker-label {
+  font-size: 12px;
+  color: var(--a3-text-secondary);
+  margin-bottom: 2px;
+}
+.yc-week-picker-current {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--a3-text-primary);
+  letter-spacing: -0.01em;
+}
+.yc-week-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--a3-text-secondary);
+}
+.yc-week-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.yc-week-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--a3-border);
+  flex: none;
+}
+.yc-week-dot.is-empty { background: #C5CDD6; }
+.yc-week-dot.is-draft { background: var(--a3-warning); }
+.yc-week-dot.is-submitted { background: var(--a3-info, var(--a3-primary)); }
+.yc-week-dot.is-locked { background: var(--a3-success); }
+.yc-week-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.yc-week-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 10px 8px;
+  border: 1px solid var(--a3-border);
+  border-radius: 8px;
+  background: var(--a3-bg-card);
+  color: var(--a3-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.yc-week-chip:hover {
+  border-color: var(--a3-primary);
+}
+.yc-week-chip.is-active {
+  border-color: var(--a3-primary);
+  box-shadow: 0 0 0 2px var(--a3-focus-ring, rgba(47, 111, 143, 0.16));
+  background: var(--a3-primary-light);
+}
+.yc-week-chip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.yc-week-chip-top strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+.yc-week-chip-range {
+  font-size: 11px;
+  color: var(--a3-text-secondary);
+}
+.yc-week-chip-status {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--a3-text-secondary);
+}
+.yc-week-chip.status-draft .yc-week-chip-status { color: var(--a3-warning); }
+.yc-week-chip.status-submitted .yc-week-chip-status { color: var(--a3-primary); }
+.yc-week-chip.status-locked .yc-week-chip-status { color: var(--a3-success); }
+
+@media (max-width: 900px) {
+  .yc-week-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 1200px) {
   .yc-kpi-strip,
   .yc-kpi-strip-4 { grid-template-columns: repeat(2, 1fr); }

@@ -28,8 +28,7 @@
       </div>
       <ul class="a3-menu">
         <li class="a3-menu-group-title">人效 / 工时</li>
-        <li class="a3-menu-item active" data-page="fill"><i class="fas fa-pen-to-square"></i><span>周填报</span></li>
-        <li class="a3-menu-item" data-page="fill-cmp"><i class="fas fa-table-columns"></i><span>填报对比</span></li>
+        <li class="a3-menu-item active" data-page="fill"><i class="fas fa-pen-to-square"></i><span>工时填报</span></li>
         <li class="a3-menu-item" data-page="mine"><i class="fas fa-list"></i><span>我的填报</span></li>
         <li class="a3-menu-item" data-page="leader"><i class="fas fa-clipboard-check"></i><span>待我确认</span></li>
         <li class="a3-menu-group-title">报表</li>
@@ -54,7 +53,7 @@
           <span class="a3-breadcrumb-separator">/</span>
           <span class="a3-breadcrumb-item"><a>工时</a></span>
           <span class="a3-breadcrumb-separator">/</span>
-          <span class="a3-breadcrumb-item" id="crumb">周填报</span>
+          <span class="a3-breadcrumb-item" id="crumb">工时填报</span>
         </div>
         <div class="yc-topbar-actions">
           <button type="button" class="yc-docs-entry" id="docs-entry" title="产品需求文档：预览 / 下载给程序员与 AI">
@@ -113,22 +112,27 @@
         <!-- 1 Fill: 按营销部区块分组 -->
         <section class="page active" id="page-fill">
           <div class="yc-title-row a3-mb-16">
-            <h1 class="yc-title a3-text-primary">周工时填报</h1>
-            <p class="a3-text-secondary a3-mt-4">按营销部（业务组）分块填报。先选部门，再在部门下添加多行：品牌→品线、执行单类型→子类型，填写本周占比（合计须为 100%）。</p>
+            <h1 class="yc-title a3-text-primary">工时填报</h1>
+            <p class="a3-text-secondary a3-mt-4">按营销部（业务组）分块填报。先选填报周，再在部门下添加多行：品牌→品线、执行单类型→子类型，填写本周占比（合计须为 100%）。</p>
           </div>
           <div class="a3-card">
             <div class="a3-card-body">
-              <div class="yc-toolbar a3-mb-16 a3-flex-between" style="justify-content:space-between;align-items:flex-end">
-                <div class="yc-field">
-                  <label class="a3-text-secondary">填报周</label>
-                  <div class="a3-select-wrapper">
-                    <select class="a3-select" id="fill-week">
-                      <option>2026-W39（09/22–09/28）</option>
-                      <option>2026-W38（09/15–09/21）</option>
-                    </select>
-                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+              <div class="yc-week-picker a3-mb-16" id="fill-week-picker">
+                <div class="yc-week-picker-head">
+                  <div>
+                    <div class="yc-week-picker-label">填报周</div>
+                    <div class="yc-week-picker-current" id="fill-week-current">2026-W39 · 09/22–09/28</div>
+                  </div>
+                  <div class="yc-week-legend" aria-hidden="true">
+                    <span><i class="yc-week-dot is-empty"></i>未填</span>
+                    <span><i class="yc-week-dot is-draft"></i>暂存</span>
+                    <span><i class="yc-week-dot is-submitted"></i>已提交</span>
+                    <span><i class="yc-week-dot is-locked"></i>已锁定</span>
                   </div>
                 </div>
+                <div class="yc-week-strip" id="fill-week-strip" role="listbox" aria-label="选择填报周"></div>
+              </div>
+              <div class="yc-toolbar a3-mb-16 a3-flex-between" style="justify-content:flex-end">
                 <button type="button" class="a3-btn a3-btn-default" id="add-dept"><i class="fas fa-folder-plus"></i> 添加营销部</button>
               </div>
               <div id="fill-sections"></div>
@@ -138,58 +142,6 @@
               <div class="a3-flex" style="gap:8px">
                 <button type="button" class="a3-btn a3-btn-default" id="save-draft">暂存</button>
                 <button type="button" class="a3-btn a3-btn-primary" id="submit-fill"><i class="fas fa-paper-plane"></i> 提交</button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 1b Flat table variant for UX compare -->
-        <section class="page" id="page-fill-cmp">
-          <div class="yc-title-row a3-mb-16">
-            <h1 class="yc-title a3-text-primary">填报工时对比</h1>
-            <p class="a3-text-secondary a3-mt-4">与「周填报」同一套主数据与占比规则，布局改为扁平表：业务组在首列。便于对照「分块 vs 平铺」两种交互。</p>
-          </div>
-          <div class="a3-alert a3-alert-info a3-mb-16">
-            <i class="fas fa-info-circle"></i>
-            <span>枚举已统一：业务组=营销一部…九部；业务类型=执行单类型（两级）。本页为平铺表变体，周填报为按部门分块变体。</span>
-          </div>
-          <div class="a3-card">
-            <div class="a3-card-body">
-              <div class="yc-toolbar a3-mb-16">
-                <div class="yc-field">
-                  <label class="a3-text-secondary">填报周</label>
-                  <div class="a3-select-wrapper">
-                    <select class="a3-select" id="fill-cmp-week">
-                      <option>2026-W39（09/22–09/28）</option>
-                      <option>2026-W38（09/15–09/21）</option>
-                    </select>
-                    <i class="fas fa-chevron-down a3-select-arrow"></i>
-                  </div>
-                </div>
-              </div>
-              <div class="a3-table-wrapper">
-                <table class="a3-table" id="fill-cmp-table">
-                  <thead>
-                    <tr>
-                      <th>业务组</th>
-                      <th>品牌</th>
-                      <th>品线</th>
-                      <th>执行单类型</th>
-                      <th>子类型</th>
-                      <th>占比(%)</th>
-                      <th>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-            </div>
-            <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
-              <span class="a3-text-secondary" id="fill-cmp-sum-wrap">本周合计 <b class="a3-text-primary" id="fill-cmp-sum">0</b> / 100%</span>
-              <div class="a3-flex" style="gap:8px">
-                <button type="button" class="a3-btn a3-btn-default" id="add-cmp-row"><i class="fas fa-plus"></i> 添加行</button>
-                <button type="button" class="a3-btn a3-btn-default" id="save-cmp-draft">暂存</button>
-                <button type="button" class="a3-btn a3-btn-primary" id="submit-cmp-fill"><i class="fas fa-paper-plane"></i> 提交</button>
               </div>
             </div>
           </div>
@@ -362,7 +314,7 @@
         <section class="page" id="page-admin-config">
           <div class="yc-title-row a3-mb-16">
             <h1 class="yc-title a3-text-primary">配置面板</h1>
-            <p class="a3-text-secondary a3-mt-4">管理员配置各营销部员工数量，以及部门与品牌对应关系。暂存/保存写入本机；员工数供填报进度面板计算应填人数，品牌映射约束周填报品牌下拉。</p>
+            <p class="a3-text-secondary a3-mt-4">管理员配置各营销部员工数量，以及部门与品牌对应关系。暂存/保存写入本机；员工数供填报进度面板计算应填人数，品牌映射约束工时填报品牌下拉。</p>
           </div>
           <div class="a3-alert a3-alert-info a3-mb-16" id="admin-config-gate" style="display:none">
             <i class="fas fa-lock"></i>
@@ -401,7 +353,7 @@
             <div class="a3-card a3-mb-16">
               <div class="a3-card-header"><span class="a3-card-title">部门与品牌对应关系</span></div>
               <div class="a3-card-body">
-                <p class="a3-text-secondary a3-mb-16">为每个营销部勾选可服务的品牌（来自业财 BRAND_LINE_MASTER）。周填报中该部门下的品牌下拉将优先/限定为已映射品牌。</p>
+                <p class="a3-text-secondary a3-mb-16">为每个营销部勾选可服务的品牌（来自业财 BRAND_LINE_MASTER）。工时填报中该部门下的品牌下拉将优先/限定为已映射品牌。</p>
                 <div class="a3-table-wrapper">
                   <table class="a3-table" id="cfg-dept-brand-table">
                     <thead>

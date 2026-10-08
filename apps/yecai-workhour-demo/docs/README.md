@@ -5,7 +5,7 @@
 
 | 文档 | 说明 | 直达 URL（本地 serve） |
 |------|------|------------------------|
-| [prd-workhour-manpower.md](./prd-workhour-manpower.md) | 工时归集、项目人力、品牌品线人力 | `/docs/prd-workhour-manpower.md` |
+| [prd-workhour-manpower.md](./prd-workhour-manpower.md) | 工时填报、项目/品牌品线人力（含周状态条） | `/docs/prd-workhour-manpower.md` |
 | [prd-observatory.md](./prd-observatory.md) | 观测台（CEO/CFO 高管财务） | `/docs/prd-observatory.md` |
 | [prd-all.md](./prd-all.md) | 合集（便于一次下载给 AI） | `/docs/prd-all.md` |
 

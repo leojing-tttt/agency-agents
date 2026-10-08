@@ -92,8 +92,26 @@ function subLabel(type, sub) {
   return (list.find((s) => s.value === sub) || {}).label || "—";
 }
 
-/** 周填报 mock：rows 含 group/brand/line/type/sub/pct，每周合计 100 */
+/** 工时填报可选周（ISO week 标签 + 日期区间） */
+const FILL_WEEK_OPTIONS = [
+  { id: "2026-W36", short: "W36", range: "09/01–09/07" },
+  { id: "2026-W37", short: "W37", range: "09/08–09/14" },
+  { id: "2026-W38", short: "W38", range: "09/15–09/21" },
+  { id: "2026-W39", short: "W39", range: "09/22–09/28" },
+  { id: "2026-W40", short: "W40", range: "09/29–10/05" },
+];
+
+/** 工时填报 mock：rows 含 group/brand/line/type/sub/pct，每周合计 100 */
 const FILL_BY_WEEK = {
+  "2026-W36": [
+    { group: "营销一部", brand: "好奇", line: "小森林", type: "INTERNAL_KOL", sub: "KOL", pct: 40 },
+    { group: "营销三部", brand: "高洁丝", line: "卫生巾", type: "HARD_AD", sub: "HARD_AD_PRICING", pct: 35 },
+    { group: "营销五部", brand: "拜耳", line: "心肝宝", type: "GEO", sub: "", pct: 25 },
+  ],
+  "2026-W37": [
+    { group: "营销一部", brand: "好奇", line: "深睡大师", type: "INTERNAL_DSP", sub: "INFLUENCER_PLATFORM_PAYMENT", pct: 50 },
+    { group: "营销二部", brand: "好奇", line: "小桃裤", type: "INTERNAL_KOL", sub: "COMMON_KOL", pct: 30 },
+  ],
   "2026-W39": [
     { group: "营销一部", brand: "好奇", line: "小森林", type: "INTERNAL_KOL", sub: "KOL", pct: 25 },
     { group: "营销一部", brand: "好奇", line: "深睡大师", type: "INTERNAL_DSP", sub: "INFLUENCER_PLATFORM_PAYMENT", pct: 15 },
@@ -109,6 +127,7 @@ const FILL_BY_WEEK = {
     { group: "营销八部", brand: "霞湖世家", line: "80支液氨棉T恤", type: "CUSTOMER_RELATIONSHIP", sub: "", pct: 15 },
     { group: "营销一部", brand: "好奇", line: "屁屁面膜", type: "HARD_AD", sub: "HARD_AD_MEDIA_PHOTO", pct: 10 },
   ],
+  "2026-W40": [],
 };
 
 /** Leader 归集：品牌|品线|type → 项目权重 */
@@ -172,8 +191,7 @@ const BRAND_REPORT = [
 ];
 
 const TITLES = {
-  fill: "周填报",
-  "fill-cmp": "填报对比",
+  fill: "工时填报",
   mine: "我的填报",
   leader: "待我确认",
   project: "项目人力",
@@ -717,7 +735,69 @@ const WATCH_SUBMITTED = {
 const LEADER_GROUP = "营销一部";
 
 function cloneRows(week) {
-  return FILL_BY_WEEK[week].map((r) => ({ ...r }));
+  return (FILL_BY_WEEK[week] || []).map((r) => ({ ...r }));
+}
+
+function weekMeta(weekId) {
+  return FILL_WEEK_OPTIONS.find((w) => w.id === weekId) || { id: weekId, short: weekId, range: "—" };
+}
+
+function weekFillStatus(weekId) {
+  const hist = state.history.find((h) => h.week === weekId);
+  if (hist?.status === "locked" || weekId === "2026-W38") return "locked";
+  if (hist?.status === "submitted") return "submitted";
+  if (state.draftWeeks && state.draftWeeks.has(weekId)) return "draft";
+  if (weekId === state.week) {
+    if (state.rows.length && sumPct(state.rows) > 0) return "draft";
+    return "empty";
+  }
+  const rows = FILL_BY_WEEK[weekId] || [];
+  if (rows.length && sumPct(rows) > 0) return "draft";
+  return "empty";
+}
+
+const WEEK_STATUS_LABEL = {
+  empty: "未填",
+  draft: "暂存",
+  submitted: "已提交",
+  locked: "已锁定",
+};
+
+function selectFillWeek(weekId, { force } = {}) {
+  if (!FILL_WEEK_OPTIONS.some((w) => w.id === weekId)) return;
+  if (!force && weekId === state.week) return;
+  FILL_BY_WEEK[state.week] = state.rows.map((r) => ({ ...r }));
+  state.week = weekId;
+  state.rows = cloneRows(weekId);
+  const hist = state.history.find((h) => h.week === weekId);
+  state.locked = hist?.status === "locked" || weekId === "2026-W38";
+  state.submitted = !!hist && (hist.status === "submitted" || hist.status === "locked");
+  renderFill();
+}
+
+function renderFillWeekStrip() {
+  const strip = document.getElementById("fill-week-strip");
+  const current = document.getElementById("fill-week-current");
+  if (!strip) return;
+  const meta = weekMeta(state.week);
+  if (current) current.textContent = `${state.week} · ${meta.range}`;
+  strip.innerHTML = FILL_WEEK_OPTIONS.map((w) => {
+    const status = weekFillStatus(w.id);
+    const active = w.id === state.week ? " is-active" : "";
+    return `
+      <button type="button" class="yc-week-chip status-${status}${active}" role="option" aria-selected="${w.id === state.week}" data-week="${w.id}" title="${w.id} ${w.range} · ${WEEK_STATUS_LABEL[status]}">
+        <span class="yc-week-chip-top">
+          <strong>${w.short}</strong>
+          <i class="yc-week-dot is-${status}" aria-hidden="true"></i>
+        </span>
+        <span class="yc-week-chip-range">${w.range}</span>
+        <span class="yc-week-chip-status">${WEEK_STATUS_LABEL[status]}</span>
+      </button>
+    `;
+  }).join("");
+  strip.querySelectorAll("[data-week]").forEach((btn) => {
+    btn.addEventListener("click", () => selectFillWeek(btn.getAttribute("data-week")));
+  });
 }
 
 function emptyRow(group) {
@@ -770,9 +850,9 @@ const state = {
   submitted: true,
   week: "2026-W39",
   rows: cloneRows("2026-W39"),
-  cmpWeek: "2026-W39",
-  cmpRows: cloneRows("2026-W39"),
+  draftWeeks: new Set(["2026-W37"]),
   history: [
+    { week: "2026-W36", status: "submitted", rows: cloneRows("2026-W36") },
     { week: "2026-W38", status: "locked", rows: cloneRows("2026-W38") },
     { week: "2026-W39", status: "submitted", rows: cloneRows("2026-W39") },
   ],
@@ -946,7 +1026,6 @@ function go(page) {
   syncObsChrome(page);
   updateFinBreadcrumb(page);
   if (page === "fill") renderFill();
-  if (page === "fill-cmp") renderFillCmp();
   if (page === "mine") renderMine();
   if (page === "leader") renderLeader();
   if (page === "project") renderProject();
@@ -959,7 +1038,7 @@ function go(page) {
   if (page === "admin-watch") renderAdminWatch();
   if (page === "master") renderMaster();
   const pageHashes = {
-    "fill-cmp": "fill-cmp",
+    fill: "fill",
     "admin-config": "admin-config",
     "admin-watch": "admin-progress",
     brand: "brand",
@@ -1016,16 +1095,6 @@ document.getElementById("role-select").addEventListener("change", (e) => {
   else go(activePage || "fill");
 });
 
-document.getElementById("fill-week").addEventListener("change", (e) => {
-  const week = e.target.value.startsWith("2026-W38") ? "2026-W38" : "2026-W39";
-  if (week === state.week) return;
-  FILL_BY_WEEK[state.week] = state.rows.map((r) => ({ ...r }));
-  state.week = week;
-  state.rows = cloneRows(week);
-  state.locked = week === "2026-W38";
-  renderFill();
-});
-
 function syncHistoryCurrentWeek() {
   const idx = state.history.findIndex((h) => h.week === state.week);
   const entry = {
@@ -1075,8 +1144,10 @@ function bindRowControls(root, getRows, setRows, rerender) {
         rerender();
       } else {
         setRows(rows);
-        if (rerender === renderFill) updateFillSum();
-        else updateCmpSum();
+        if (rerender === renderFill) {
+          updateFillSum();
+          renderFillWeekStrip();
+        }
       }
     });
   });
@@ -1122,10 +1193,20 @@ function updateFillSum() {
 }
 
 function renderFill() {
+  renderFillWeekStrip();
   const root = document.getElementById("fill-sections");
+  const locked = state.locked;
+  const addDeptBtn = document.getElementById("add-dept");
+  const saveBtn = document.getElementById("save-draft");
+  const submitBtn = document.getElementById("submit-fill");
+  if (addDeptBtn) addDeptBtn.disabled = locked;
+  if (saveBtn) saveBtn.disabled = locked;
+  if (submitBtn) submitBtn.disabled = locked;
   const groups = groupsInOrder(state.rows);
   if (!groups.length) {
-    root.innerHTML = `<div class="a3-empty"><i class="fas fa-inbox"></i><div class="a3-empty-text">暂无营销部，请点击「添加营销部」</div></div>`;
+    root.innerHTML = locked
+      ? `<div class="a3-empty"><i class="fas fa-lock"></i><div class="a3-empty-text">该周已锁定，仅可查看</div></div>`
+      : `<div class="a3-empty"><i class="fas fa-inbox"></i><div class="a3-empty-text">暂无营销部，请点击「添加营销部」</div></div>`;
     updateFillSum();
     return;
   }
@@ -1192,8 +1273,16 @@ document.getElementById("add-dept").addEventListener("click", () => {
   renderFill();
 });
 
-document.getElementById("save-draft").addEventListener("click", () => toast("info", "已暂存"));
+document.getElementById("save-draft").addEventListener("click", () => {
+  if (state.locked) return toast("warning", "该周已锁定，不可暂存");
+  FILL_BY_WEEK[state.week] = state.rows.map((r) => ({ ...r }));
+  state.draftWeeks.add(state.week);
+  state.submitted = false;
+  renderFillWeekStrip();
+  toast("info", "已暂存");
+});
 document.getElementById("submit-fill").addEventListener("click", () => {
+  if (state.locked) return toast("warning", "该周已锁定，不可再次提交");
   if (!state.rows.length) return toast("warning", "请至少添加一行");
   const incomplete = state.rows.some((r) => !r.group || !r.brand || !r.line || !r.type);
   if (incomplete) return toast("warning", "请完善业务组、品牌品线与执行单类型");
@@ -1201,60 +1290,14 @@ document.getElementById("submit-fill").addEventListener("click", () => {
   if (needSub) return toast("warning", "请选择执行单子类型");
   const total = sumPct(state.rows);
   if (Math.abs(total - 100) >= 0.05) return toast("warning", `本周占比合计须为 100%，当前为 ${total}%`);
-  if (state.week === "2026-W38") return toast("warning", "历史周已锁定，不可再次提交");
   state.submitted = true;
   state.locked = false;
+  state.draftWeeks.delete(state.week);
   FILL_BY_WEEK[state.week] = state.rows.map((r) => ({ ...r }));
   syncHistoryCurrentWeek();
+  renderFillWeekStrip();
   toast("success", "提交成功。拆分结果仅业务组 Leader 可见。");
   go("mine");
-});
-
-function updateCmpSum() {
-  setSumDisplay(
-    document.getElementById("fill-cmp-sum"),
-    document.getElementById("fill-cmp-sum-wrap"),
-    sumPct(state.cmpRows),
-  );
-}
-
-function renderFillCmp() {
-  const tbody = document.querySelector("#fill-cmp-table tbody");
-  tbody.innerHTML = state.cmpRows.map((row, i) =>
-    `<tr>${rowCellsHtml(row, i, { includeGroup: true })}</tr>`
-  ).join("") || `<tr><td colspan="7"><div class="a3-table-empty"><i class="fas fa-inbox"></i>暂无行，请添加</div></td></tr>`;
-
-  bindRowControls(
-    tbody,
-    () => state.cmpRows,
-    (rows) => { state.cmpRows = rows; },
-    renderFillCmp,
-  );
-  updateCmpSum();
-}
-
-document.getElementById("fill-cmp-week").addEventListener("change", (e) => {
-  const week = e.target.value.startsWith("2026-W38") ? "2026-W38" : "2026-W39";
-  if (week === state.cmpWeek) return;
-  state.cmpWeek = week;
-  state.cmpRows = cloneRows(week);
-  renderFillCmp();
-});
-
-document.getElementById("add-cmp-row").addEventListener("click", () => {
-  state.cmpRows.push(emptyRow(GROUPS[0]));
-  renderFillCmp();
-});
-document.getElementById("save-cmp-draft").addEventListener("click", () => toast("info", "已暂存（平铺变体）"));
-document.getElementById("submit-cmp-fill").addEventListener("click", () => {
-  if (!state.cmpRows.length) return toast("warning", "请至少添加一行");
-  const incomplete = state.cmpRows.some((r) => !r.group || !r.brand || !r.line || !r.type);
-  if (incomplete) return toast("warning", "请完善业务组、品牌品线与执行单类型");
-  const needSub = state.cmpRows.some((r) => (EXECUTE_SUBTYPES[r.type] || []).length && !r.sub);
-  if (needSub) return toast("warning", "请选择执行单子类型");
-  const total = sumPct(state.cmpRows);
-  if (Math.abs(total - 100) >= 0.05) return toast("warning", `本周占比合计须为 100%，当前为 ${total}%`);
-  toast("success", "平铺变体已提交（演示）。可切回「周填报」对照分块交互。");
 });
 
 function statusTag(status) {
@@ -1272,7 +1315,7 @@ function renderMine() {
       ? [{ week: state.week, status: state.locked ? "locked" : "submitted", rows: state.rows }]
       : [];
   if (!entries.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="a3-empty"><i class="fas fa-inbox"></i><div class="a3-empty-text">暂无提交记录，请先在「周填报」提交</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="a3-empty"><i class="fas fa-inbox"></i><div class="a3-empty-text">暂无提交记录，请先在「工时填报」提交</div></div></td></tr>`;
     return;
   }
   tbody.innerHTML = entries.flatMap((h) =>
@@ -2161,7 +2204,8 @@ if (adminBoot) {
   document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
   syncRoleMenus();
   go(land);
-} else if (bootHash === "fill-cmp" || bootHash === "brand") go(bootHash);
+} else if (bootHash === "fill" || bootHash === "fill-cmp") go("fill");
+else if (bootHash === "brand") go(bootHash);
 else renderFill();
 
 window.addEventListener("hashchange", () => {
@@ -2182,7 +2226,8 @@ window.addEventListener("hashchange", () => {
       syncRoleMenus();
     }
     go(h);
-  }   else if (h === "fill-cmp" || h === "brand") go(h);
+  } else if (h === "fill" || h === "fill-cmp") go("fill");
+  else if (h === "brand") go(h);
   else if (h === "admin-config" || h === "admin-watch" || h === "admin-progress") {
     if (state.role !== "admin") {
       state.role = "admin";
@@ -2199,7 +2244,7 @@ const PRD_DOCS = [
   {
     id: "workhour",
     title: "工时与项目人力",
-    desc: "周填报、拆分确认、项目/品牌品线人力报表",
+    desc: "工时填报、拆分确认、项目/品牌品线人力报表",
     file: "prd-workhour-manpower.md",
     path: "docs/prd-workhour-manpower.md",
   },
