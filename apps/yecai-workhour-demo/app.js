@@ -62,6 +62,68 @@ const DEFAULT_DEPT_OWNERS = {
 
 const DEPT_OWNER_STORAGE_KEY = "yecai-workhour-dept-owners-v1";
 const DEPT_OWNER_DRAFT_KEY = "yecai-workhour-dept-owners-draft-v1";
+const FILL_SCOPE_STORAGE_KEY = "yecai-workhour-fill-scope-v1";
+
+/**
+ * 公司组织架构 mock（多级部门树）
+ * 字段对齐 A3 DepartmentDTO + getDeptTree：
+ * - system/a3-expert-square-…/commons/dto/DepartmentDTO.java
+ *   { name, departmentId, openDepartmentId, parentDepartmentId, leaderUserId, status, children }
+ * - talent-lib API：GET /api/v1/sys/getDeptTree → BaseResponseResultListDepartmentDTO
+ * Demo 将营销一部–九部挂在「营销中心」下，供财务勾选填报范围。
+ */
+function deptNode(name, departmentId, parentDepartmentId, children = [], leaderUserId = "") {
+  return {
+    name,
+    departmentId,
+    openDepartmentId: `od_${departmentId}`,
+    parentDepartmentId: parentDepartmentId || "",
+    leaderUserId: leaderUserId || "",
+    status: 0,
+    children,
+  };
+}
+
+const ORG_DEPT_TREE = [
+  deptNode("觉联集团", "root", "", [
+    deptNode("营销中心", "mkt", "root", [
+      deptNode("营销一部", "mkt_1", "mkt", [], "ou_zhouheng"),
+      deptNode("营销二部", "mkt_2", "mkt", [], "ou_chenyuan"),
+      deptNode("营销三部", "mkt_3", "mkt", [], "ou_hanruoxi"),
+      deptNode("营销四部", "mkt_4", "mkt", [], "ou_lujingming"),
+      deptNode("营销五部", "mkt_5", "mkt", [], "ou_sunianchu"),
+      deptNode("营销六部", "mkt_6", "mkt", [], "ou_yezhiqiu"),
+      deptNode("营销七部", "mkt_7", "mkt", [], "ou_jiangcheng"),
+      deptNode("营销八部", "mkt_8", "mkt", [], "ou_baixu"),
+      deptNode("营销九部", "mkt_9", "mkt", [], "ou_tangxiaoman"),
+      deptNode("媒介策略组", "mkt_media", "mkt", [
+        deptNode("媒介一组", "mkt_media_1", "mkt_media"),
+        deptNode("媒介二组", "mkt_media_2", "mkt_media"),
+      ]),
+    ]),
+    deptNode("产品与技术中心", "tech", "root", [
+      deptNode("产品部", "tech_prod", "tech", [
+        deptNode("产品设计组", "tech_prod_design", "tech_prod"),
+        deptNode("产品运营组", "tech_prod_ops", "tech_prod"),
+      ]),
+      deptNode("技术部", "tech_eng", "tech", [
+        deptNode("前端组", "tech_fe", "tech_eng"),
+        deptNode("后端组", "tech_be", "tech_eng"),
+      ]),
+    ]),
+    deptNode("职能中心", "fn", "root", [
+      deptNode("财务部", "fn_fin", "fn"),
+      deptNode("人事部", "fn_hr", "fn"),
+      deptNode("行政部", "fn_admin", "fn"),
+    ]),
+  ]),
+];
+
+const DEFAULT_FILL_SCOPE_IDS = [
+  "mkt_1", "mkt_2", "mkt_3", "mkt_4", "mkt_5",
+  "mkt_6", "mkt_7", "mkt_8", "mkt_9",
+  "mkt_media_1", "mkt_media_2",
+];
 
 /**
  * 执行单类型 L1→L2（与 CreateExecutionOrder/store.ts initialDictData 对齐）
@@ -359,7 +421,8 @@ const TITLES = {
   fill: "工时填报",
   review: "部门审核",
   leader: "部门审核",
-  config: "配置",
+  config: "部门负责人",
+  "fill-scope": "填报范围",
   basic: "基础报表",
   project: "项目人力",
   brand: "基础报表",
@@ -371,6 +434,8 @@ const TITLES = {
   "admin-watch": "填报进度面板",
   master: "主数据来源",
 };
+
+const CFG_PAGES = ["config", "fill-scope"];
 
 /** 高管日报 · 脱敏日快照（方案 A；非正式财务数） */
 const FIN_SNAPSHOT_DAY = "2026-10-05";
@@ -933,6 +998,65 @@ function ownerOf(group) {
   return (state.deptOwners?.owners && state.deptOwners.owners[group]) || DEFAULT_DEPT_OWNERS[group] || "—";
 }
 
+function walkOrgTree(nodes, visit) {
+  (nodes || []).forEach((n) => {
+    visit(n);
+    if (n.children && n.children.length) walkOrgTree(n.children, visit);
+  });
+}
+
+function collectOrgIds(nodes) {
+  const ids = [];
+  walkOrgTree(nodes, (n) => {
+    if (n.departmentId) ids.push(n.departmentId);
+  });
+  return ids;
+}
+
+function findOrgNode(nodes, id) {
+  let found = null;
+  walkOrgTree(nodes, (n) => {
+    if (!found && n.departmentId === id) found = n;
+  });
+  return found;
+}
+
+function defaultFillScope() {
+  return {
+    selectedIds: DEFAULT_FILL_SCOPE_IDS.slice(),
+    leaderMustFill: true,
+    savedAt: null,
+    source: "org",
+  };
+}
+
+function normalizeFillScope(raw) {
+  const base = defaultFillScope();
+  if (!raw || typeof raw !== "object") return base;
+  const all = new Set(collectOrgIds(ORG_DEPT_TREE));
+  const selectedIds = Array.isArray(raw.selectedIds)
+    ? raw.selectedIds.filter((id) => typeof id === "string" && all.has(id))
+    : base.selectedIds.slice();
+  return {
+    selectedIds,
+    leaderMustFill: raw.leaderMustFill !== false,
+    savedAt: raw.savedAt || null,
+    source: raw.source === "local" ? "local" : "org",
+  };
+}
+
+function loadFillScope() {
+  try {
+    const raw = localStorage.getItem(FILL_SCOPE_STORAGE_KEY);
+    if (raw) return normalizeFillScope(JSON.parse(raw));
+  } catch (_) { /* ignore */ }
+  return defaultFillScope();
+}
+
+function canConfigRole(role) {
+  return role === "finance" || role === "admin" || role === "cfo";
+}
+
 /** 填报进度面板：各周已提交人数 mock（应填 = 配置员工数） */
 const WATCH_WEEKS = ["2026-W36", "2026-W37", "2026-W38", "2026-W39"];
 const WATCH_SUBMITTED = {
@@ -1115,6 +1239,8 @@ const state = {
   adminConfig: loadAdminConfig(),
   adminDraftMeta: null,
   deptOwners: loadDeptOwners(),
+  fillScope: loadFillScope(),
+  fillScopeCollapsed: {},
   watchWeek: "2026-W39",
   reviewWeek: "2026-W39",
   reviewTab: "audit",
@@ -1240,8 +1366,10 @@ function subSelectHtml(type, selected) {
 function syncRoleMenus() {
   const isAdmin = state.role === "admin";
   const canFin = isExecRole(state.role);
+  const canCfg = canConfigRole(state.role);
   document.body.classList.toggle("yc-role-admin", isAdmin);
   document.body.classList.toggle("yc-role-fin", canFin);
+  document.body.classList.toggle("yc-role-cfg", canCfg);
   document.body.classList.toggle("yc-role-ceo", state.role === "ceo");
   document.body.classList.toggle("yc-role-cfo", state.role === "cfo" || state.role === "finance");
 }
@@ -1252,6 +1380,12 @@ function updateFinBreadcrumb(page) {
   if (FIN_PAGES.includes(page)) {
     crumbs.innerHTML = `
       <span class="a3-breadcrumb-item"><a href="#fin-overview">观测台</a></span>
+      <span class="a3-breadcrumb-separator">/</span>
+      <span class="a3-breadcrumb-item" id="crumb">${TITLES[page] || page}</span>
+    `;
+  } else if (CFG_PAGES.includes(page)) {
+    crumbs.innerHTML = `
+      <span class="a3-breadcrumb-item"><a>配置</a></span>
       <span class="a3-breadcrumb-separator">/</span>
       <span class="a3-breadcrumb-item" id="crumb">${TITLES[page] || page}</span>
     `;
@@ -1287,6 +1421,10 @@ function go(page) {
     toast("warning", "请先切换为管理员身份");
     page = "fill";
   }
+  if (CFG_PAGES.includes(page) && !canConfigRole(state.role)) {
+    toast("warning", "请切换为财务 / 管理员后进入配置");
+    page = "fill";
+  }
   if (FIN_PAGES.includes(page) && !isExecRole(state.role)) {
     toast("warning", "请切换为 CEO / CFO（或财务）后进入观测台");
     page = "fill";
@@ -1298,6 +1436,7 @@ function go(page) {
   if (page === "fill") renderFill();
   if (page === "review") renderReview();
   if (page === "config") renderDeptOwnerConfig();
+  if (page === "fill-scope") renderFillScope();
   if (page === "basic") renderBasic();
   if (page === "project") renderProject();
   if (page === "fin-overview") renderFinOverview();
@@ -1310,6 +1449,7 @@ function go(page) {
   const pageHashes = {
     fill: "fill",
     config: "config",
+    "fill-scope": "fill-scope",
     basic: "basic",
     review: state.reviewTab === "alloc" ? "review-alloc" : "review",
     "admin-config": "admin-config",
@@ -1358,18 +1498,20 @@ document.getElementById("role-select").addEventListener("change", (e) => {
   const active = document.querySelector(".page.active");
   const activePage = active ? active.id.replace(/^page-/, "") : "fill";
   const onAdminPage = activePage === "admin-config" || activePage === "admin-watch";
+  const onCfgPage = CFG_PAGES.includes(activePage);
   const onFinPage = FIN_PAGES.includes(activePage);
   /* CEO / CFO 打开观测台 → 一律落在 elevated 总览 */
-  if (state.role === "ceo" || state.role === "cfo") go("fin-overview");
-  else if (state.role === "finance") go("fin-overview");
-  else if (state.role === "admin") go(onAdminPage ? activePage : "admin-config");
+  if (state.role === "ceo") go("fin-overview");
+  else if (state.role === "cfo") go(onCfgPage ? activePage : "fin-overview");
+  else if (state.role === "finance") go(onCfgPage ? activePage : "fin-overview");
+  else if (state.role === "admin") go(onAdminPage || onCfgPage ? activePage : "admin-config");
   else if (state.role === "leader") {
     state.reviewTab = "audit";
     go("review");
   } else if (state.role === "owner") {
     state.reviewTab = "alloc";
     go("review");
-  } else if (onAdminPage || (onFinPage && !isExecRole(state.role))) go("fill");
+  } else if (onAdminPage || onCfgPage || (onFinPage && !isExecRole(state.role))) go("fill");
   else go(activePage || "fill");
 });
 
@@ -2419,6 +2561,143 @@ document.getElementById("cfg-owner-reset")?.addEventListener("click", () => {
   toast("info", "已恢复人事系统默认负责人");
 });
 
+function orgDescendantIds(node) {
+  const ids = [];
+  walkOrgTree(node.children || [], (n) => {
+    if (n.departmentId) ids.push(n.departmentId);
+  });
+  return ids;
+}
+
+function orgSubtreeIds(node) {
+  return [node.departmentId].concat(orgDescendantIds(node));
+}
+
+function updateFillScopeMeta() {
+  const countEl = document.getElementById("fill-scope-count");
+  const metaEl = document.getElementById("fill-scope-meta");
+  const srcEl = document.getElementById("fill-scope-source");
+  const n = (state.fillScope.selectedIds || []).length;
+  if (countEl) countEl.textContent = `已选 ${n} 个部门`;
+  if (srcEl) srcEl.textContent = state.fillScope.source === "local" ? "来源：本机覆盖" : "来源：组织架构";
+  if (metaEl) {
+    const parts = [];
+    if (state.fillScope.savedAt) parts.push("已保存 " + state.fillScope.savedAt);
+    parts.push(state.fillScope.leaderMustFill ? "负责人需填报" : "负责人免填报");
+    metaEl.textContent = parts.join(" · ") || "默认已预勾选营销业务线相关部门";
+  }
+}
+
+function setFillScopeChecked(id, checked) {
+  const node = findOrgNode(ORG_DEPT_TREE, id);
+  if (!node) return;
+  const ids = orgSubtreeIds(node);
+  const set = new Set(state.fillScope.selectedIds || []);
+  ids.forEach((x) => {
+    if (checked) set.add(x);
+    else set.delete(x);
+  });
+  state.fillScope.selectedIds = Array.from(set);
+}
+
+function orgCheckState(node) {
+  const selected = new Set(state.fillScope.selectedIds || []);
+  const ids = orgSubtreeIds(node);
+  const hit = ids.filter((id) => selected.has(id)).length;
+  if (hit === 0) return { checked: false, indeterminate: false };
+  if (hit === ids.length) return { checked: true, indeterminate: false };
+  return { checked: false, indeterminate: true };
+}
+
+function renderOrgTreeNodes(nodes, depth) {
+  return (nodes || [])
+    .map((node) => {
+      const kids = node.children || [];
+      const hasKids = kids.length > 0;
+      const collapsed = !!state.fillScopeCollapsed[node.departmentId];
+      const st = orgCheckState(node);
+      const twistCls = [
+        "yc-org-twist",
+        hasKids ? "" : "is-leaf",
+        collapsed ? "is-collapsed" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return `
+        <li class="yc-org-node" role="treeitem" aria-expanded="${hasKids ? !collapsed : "false"}" data-dept-id="${node.departmentId}">
+          <div class="yc-org-row" style="padding-left:${depth * 4}px">
+            <button type="button" class="${twistCls}" data-org-twist="${node.departmentId}" aria-label="展开/收起">
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <label class="yc-org-check">
+              <input type="checkbox" data-org-check="${node.departmentId}" ${st.checked ? "checked" : ""} ${st.indeterminate ? 'data-indeterminate="1"' : ""} />
+              <span class="yc-org-name">${node.name}</span>
+              <span class="yc-org-meta">${node.departmentId}</span>
+            </label>
+          </div>
+          ${
+            hasKids
+              ? `<ul class="yc-org-children${collapsed ? " is-collapsed" : ""}" role="group">${renderOrgTreeNodes(kids, depth + 1)}</ul>`
+              : ""
+          }
+        </li>`;
+    })
+    .join("");
+}
+
+function renderFillScope() {
+  const tree = document.getElementById("fill-scope-tree");
+  if (!tree) return;
+  tree.innerHTML = `<ul class="yc-org-node">${renderOrgTreeNodes(ORG_DEPT_TREE, 0)}</ul>`;
+  tree.querySelectorAll("input[data-org-check]").forEach((input) => {
+    if (input.getAttribute("data-indeterminate") === "1") input.indeterminate = true;
+  });
+  const toggle = document.getElementById("fill-scope-leader-toggle");
+  if (toggle) toggle.checked = state.fillScope.leaderMustFill !== false;
+  updateFillScopeMeta();
+}
+
+document.getElementById("fill-scope-tree")?.addEventListener("click", (e) => {
+  const twist = e.target.closest("[data-org-twist]");
+  if (!twist) return;
+  e.preventDefault();
+  const id = twist.getAttribute("data-org-twist");
+  state.fillScopeCollapsed[id] = !state.fillScopeCollapsed[id];
+  renderFillScope();
+});
+
+document.getElementById("fill-scope-tree")?.addEventListener("change", (e) => {
+  const input = e.target.closest("input[data-org-check]");
+  if (!input) return;
+  setFillScopeChecked(input.getAttribute("data-org-check"), input.checked);
+  renderFillScope();
+});
+
+document.getElementById("fill-scope-leader-toggle")?.addEventListener("change", (e) => {
+  state.fillScope.leaderMustFill = !!e.target.checked;
+  updateFillScopeMeta();
+});
+
+document.getElementById("fill-scope-save")?.addEventListener("click", () => {
+  const savedAt = new Date().toLocaleString("zh-CN", { hour12: false });
+  state.fillScope = {
+    selectedIds: (state.fillScope.selectedIds || []).slice(),
+    leaderMustFill: state.fillScope.leaderMustFill !== false,
+    savedAt,
+    source: "local",
+  };
+  localStorage.setItem(FILL_SCOPE_STORAGE_KEY, JSON.stringify(state.fillScope));
+  updateFillScopeMeta();
+  toast("success", "填报范围已保存（Demo 本机生效）");
+});
+
+document.getElementById("fill-scope-reset")?.addEventListener("click", () => {
+  localStorage.removeItem(FILL_SCOPE_STORAGE_KEY);
+  state.fillScope = defaultFillScope();
+  renderFillScope();
+  toast("info", "已恢复默认填报范围（营销业务线）");
+});
+
 function staffTotal() {
   return GROUPS.reduce((s, g) => s + (Number(state.adminConfig.staffByDept[g]) || 0), 0);
 }
@@ -3141,8 +3420,15 @@ if (adminBoot) {
   syncRoleMenus();
   go(land);
 } else if (bootHash === "fill" || bootHash === "fill-cmp") go("fill");
-else if (bootHash === "config") go("config");
-else if (bootHash === "basic" || bootHash === "brand") go("basic");
+else if (bootHash === "config" || bootHash === "fill-scope") {
+  if (!canConfigRole(state.role)) {
+    state.role = "finance";
+    document.getElementById("role-select").value = "finance";
+    document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.finance.name}`;
+    syncRoleMenus();
+  }
+  go(bootHash === "fill-scope" ? "fill-scope" : "config");
+} else if (bootHash === "basic" || bootHash === "brand") go("basic");
 else if (bootHash === "review" || bootHash === "review-alloc" || bootHash === "leader" || bootHash === "mine") {
   if (bootHash === "review-alloc") {
     state.role = "owner";
@@ -3176,8 +3462,15 @@ window.addEventListener("hashchange", () => {
     }
     go(h);
   } else if (h === "fill" || h === "fill-cmp") go("fill");
-  else if (h === "config") go("config");
-  else if (h === "basic" || h === "brand") go("basic");
+  else if (h === "config" || h === "fill-scope") {
+    if (!canConfigRole(state.role)) {
+      state.role = "finance";
+      document.getElementById("role-select").value = "finance";
+      document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.finance.name}`;
+      syncRoleMenus();
+    }
+    go(h === "fill-scope" ? "fill-scope" : "config");
+  } else if (h === "basic" || h === "brand") go("basic");
   else if (h === "review" || h === "review-alloc" || h === "leader" || h === "mine") {
     if (h === "review-alloc") {
       if (state.role !== "owner" && state.role !== "leader") {

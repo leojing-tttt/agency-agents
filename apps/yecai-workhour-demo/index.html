@@ -30,10 +30,12 @@
         <li class="a3-menu-group-title">人效 / 工时</li>
         <li class="a3-menu-item active" data-page="fill"><i class="fas fa-pen-to-square"></i><span>工时填报</span></li>
         <li class="a3-menu-item" data-page="review"><i class="fas fa-clipboard-check"></i><span>部门审核</span></li>
-        <li class="a3-menu-item" data-page="config"><i class="fas fa-sitemap"></i><span>配置</span></li>
         <li class="a3-menu-group-title">报表</li>
         <li class="a3-menu-item" data-page="basic"><i class="fas fa-table"></i><span>基础报表</span></li>
         <li class="a3-menu-item" data-page="project"><i class="fas fa-diagram-project"></i><span>项目人力</span></li>
+        <li class="a3-menu-group-title cfg-only">配置</li>
+        <li class="a3-menu-item cfg-only" data-page="config"><i class="fas fa-user-tie"></i><span>部门负责人</span></li>
+        <li class="a3-menu-item cfg-only" data-page="fill-scope"><i class="fas fa-sitemap"></i><span>填报范围</span></li>
         <li class="a3-menu-group-title admin-only">管理 / 配置</li>
         <li class="a3-menu-item admin-only" data-page="admin-config"><i class="fas fa-sliders"></i><span>配置面板</span></li>
         <li class="a3-menu-item admin-only" data-page="admin-watch"><i class="fas fa-chart-line"></i><span>填报进度面板</span></li>
@@ -388,11 +390,11 @@
           </div>
         </section>
 
-        <!-- 人效配置：部门 ↔ 负责人 -->
+        <!-- 配置 · 部门负责人：部门 ↔ 负责人 -->
         <section class="page" id="page-config">
           <div class="yc-title-row a3-mb-16">
-            <h1 class="yc-title a3-text-primary">配置</h1>
-            <p class="a3-text-secondary a3-mt-4">维护营销部与部门负责人对应关系。默认数据来自人事系统同步；本页可演示编辑并暂存/保存到本机。</p>
+            <h1 class="yc-title a3-text-primary">部门负责人</h1>
+            <p class="a3-text-secondary a3-mt-4">维护营销部与部门负责人对应关系。默认数据来自人事系统同步；本页可演示编辑并暂存/保存到本机。仅财务 / 管理员可见。</p>
           </div>
           <div class="a3-alert a3-alert-info a3-mb-16">
             <i class="fas fa-building-user"></i>
@@ -423,6 +425,52 @@
                 <button type="button" class="a3-btn a3-btn-default" id="cfg-owner-reset"><i class="fas fa-rotate-left"></i> 恢复 HR 默认</button>
                 <button type="button" class="a3-btn a3-btn-default" id="cfg-owner-draft"><i class="fas fa-floppy-disk"></i> 暂存草稿</button>
                 <button type="button" class="a3-btn a3-btn-primary" id="cfg-owner-save"><i class="fas fa-check"></i> 保存</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 配置 · 填报范围：组织树勾选需填报部门 -->
+        <section class="page" id="page-fill-scope">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">填报范围</h1>
+            <p class="a3-text-secondary a3-mt-4">配置哪些部门的人需要填写「项目公示人力」。组织树来自公司组织架构（Demo mock，字段对齐 <code>getDeptTree</code> / <code>DepartmentDTO</code>）；由财务勾选必填部门。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16">
+            <i class="fas fa-building"></i>
+            <span>数据来源：<b>公司组织架构</b>（正式：<code>/api/v1/sys/getDeptTree</code>；Demo 使用同结构 mock）。勾选表示该部门人员须参与项目公示人力填报。</span>
+          </div>
+          <div class="a3-card a3-mb-16">
+            <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
+              <span class="a3-card-title">附加规则</span>
+              <span class="a3-tag a3-tag-default" id="fill-scope-source">来源：组织架构</span>
+            </div>
+            <div class="a3-card-body">
+              <label class="yc-toggle-row" for="fill-scope-leader-toggle">
+                <span>
+                  <b class="a3-text-primary">部门负责人是否需要填报</b>
+                  <span class="a3-text-secondary" style="display:block;font-size:12px;margin-top:4px">关闭后，已勾选部门内的负责人本人可不参与项目公示人力填报；组员仍按勾选范围填报。</span>
+                </span>
+                <span class="yc-switch">
+                  <input type="checkbox" id="fill-scope-leader-toggle" checked />
+                  <span class="yc-switch-ui" aria-hidden="true"></span>
+                </span>
+              </label>
+            </div>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
+              <span class="a3-card-title">组织架构 · 必填部门</span>
+              <span class="a3-text-secondary" style="font-size:12px" id="fill-scope-count">已选 0 个部门</span>
+            </div>
+            <div class="a3-card-body">
+              <div class="yc-org-tree" id="fill-scope-tree" role="tree" aria-label="公司组织架构"></div>
+            </div>
+            <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
+              <span class="a3-text-secondary" id="fill-scope-meta">默认已预勾选营销业务线相关部门</span>
+              <div class="a3-flex" style="gap:8px">
+                <button type="button" class="a3-btn a3-btn-default" id="fill-scope-reset"><i class="fas fa-rotate-left"></i> 恢复默认</button>
+                <button type="button" class="a3-btn a3-btn-primary" id="fill-scope-save"><i class="fas fa-check"></i> 保存</button>
               </div>
             </div>
           </div>
