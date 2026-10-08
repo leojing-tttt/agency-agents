@@ -200,33 +200,122 @@ const PROJECT_REPORT = [
   { project: "霞湖世家 液氨棉种草", brand: "霞湖世家 / 120支液氨棉T恤", types: "策划与比稿费用", days: 1.5, cost: 6000 },
 ];
 
-/** 品牌品线人力：业务组 → 品牌 → 品线（媒介+投放+策划 = 人天） */
-const BRAND_REPORT = [
-  { group: "营销一部", brand: "好奇", line: "小森林", days: 5.2, media: 1.2, buy: 2.8, plan: 1.2, cost: 20800 },
-  { group: "营销一部", brand: "好奇", line: "深睡大师", days: 2.1, media: 0.5, buy: 1.2, plan: 0.4, cost: 8400 },
-  { group: "营销一部", brand: "好奇", line: "屁屁面膜", days: 1.0, media: 0.2, buy: 0.4, plan: 0.4, cost: 4000 },
-  { group: "营销二部", brand: "好奇", line: "小桃裤", days: 2.0, media: 0.5, buy: 0.9, plan: 0.6, cost: 8000 },
-  { group: "营销二部", brand: "高洁丝", line: "蔓越莓益生力", days: 1.2, media: 0.3, buy: 0.5, plan: 0.4, cost: 4800 },
-  { group: "营销三部", brand: "高洁丝", line: "卫生巾", days: 3.5, media: 0.5, buy: 2.5, plan: 0.5, cost: 17500 },
-  { group: "营销三部", brand: "高洁丝", line: "海岛奢宠纯棉", days: 1.0, media: 0.2, buy: 0.6, plan: 0.2, cost: 5000 },
-  { group: "营销四部", brand: "高洁丝", line: "阳光烘烘抑菌纯棉", days: 1.6, media: 0.3, buy: 1.1, plan: 0.2, cost: 8000 },
-  { group: "营销四部", brand: "拜耳", line: "氨糖液体钙", days: 0.8, media: 0.2, buy: 0.3, plan: 0.3, cost: 3200 },
-  { group: "营销五部", brand: "拜耳", line: "心肝宝", days: 2.4, media: 0.8, buy: 0.6, plan: 1.0, cost: 9600 },
-  { group: "营销六部", brand: "拜耳", line: "时光片Pro", days: 1.5, media: 0.4, buy: 0.5, plan: 0.6, cost: 6000 },
-  { group: "营销七部", brand: "康王", line: "酮康唑洗发水", days: 2.8, media: 0.7, buy: 1.2, plan: 0.9, cost: 11200 },
-  { group: "营销八部", brand: "霞湖世家", line: "80支液氨棉T恤", days: 1.0, media: 0.2, buy: 0.4, plan: 0.4, cost: 4000 },
-  { group: "营销八部", brand: "好奇", line: "小龙裤", days: 0.8, media: 0.2, buy: 0.3, plan: 0.3, cost: 3200 },
-  { group: "营销九部", brand: "霞湖世家", line: "120支液氨棉T恤", days: 1.5, media: 0.3, buy: 0.5, plan: 0.7, cost: 6000 },
-  { group: "营销九部", brand: "霞湖世家", line: "200支液氨棉T恤", days: 0.6, media: 0.1, buy: 0.2, plan: 0.3, cost: 2400 },
+/** 基础报表：执行单类型 → 业务组 → 品牌 → 品线（投入人天 + 成本） */
+const BASIC_REPORT = [
+  { group: "营销一部", brand: "好奇", line: "小森林", type: "INTERNAL_KOL", days: 5.2, cost: 20800 },
+  { group: "营销一部", brand: "好奇", line: "深睡大师", type: "INTERNAL_DSP", days: 2.1, cost: 8400 },
+  { group: "营销一部", brand: "好奇", line: "屁屁面膜", type: "HARD_AD", days: 1.0, cost: 4000 },
+  { group: "营销二部", brand: "好奇", line: "小桃裤", type: "INTERNAL_KOL", days: 2.0, cost: 8000 },
+  { group: "营销二部", brand: "高洁丝", line: "蔓越莓益生力", type: "INTERNAL_DSP", days: 1.2, cost: 4800 },
+  { group: "营销三部", brand: "高洁丝", line: "卫生巾", type: "HARD_AD", days: 3.5, cost: 17500 },
+  { group: "营销三部", brand: "高洁丝", line: "海岛奢宠纯棉", type: "HARD_AD", days: 1.0, cost: 5000 },
+  { group: "营销四部", brand: "高洁丝", line: "阳光烘烘抑菌纯棉", type: "INTERNAL_DSP", days: 1.6, cost: 8000 },
+  { group: "营销四部", brand: "拜耳", line: "氨糖液体钙", type: "SELF_MEDIA", days: 0.8, cost: 3200 },
+  { group: "营销五部", brand: "拜耳", line: "心肝宝", type: "GEO", days: 2.4, cost: 9600 },
+  { group: "营销六部", brand: "拜耳", line: "时光片Pro", type: "SELF_MEDIA", days: 1.5, cost: 6000 },
+  { group: "营销七部", brand: "康王", line: "酮康唑洗发水", type: "PUBLIC_OPINION", days: 2.8, cost: 11200 },
+  { group: "营销八部", brand: "霞湖世家", line: "80支液氨棉T恤", type: "CUSTOMER_RELATIONSHIP", days: 1.0, cost: 4000 },
+  { group: "营销八部", brand: "好奇", line: "小龙裤", type: "INTERNAL_KOL", days: 0.8, cost: 3200 },
+  { group: "营销九部", brand: "霞湖世家", line: "120支液氨棉T恤", type: "OTHER", days: 1.5, cost: 6000 },
+  { group: "营销九部", brand: "霞湖世家", line: "200支液氨棉T恤", type: "OTHER", days: 0.6, cost: 2400 },
 ];
+
+/** 基础报表人天下钻：填报人 + 占其本周工时%（mock，与行人天合计对齐） */
+const BASIC_FILLERS = {
+  "营销一部|好奇|小森林|INTERNAL_KOL": [
+    { person: "林可", role: "媒介", days: 2.0, pctOfSelf: 40 },
+    { person: "陈屿", role: "投放", days: 2.2, pctOfSelf: 55 },
+    { person: "周衡", role: "策划", days: 1.0, pctOfSelf: 20 },
+  ],
+  "营销一部|好奇|深睡大师|INTERNAL_DSP": [
+    { person: "苏晚", role: "投放", days: 1.4, pctOfSelf: 35 },
+    { person: "林可", role: "媒介", days: 0.7, pctOfSelf: 15 },
+  ],
+  "营销一部|好奇|屁屁面膜|HARD_AD": [
+    { person: "韩叙", role: "媒介", days: 0.6, pctOfSelf: 12 },
+    { person: "陈屿", role: "投放", days: 0.4, pctOfSelf: 10 },
+  ],
+  "营销二部|好奇|小桃裤|INTERNAL_KOL": [
+    { person: "陈予安", role: "媒介", days: 1.2, pctOfSelf: 30 },
+    { person: "顾青", role: "投放", days: 0.8, pctOfSelf: 20 },
+  ],
+  "营销二部|高洁丝|蔓越莓益生力|INTERNAL_DSP": [
+    { person: "顾青", role: "投放", days: 0.8, pctOfSelf: 20 },
+    { person: "陈予安", role: "媒介", days: 0.4, pctOfSelf: 10 },
+  ],
+  "营销三部|高洁丝|卫生巾|HARD_AD": [
+    { person: "韩若溪", role: "媒介", days: 1.5, pctOfSelf: 30 },
+    { person: "陆泽", role: "投放", days: 1.5, pctOfSelf: 40 },
+    { person: "沈知", role: "策划", days: 0.5, pctOfSelf: 10 },
+  ],
+  "营销三部|高洁丝|海岛奢宠纯棉|HARD_AD": [
+    { person: "韩若溪", role: "媒介", days: 0.6, pctOfSelf: 12 },
+    { person: "陆泽", role: "投放", days: 0.4, pctOfSelf: 10 },
+  ],
+  "营销四部|高洁丝|阳光烘烘抑菌纯棉|INTERNAL_DSP": [
+    { person: "陆景明", role: "投放", days: 1.0, pctOfSelf: 25 },
+    { person: "姜辞", role: "媒介", days: 0.6, pctOfSelf: 15 },
+  ],
+  "营销四部|拜耳|氨糖液体钙|SELF_MEDIA": [
+    { person: "姜辞", role: "媒介", days: 0.5, pctOfSelf: 12 },
+    { person: "陆景明", role: "投放", days: 0.3, pctOfSelf: 8 },
+  ],
+  "营销五部|拜耳|心肝宝|GEO": [
+    { person: "苏念初", role: "媒介", days: 1.2, pctOfSelf: 30 },
+    { person: "何远", role: "策划", days: 0.8, pctOfSelf: 20 },
+    { person: "林可", role: "媒介", days: 0.4, pctOfSelf: 8 },
+  ],
+  "营销六部|拜耳|时光片Pro|SELF_MEDIA": [
+    { person: "叶知秋", role: "媒介", days: 0.9, pctOfSelf: 22 },
+    { person: "何远", role: "策划", days: 0.6, pctOfSelf: 15 },
+  ],
+  "营销七部|康王|酮康唑洗发水|PUBLIC_OPINION": [
+    { person: "江澄", role: "媒介", days: 1.4, pctOfSelf: 35 },
+    { person: "唐岚", role: "策划", days: 0.9, pctOfSelf: 22 },
+    { person: "沈知", role: "策划", days: 0.5, pctOfSelf: 10 },
+  ],
+  "营销八部|霞湖世家|80支液氨棉T恤|CUSTOMER_RELATIONSHIP": [
+    { person: "白叙", role: "媒介", days: 0.6, pctOfSelf: 15 },
+    { person: "顾青", role: "投放", days: 0.4, pctOfSelf: 10 },
+  ],
+  "营销八部|好奇|小龙裤|INTERNAL_KOL": [
+    { person: "白叙", role: "媒介", days: 0.5, pctOfSelf: 12 },
+    { person: "陈屿", role: "投放", days: 0.3, pctOfSelf: 8 },
+  ],
+  "营销九部|霞湖世家|120支液氨棉T恤|OTHER": [
+    { person: "唐小满", role: "策划", days: 0.9, pctOfSelf: 22 },
+    { person: "白叙", role: "媒介", days: 0.6, pctOfSelf: 15 },
+  ],
+  "营销九部|霞湖世家|200支液氨棉T恤|OTHER": [
+    { person: "唐小满", role: "策划", days: 0.4, pctOfSelf: 10 },
+    { person: "沈知", role: "策划", days: 0.2, pctOfSelf: 5 },
+  ],
+};
+
+function basicRowKey(r) {
+  return `${r.group}|${r.brand}|${r.line}|${r.type}`;
+}
+
+function fillersForBasicRow(r) {
+  const key = basicRowKey(r);
+  if (BASIC_FILLERS[key]) return BASIC_FILLERS[key];
+  /* fallback：按人天拆两人，保证抽屉有内容 */
+  const a = Math.round(r.days * 0.6 * 10) / 10;
+  const b = Math.round((r.days - a) * 10) / 10;
+  return [
+    { person: "林可", role: "媒介", days: a, pctOfSelf: Math.min(80, Math.round(a * 20)) },
+    { person: "陈屿", role: "投放", days: b, pctOfSelf: Math.min(80, Math.round(b * 20)) },
+  ].filter((x) => x.days > 0);
+}
 
 const TITLES = {
   fill: "工时填报",
   mine: "我的填报",
   leader: "待我确认",
   config: "配置",
+  basic: "基础报表",
   project: "项目人力",
-  brand: "品牌品线人力",
+  brand: "基础报表",
   "fin-overview": "今日总览",
   "fin-revenue": "收入与贡献",
   "fin-cash": "回款与现金",
@@ -1134,6 +1223,7 @@ function syncObsChrome(page) {
 }
 
 function go(page) {
+  if (page === "brand") page = "basic";
   if ((page === "admin-config" || page === "admin-watch") && state.role !== "admin") {
     toast("warning", "请先切换为管理员身份");
     page = "fill";
@@ -1150,8 +1240,8 @@ function go(page) {
   if (page === "mine") renderMine();
   if (page === "leader") renderLeader();
   if (page === "config") renderDeptOwnerConfig();
+  if (page === "basic") renderBasic();
   if (page === "project") renderProject();
-  if (page === "brand") renderBrand();
   if (page === "fin-overview") renderFinOverview();
   if (page === "fin-revenue") renderFinRevenue();
   if (page === "fin-cash") renderFinCash();
@@ -1162,9 +1252,9 @@ function go(page) {
   const pageHashes = {
     fill: "fill",
     config: "config",
+    basic: "basic",
     "admin-config": "admin-config",
     "admin-watch": "admin-progress",
-    brand: "brand",
     "fin-overview": "fin-overview",
     "fin-revenue": "fin-revenue",
     "fin-cash": "fin-cash",
@@ -1605,52 +1695,158 @@ function renderProject() {
     </tr>`).join("");
 }
 
-function renderBrand() {
-  const showCost = roleMeta[state.role].showCost;
-  document.querySelectorAll("#brand-table .cost-col").forEach((el) => {
-    el.style.display = showCost ? "" : "none";
-  });
-  const bf = document.getElementById("brand-filter");
-  if (bf.options.length <= 1) {
+function ensureBasicFilters() {
+  const brandEl = document.getElementById("basic-filter-brand");
+  const groupEl = document.getElementById("basic-filter-group");
+  const typeEl = document.getElementById("basic-filter-type");
+  if (brandEl && brandEl.options.length <= 1) {
+    BRANDS.forEach((b) => {
+      const o = document.createElement("option");
+      o.value = b;
+      o.textContent = b;
+      brandEl.appendChild(o);
+    });
+  }
+  if (groupEl && groupEl.options.length <= 1) {
     GROUPS.forEach((g) => {
       const o = document.createElement("option");
       o.value = g;
       o.textContent = g;
-      bf.appendChild(o);
+      groupEl.appendChild(o);
     });
   }
-  const filter = bf.value;
-  const rows = (filter ? BRAND_REPORT.filter((r) => r.group === filter) : BRAND_REPORT)
-    .slice()
-    .sort((a, b) =>
-      a.group.localeCompare(b.group, "zh") ||
-      a.brand.localeCompare(b.brand, "zh") ||
-      a.line.localeCompare(b.line, "zh")
-    );
-
-  let lastGroup = "";
-  let lastBrand = "";
-  document.querySelector("#brand-table tbody").innerHTML = rows.map((r) => {
-    const showGroup = r.group !== lastGroup;
-    const showBrand = showGroup || r.brand !== lastBrand;
-    lastGroup = r.group;
-    lastBrand = r.brand;
-    return `
-    <tr>
-      <td>${showGroup ? r.group : ""}</td>
-      <td>${showBrand ? r.brand : ""}</td>
-      <td>${r.line}</td>
-      <td>${r.days}</td>
-      <td>${r.media}</td><td>${r.buy}</td><td>${r.plan}</td>
-      <td class="cost-col" style="display:${showCost ? "" : "none"}">${r.cost.toLocaleString()}</td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="8"><div class="a3-table-empty">无匹配数据</div></td></tr>`;
+  if (typeEl && typeEl.options.length <= 1) {
+    EXECUTE_TYPES.forEach((t) => {
+      const o = document.createElement("option");
+      o.value = t.value;
+      o.textContent = t.label;
+      typeEl.appendChild(o);
+    });
+  }
 }
 
-document.getElementById("brand-filter").addEventListener("change", () => {
-  if (document.getElementById("page-brand").classList.contains("active")) renderBrand();
+function filteredBasicRows() {
+  ensureBasicFilters();
+  const brand = document.getElementById("basic-filter-brand")?.value || "";
+  const group = document.getElementById("basic-filter-group")?.value || "";
+  const type = document.getElementById("basic-filter-type")?.value || "";
+  return BASIC_REPORT.filter((r) => {
+    if (brand && r.brand !== brand) return false;
+    if (group && r.group !== group) return false;
+    if (type && r.type !== type) return false;
+    return true;
+  }).slice().sort((a, b) =>
+    (EXECUTE_LABEL[a.type] || a.type).localeCompare(EXECUTE_LABEL[b.type] || b.type, "zh") ||
+    a.group.localeCompare(b.group, "zh") ||
+    a.brand.localeCompare(b.brand, "zh") ||
+    a.line.localeCompare(b.line, "zh")
+  );
+}
+
+function closeBasicDrawer() {
+  document.getElementById("basic-drawer-mask")?.classList.remove("show");
+  document.getElementById("basic-drawer")?.classList.remove("open");
+  document.getElementById("basic-drawer")?.setAttribute("aria-hidden", "true");
+  document.getElementById("basic-drawer-mask")?.setAttribute("aria-hidden", "true");
+}
+
+function openBasicDrawer(rows, title, sub) {
+  const mask = document.getElementById("basic-drawer-mask");
+  const drawer = document.getElementById("basic-drawer");
+  const tbody = document.querySelector("#basic-drawer-table tbody");
+  if (!mask || !drawer || !tbody) return;
+  document.getElementById("basic-drawer-title").textContent = title || "人天明细";
+  document.getElementById("basic-drawer-sub").textContent = sub || "";
+  const people = [];
+  rows.forEach((r) => {
+    fillersForBasicRow(r).forEach((f) => {
+      people.push({ ...f, group: r.group, brand: r.brand, line: r.line, type: r.type });
+    });
+  });
+  /* 合并同人：合计人天，pctOfSelf 取加权近似（Demo：保留各条最大占比旁注用行展开） */
+  const byPerson = new Map();
+  people.forEach((p) => {
+    const cur = byPerson.get(p.person);
+    if (!cur) byPerson.set(p.person, { ...p });
+    else {
+      cur.days = Math.round((cur.days + p.days) * 10) / 10;
+      cur.pctOfSelf = Math.min(100, cur.pctOfSelf + p.pctOfSelf);
+    }
+  });
+  const list = [...byPerson.values()].sort((a, b) => b.days - a.days);
+  const sumDays = Math.round(list.reduce((s, p) => s + p.days, 0) * 10) / 10;
+  tbody.innerHTML = list.length
+    ? list.map((p) => `
+      <tr>
+        <td>${p.person}</td>
+        <td>${p.role}</td>
+        <td>${p.days}</td>
+        <td><b class="a3-text-primary">${p.pctOfSelf}%</b></td>
+      </tr>`).join("") + `
+      <tr>
+        <td colspan="2" class="a3-text-secondary">合计</td>
+        <td><b>${sumDays}</b></td>
+        <td class="a3-text-secondary">占各自本周工时</td>
+      </tr>`
+    : `<tr><td colspan="4"><div class="a3-table-empty">暂无填报明细</div></td></tr>`;
+  mask.classList.add("show");
+  drawer.classList.add("open");
+  drawer.setAttribute("aria-hidden", "false");
+  mask.setAttribute("aria-hidden", "false");
+}
+
+function renderBasic() {
+  const rows = filteredBasicRows();
+  const totalDays = Math.round(rows.reduce((s, r) => s + r.days, 0) * 10) / 10;
+  const totalCost = rows.reduce((s, r) => s + r.cost, 0);
+  const totalBtn = document.getElementById("basic-total-days");
+  if (totalBtn) totalBtn.innerHTML = `总人天 <b>${totalDays}</b>`;
+  const costEl = document.getElementById("basic-total-cost");
+  if (costEl) costEl.textContent = totalCost.toLocaleString();
+
+  document.querySelector("#basic-table tbody").innerHTML = rows.map((r, i) => `
+    <tr data-basic-idx="${i}">
+      <td>${EXECUTE_LABEL[r.type] || r.type}</td>
+      <td>${r.group}</td>
+      <td>${r.brand}</td>
+      <td>${r.line}</td>
+      <td><button type="button" class="yc-days-link" data-basic-days="${i}" title="查看填报人明细">${r.days}</button></td>
+      <td>${r.cost.toLocaleString()}</td>
+    </tr>`).join("") || `<tr><td colspan="6"><div class="a3-table-empty">无匹配数据</div></td></tr>`;
+
+  document.querySelectorAll("[data-basic-days]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const r = rows[Number(btn.getAttribute("data-basic-days"))];
+      if (!r) return;
+      openBasicDrawer(
+        [r],
+        "人天明细",
+        `${EXECUTE_LABEL[r.type] || r.type} · ${r.group} · ${r.brand} / ${r.line} · ${r.days} 人天`,
+      );
+    });
+  });
+  if (totalBtn) {
+    totalBtn.onclick = () => {
+      if (!rows.length) return toast("info", "当前筛选无数据");
+      openBasicDrawer(rows, "合计人天明细", `当前筛选合计 ${totalDays} 人天 · 成本 ${totalCost.toLocaleString()} 元`);
+    };
+  }
+}
+
+document.getElementById("basic-query")?.addEventListener("click", () => renderBasic());
+["basic-filter-brand", "basic-filter-group", "basic-filter-type"].forEach((id) => {
+  document.getElementById(id)?.addEventListener("change", () => {
+    if (document.getElementById("page-basic")?.classList.contains("active")) renderBasic();
+  });
 });
-document.getElementById("brand-query").addEventListener("click", () => renderBrand());
+document.getElementById("basic-drawer-close")?.addEventListener("click", () => closeBasicDrawer());
+document.getElementById("basic-drawer-done")?.addEventListener("click", () => closeBasicDrawer());
+document.getElementById("basic-drawer-mask")?.addEventListener("click", () => closeBasicDrawer());
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.getElementById("basic-drawer")?.classList.contains("open")) {
+    closeBasicDrawer();
+  }
+});
 
 function renderMaster() {
   document.getElementById("md-brands").textContent =
@@ -2478,7 +2674,7 @@ if (adminBoot) {
   go(land);
 } else if (bootHash === "fill" || bootHash === "fill-cmp") go("fill");
 else if (bootHash === "config") go("config");
-else if (bootHash === "brand") go(bootHash);
+else if (bootHash === "basic" || bootHash === "brand") go("basic");
 else renderFill();
 
 window.addEventListener("hashchange", () => {
@@ -2499,9 +2695,9 @@ window.addEventListener("hashchange", () => {
       syncRoleMenus();
     }
     go(h);
-  } else if (h === "fill" || h === "fill-cmp") go("fill");
+  }   else if (h === "fill" || h === "fill-cmp") go("fill");
   else if (h === "config") go("config");
-  else if (h === "brand") go(h);
+  else if (h === "basic" || h === "brand") go("basic");
   else if (h === "admin-config" || h === "admin-watch" || h === "admin-progress") {
     if (state.role !== "admin") {
       state.role = "admin";
