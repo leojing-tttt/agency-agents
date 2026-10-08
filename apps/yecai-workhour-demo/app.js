@@ -422,7 +422,7 @@ const TITLES = {
   review: "部门审核",
   leader: "部门审核",
   config: "部门负责人",
-  "fill-scope": "填报范围",
+  "fill-scope": "部门负责人",
   basic: "基础报表",
   project: "项目人力",
   brand: "基础报表",
@@ -430,12 +430,12 @@ const TITLES = {
   "fin-revenue": "收入与贡献",
   "fin-cash": "回款与现金",
   "fin-margin": "成本与毛利",
-  "admin-config": "配置面板",
+  "admin-config": "部门负责人",
   "admin-watch": "填报进度面板",
   master: "主数据来源",
 };
 
-const CFG_PAGES = ["config", "fill-scope"];
+const CFG_PAGES = ["config", "fill-scope", "admin-config"];
 
 /** 高管日报 · 脱敏日快照（方案 A；非正式财务数） */
 const FIN_SNAPSHOT_DAY = "2026-10-05";
@@ -1385,9 +1385,9 @@ function updateFinBreadcrumb(page) {
     `;
   } else if (CFG_PAGES.includes(page)) {
     crumbs.innerHTML = `
-      <span class="a3-breadcrumb-item"><a>配置</a></span>
+      <span class="a3-breadcrumb-item"><a>管理配置</a></span>
       <span class="a3-breadcrumb-separator">/</span>
-      <span class="a3-breadcrumb-item" id="crumb">${TITLES[page] || page}</span>
+      <span class="a3-breadcrumb-item" id="crumb">部门负责人</span>
     `;
   } else {
     crumbs.innerHTML = `
@@ -1417,12 +1417,13 @@ function go(page) {
     page = "review";
     state.reviewTab = "alloc";
   }
-  if ((page === "admin-config" || page === "admin-watch") && state.role !== "admin") {
+  if (page === "fill-scope" || page === "admin-config") page = "config";
+  if (page === "admin-watch" && state.role !== "admin") {
     toast("warning", "请先切换为管理员身份");
     page = "fill";
   }
-  if (CFG_PAGES.includes(page) && !canConfigRole(state.role)) {
-    toast("warning", "请切换为财务 / 管理员后进入配置");
+  if (page === "config" && !canConfigRole(state.role)) {
+    toast("warning", "请切换为财务 / 管理员后进入管理配置");
     page = "fill";
   }
   if (FIN_PAGES.includes(page) && !isExecRole(state.role)) {
@@ -1435,25 +1436,21 @@ function go(page) {
   updateFinBreadcrumb(page);
   if (page === "fill") renderFill();
   if (page === "review") renderReview();
-  if (page === "config") renderDeptOwnerConfig();
-  if (page === "fill-scope") renderFillScope();
+  if (page === "config") renderDeptBrandConfig();
   if (page === "basic") renderBasic();
   if (page === "project") renderProject();
   if (page === "fin-overview") renderFinOverview();
   if (page === "fin-revenue") renderFinRevenue();
   if (page === "fin-cash") renderFinCash();
   if (page === "fin-margin") renderFinMargin();
-  if (page === "admin-config") renderAdminConfig();
   if (page === "admin-watch") renderAdminWatch();
   if (page === "master") renderMaster();
   const pageHashes = {
     fill: "fill",
     config: "config",
-    "fill-scope": "fill-scope",
     basic: "basic",
     project: "project",
     review: state.reviewTab === "alloc" ? "review-alloc" : "review",
-    "admin-config": "admin-config",
     "admin-watch": "admin-progress",
     "fin-overview": "fin-overview",
     "fin-revenue": "fin-revenue",
@@ -1489,7 +1486,7 @@ document.getElementById("obs-entry")?.addEventListener("click", () => {
 });
 
 document.getElementById("obs-exit")?.addEventListener("click", () => {
-  go(state.role === "admin" ? "admin-config" : "fill");
+  go(state.role === "admin" ? "config" : "fill");
 });
 
 document.getElementById("role-select").addEventListener("change", (e) => {
@@ -1498,14 +1495,14 @@ document.getElementById("role-select").addEventListener("change", (e) => {
   syncRoleMenus();
   const active = document.querySelector(".page.active");
   const activePage = active ? active.id.replace(/^page-/, "") : "fill";
-  const onAdminPage = activePage === "admin-config" || activePage === "admin-watch";
-  const onCfgPage = CFG_PAGES.includes(activePage);
+  const onAdminPage = activePage === "admin-watch";
+  const onCfgPage = activePage === "config" || CFG_PAGES.includes(activePage);
   const onFinPage = FIN_PAGES.includes(activePage);
   /* CEO / CFO 打开观测台 → 一律落在 elevated 总览 */
   if (state.role === "ceo") go("fin-overview");
-  else if (state.role === "cfo") go(onCfgPage ? activePage : "fin-overview");
-  else if (state.role === "finance") go(onCfgPage ? activePage : "fin-overview");
-  else if (state.role === "admin") go(onAdminPage || onCfgPage ? activePage : "admin-config");
+  else if (state.role === "cfo") go(onCfgPage ? "config" : "fin-overview");
+  else if (state.role === "finance") go(onCfgPage ? "config" : "fin-overview");
+  else if (state.role === "admin") go(onAdminPage ? activePage : (onCfgPage ? "config" : "config"));
   else if (state.role === "leader") {
     state.reviewTab = "audit";
     go("review");
@@ -2485,241 +2482,33 @@ function progressBarHtml(pct, success) {
   `;
 }
 
-function updateDeptOwnerMeta() {
-  const el = document.getElementById("cfg-owner-meta");
-  const source = document.getElementById("cfg-owner-source");
-  if (!el) return;
-  const parts = [];
-  if (state.deptOwners.source === "hr" && !state.deptOwners.savedAt && !state.deptOwners.fromDraft) {
-    parts.push("默认已从人事系统载入");
-  }
-  if (state.deptOwners.savedAt) parts.push("已保存 " + state.deptOwners.savedAt);
-  if (state.deptOwners.fromDraft) parts.push("草稿已恢复");
-  if (state.deptOwners.draftedAt) parts.push("草稿 " + state.deptOwners.draftedAt);
-  el.textContent = parts.length ? parts.join(" · ") : "默认已从人事系统载入";
-  if (source) {
-    source.textContent = state.deptOwners.source === "local" ? "来源：本机覆盖（原 HR）" : "来源：人事系统";
-  }
-}
-
-function readDeptOwnerInputs() {
-  const owners = { ...defaultDeptOwners() };
-  document.querySelectorAll("[data-dept-owner]").forEach((el) => {
-    const g = el.getAttribute("data-dept-owner");
-    const v = (el.value || "").trim();
-    if (g && v) owners[g] = v;
-  });
-  return owners;
-}
-
-function renderDeptOwnerConfig() {
-  const tbody = document.querySelector("#cfg-owner-table tbody");
-  if (!tbody) return;
-  tbody.innerHTML = GROUPS.map((g) => {
-    const name = ownerOf(g);
-    const sync = state.deptOwners.source === "local" ? "本机覆盖" : "HR 同步";
-    return `
-      <tr>
-        <td>${g}</td>
-        <td>
-          <div class="a3-input-wrapper" style="max-width:220px">
-            <input class="a3-input" type="text" maxlength="32" value="${name}" data-dept-owner="${g}" />
-          </div>
-        </td>
-        <td><span class="a3-tag a3-tag-default">${sync}</span></td>
-      </tr>`;
-  }).join("");
-  updateDeptOwnerMeta();
-}
-
-document.getElementById("cfg-owner-draft")?.addEventListener("click", () => {
-  const draftedAt = new Date().toLocaleString("zh-CN", { hour12: false });
-  const owners = readDeptOwnerInputs();
-  state.deptOwners = { owners, savedAt: state.deptOwners.savedAt || null, source: "local", fromDraft: true, draftedAt };
-  localStorage.setItem(
-    DEPT_OWNER_DRAFT_KEY,
-    JSON.stringify({ owners, draftedAt, source: "local", savedAt: state.deptOwners.savedAt }),
-  );
-  updateDeptOwnerMeta();
-  toast("info", "部门负责人草稿已暂存到本机");
-});
-
-document.getElementById("cfg-owner-save")?.addEventListener("click", () => {
-  const savedAt = new Date().toLocaleString("zh-CN", { hour12: false });
-  const owners = readDeptOwnerInputs();
-  state.deptOwners = { owners, savedAt, source: "local", fromDraft: false };
-  localStorage.setItem(DEPT_OWNER_STORAGE_KEY, JSON.stringify({ owners, savedAt, source: "local" }));
-  localStorage.removeItem(DEPT_OWNER_DRAFT_KEY);
-  renderDeptOwnerConfig();
-  toast("success", "部门负责人已保存（Demo 本机生效；正式环境仍以 HR 为准）");
-});
-
-document.getElementById("cfg-owner-reset")?.addEventListener("click", () => {
-  localStorage.removeItem(DEPT_OWNER_STORAGE_KEY);
-  localStorage.removeItem(DEPT_OWNER_DRAFT_KEY);
-  state.deptOwners = normalizeDeptOwners(null);
-  renderDeptOwnerConfig();
-  toast("info", "已恢复人事系统默认负责人");
-});
-
-function orgDescendantIds(node) {
-  const ids = [];
-  walkOrgTree(node.children || [], (n) => {
-    if (n.departmentId) ids.push(n.departmentId);
-  });
-  return ids;
-}
-
-function orgSubtreeIds(node) {
-  return [node.departmentId].concat(orgDescendantIds(node));
-}
-
-function updateFillScopeMeta() {
-  const countEl = document.getElementById("fill-scope-count");
-  const metaEl = document.getElementById("fill-scope-meta");
-  const srcEl = document.getElementById("fill-scope-source");
-  const n = (state.fillScope.selectedIds || []).length;
-  if (countEl) countEl.textContent = `已选 ${n} 个部门`;
-  if (srcEl) srcEl.textContent = state.fillScope.source === "local" ? "来源：本机覆盖" : "来源：组织架构";
-  if (metaEl) {
-    const parts = [];
-    if (state.fillScope.savedAt) parts.push("已保存 " + state.fillScope.savedAt);
-    parts.push(state.fillScope.leaderMustFill ? "负责人需填报" : "负责人免填报");
-    metaEl.textContent = parts.join(" · ") || "默认已预勾选营销业务线相关部门";
-  }
-}
-
-function setFillScopeChecked(id, checked) {
-  const node = findOrgNode(ORG_DEPT_TREE, id);
-  if (!node) return;
-  const ids = orgSubtreeIds(node);
-  const set = new Set(state.fillScope.selectedIds || []);
-  ids.forEach((x) => {
-    if (checked) set.add(x);
-    else set.delete(x);
-  });
-  state.fillScope.selectedIds = Array.from(set);
-}
-
-function orgCheckState(node) {
-  const selected = new Set(state.fillScope.selectedIds || []);
-  const ids = orgSubtreeIds(node);
-  const hit = ids.filter((id) => selected.has(id)).length;
-  if (hit === 0) return { checked: false, indeterminate: false };
-  if (hit === ids.length) return { checked: true, indeterminate: false };
-  return { checked: false, indeterminate: true };
-}
-
-function renderOrgTreeNodes(nodes, depth) {
-  return (nodes || [])
-    .map((node) => {
-      const kids = node.children || [];
-      const hasKids = kids.length > 0;
-      const collapsed = !!state.fillScopeCollapsed[node.departmentId];
-      const st = orgCheckState(node);
-      const twistCls = [
-        "yc-org-twist",
-        hasKids ? "" : "is-leaf",
-        collapsed ? "is-collapsed" : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-      return `
-        <li class="yc-org-node" role="treeitem" aria-expanded="${hasKids ? !collapsed : "false"}" data-dept-id="${node.departmentId}">
-          <div class="yc-org-row" style="padding-left:${depth * 4}px">
-            <button type="button" class="${twistCls}" data-org-twist="${node.departmentId}" aria-label="展开/收起">
-              <i class="fas fa-chevron-down"></i>
-            </button>
-            <label class="yc-org-check">
-              <input type="checkbox" data-org-check="${node.departmentId}" ${st.checked ? "checked" : ""} ${st.indeterminate ? 'data-indeterminate="1"' : ""} />
-              <span class="yc-org-name">${node.name}</span>
-              <span class="yc-org-meta">${node.departmentId}</span>
-            </label>
-          </div>
-          ${
-            hasKids
-              ? `<ul class="yc-org-children${collapsed ? " is-collapsed" : ""}" role="group">${renderOrgTreeNodes(kids, depth + 1)}</ul>`
-              : ""
-          }
-        </li>`;
-    })
-    .join("");
-}
-
-function renderFillScope() {
-  const tree = document.getElementById("fill-scope-tree");
-  if (!tree) return;
-  tree.innerHTML = `<ul class="yc-org-node">${renderOrgTreeNodes(ORG_DEPT_TREE, 0)}</ul>`;
-  tree.querySelectorAll("input[data-org-check]").forEach((input) => {
-    if (input.getAttribute("data-indeterminate") === "1") input.indeterminate = true;
-  });
-  const toggle = document.getElementById("fill-scope-leader-toggle");
-  if (toggle) toggle.checked = state.fillScope.leaderMustFill !== false;
-  updateFillScopeMeta();
-}
-
-document.getElementById("fill-scope-tree")?.addEventListener("click", (e) => {
-  const twist = e.target.closest("[data-org-twist]");
-  if (!twist) return;
-  e.preventDefault();
-  const id = twist.getAttribute("data-org-twist");
-  state.fillScopeCollapsed[id] = !state.fillScopeCollapsed[id];
-  renderFillScope();
-});
-
-document.getElementById("fill-scope-tree")?.addEventListener("change", (e) => {
-  const input = e.target.closest("input[data-org-check]");
-  if (!input) return;
-  setFillScopeChecked(input.getAttribute("data-org-check"), input.checked);
-  renderFillScope();
-});
-
-document.getElementById("fill-scope-leader-toggle")?.addEventListener("change", (e) => {
-  state.fillScope.leaderMustFill = !!e.target.checked;
-  updateFillScopeMeta();
-});
-
-document.getElementById("fill-scope-save")?.addEventListener("click", () => {
-  const savedAt = new Date().toLocaleString("zh-CN", { hour12: false });
-  state.fillScope = {
-    selectedIds: (state.fillScope.selectedIds || []).slice(),
-    leaderMustFill: state.fillScope.leaderMustFill !== false,
-    savedAt,
-    source: "local",
-  };
-  localStorage.setItem(FILL_SCOPE_STORAGE_KEY, JSON.stringify(state.fillScope));
-  updateFillScopeMeta();
-  toast("success", "填报范围已保存（Demo 本机生效）");
-});
-
-document.getElementById("fill-scope-reset")?.addEventListener("click", () => {
-  localStorage.removeItem(FILL_SCOPE_STORAGE_KEY);
-  state.fillScope = defaultFillScope();
-  renderFillScope();
-  toast("info", "已恢复默认填报范围（营销业务线）");
-});
-
 function staffTotal() {
   return GROUPS.reduce((s, g) => s + (Number(state.adminConfig.staffByDept[g]) || 0), 0);
 }
 
 function updateCfgMeta() {
   const el = document.getElementById("cfg-save-meta");
+  if (!el) return;
   const parts = [];
   if (state.adminConfig.savedAt) parts.push("已保存 " + state.adminConfig.savedAt);
   if (state.adminDraftMeta) parts.push("草稿 " + state.adminDraftMeta);
   el.textContent = parts.length ? parts.join(" · ") : "尚未保存";
-  document.getElementById("cfg-staff-total").textContent = staffTotal();
 }
 
-function renderAdminConfig() {
-  const isAdmin = state.role === "admin";
-  document.getElementById("admin-config-gate").style.display = isAdmin ? "none" : "flex";
-  document.getElementById("admin-config-body").style.display = isAdmin ? "block" : "none";
-  if (!isAdmin) return;
+function canEditDeptBrand() {
+  return canConfigRole(state.role);
+}
+
+function renderDeptBrandConfig() {
+  const canEdit = canEditDeptBrand();
+  const gate = document.getElementById("config-gate");
+  const body = document.getElementById("config-body");
+  if (gate) gate.style.display = canEdit ? "none" : "flex";
+  if (body) body.style.display = canEdit ? "block" : "none";
+  if (!canEdit) return;
 
   const filterEl = document.getElementById("cfg-dept-filter");
-  if (filterEl.options.length <= 1) {
+  if (filterEl && filterEl.options.length <= 1) {
     GROUPS.forEach((g) => {
       const o = document.createElement("option");
       o.value = g;
@@ -2727,20 +2516,11 @@ function renderAdminConfig() {
       filterEl.appendChild(o);
     });
   }
-  const filter = filterEl.value;
-  const depts = filter ? [filter] : GROUPS;
-  document.querySelector("#cfg-staff-table tbody").innerHTML = depts.map((g) => `
-    <tr>
-      <td>${g}</td>
-      <td><div class="a3-input-wrapper" style="max-width:120px">
-        <input class="a3-input" type="number" min="0" max="999" step="1" value="${state.adminConfig.staffByDept[g] || 0}" data-staff="${g}" />
-      </div></td>
-      <td class="a3-text-secondary">应填人数基准（填报进度面板）</td>
-    </tr>
-  `).join("");
-
+  const filter = filterEl ? filterEl.value : "";
   const mapDepts = filter ? [filter] : GROUPS;
-  document.querySelector("#cfg-dept-brand-table tbody").innerHTML = mapDepts.map((g) => {
+  const tbody = document.querySelector("#cfg-dept-brand-table tbody");
+  if (!tbody) return;
+  tbody.innerHTML = mapDepts.map((g) => {
     const selected = new Set(state.adminConfig.deptBrands[g] || []);
     const tags = BRANDS.map((b) => `
       <label class="yc-brand-tag">
@@ -2751,12 +2531,6 @@ function renderAdminConfig() {
     return `<tr><td>${g}</td><td><div class="yc-brand-tags">${tags}</div></td></tr>`;
   }).join("");
 
-  document.querySelectorAll("[data-staff]").forEach((el) => {
-    el.addEventListener("change", () => {
-      state.adminConfig.staffByDept[el.dataset.staff] = Number(el.value) || 0;
-      updateCfgMeta();
-    });
-  });
   document.querySelectorAll("[data-dept-brand]").forEach((el) => {
     el.addEventListener("change", () => {
       const dept = el.dataset.deptBrand;
@@ -2767,17 +2541,19 @@ function renderAdminConfig() {
         if (fallback) fallback.checked = true;
         toast("warning", `${dept} 至少保留一个品牌`);
       }
+      /* 同步约束当前填报区品牌下拉 */
+      if (document.getElementById("page-fill")?.classList.contains("active")) renderFill();
     });
   });
   updateCfgMeta();
 }
 
-document.getElementById("cfg-dept-filter").addEventListener("change", () => {
-  if (document.getElementById("page-admin-config").classList.contains("active")) renderAdminConfig();
+document.getElementById("cfg-dept-filter")?.addEventListener("change", () => {
+  if (document.getElementById("page-config")?.classList.contains("active")) renderDeptBrandConfig();
 });
 
-document.getElementById("cfg-draft").addEventListener("click", () => {
-  if (state.role !== "admin") return toast("warning", "仅管理员可暂存");
+document.getElementById("cfg-draft")?.addEventListener("click", () => {
+  if (!canEditDeptBrand()) return toast("warning", "仅财务 / 管理员可暂存");
   const draftedAt = new Date().toLocaleString("zh-CN", { hour12: false });
   localStorage.setItem(ADMIN_DRAFT_KEY, JSON.stringify({
     staffByDept: state.adminConfig.staffByDept,
@@ -2786,11 +2562,11 @@ document.getElementById("cfg-draft").addEventListener("click", () => {
   }));
   state.adminDraftMeta = draftedAt;
   updateCfgMeta();
-  toast("info", "配置草稿已暂存到本机");
+  toast("info", "部门↔品牌草稿已暂存到本机");
 });
 
-document.getElementById("cfg-save").addEventListener("click", () => {
-  if (state.role !== "admin") return toast("warning", "仅管理员可保存");
+document.getElementById("cfg-save")?.addEventListener("click", () => {
+  if (!canEditDeptBrand()) return toast("warning", "仅财务 / 管理员可保存");
   const savedAt = new Date().toLocaleString("zh-CN", { hour12: false });
   state.adminConfig.savedAt = savedAt;
   localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({
@@ -2801,7 +2577,8 @@ document.getElementById("cfg-save").addEventListener("click", () => {
   localStorage.removeItem(ADMIN_DRAFT_KEY);
   state.adminDraftMeta = null;
   updateCfgMeta();
-  toast("success", "配置已保存：员工数与部门品牌映射已生效");
+  if (document.getElementById("page-fill")?.classList.contains("active")) renderFill();
+  toast("success", "部门↔品牌已保存，工时填报品牌下拉已按映射约束");
 });
 
 function weekProgress(week) {
@@ -3404,7 +3181,7 @@ document.querySelectorAll("[data-fin-goto]").forEach((btn) => {
 document.querySelectorAll(".cost-col").forEach((el) => { el.style.display = "none"; });
 syncRoleMenus();
 const bootHash = (location.hash || "").replace("#", "");
-const adminBoot = bootHash === "admin-config" || bootHash === "admin-watch" || bootHash === "admin-progress";
+const adminBoot = bootHash === "admin-watch" || bootHash === "admin-progress";
 const obsBoot = bootHash === "obs" || bootHash === "observatory";
 const finBoot = FIN_PAGES.includes(bootHash) || obsBoot;
 if (adminBoot) {
@@ -3412,7 +3189,7 @@ if (adminBoot) {
   document.getElementById("role-select").value = "admin";
   document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.admin.name}`;
   syncRoleMenus();
-  go(bootHash === "admin-config" ? "admin-config" : "admin-watch");
+  go("admin-watch");
 } else if (finBoot) {
   const land = obsBoot ? "fin-overview" : bootHash;
   state.role = land === "fin-cash" || land === "fin-margin" ? "cfo" : "ceo";
@@ -3421,14 +3198,14 @@ if (adminBoot) {
   syncRoleMenus();
   go(land);
 } else if (bootHash === "fill" || bootHash === "fill-cmp") go("fill");
-else if (bootHash === "config" || bootHash === "fill-scope") {
+else if (bootHash === "config" || bootHash === "fill-scope" || bootHash === "admin-config") {
   if (!canConfigRole(state.role)) {
-    state.role = "finance";
-    document.getElementById("role-select").value = "finance";
-    document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.finance.name}`;
+    state.role = bootHash === "admin-config" ? "admin" : "finance";
+    document.getElementById("role-select").value = state.role;
+    document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
     syncRoleMenus();
   }
-  go(bootHash === "fill-scope" ? "fill-scope" : "config");
+  go("config");
 } else if (bootHash === "basic" || bootHash === "brand") go("basic");
 else if (bootHash === "project") go("project");
 else if (bootHash === "review" || bootHash === "review-alloc" || bootHash === "leader" || bootHash === "mine") {
@@ -3464,14 +3241,14 @@ window.addEventListener("hashchange", () => {
     }
     go(h);
   } else if (h === "fill" || h === "fill-cmp") go("fill");
-  else if (h === "config" || h === "fill-scope") {
+  else if (h === "config" || h === "fill-scope" || h === "admin-config") {
     if (!canConfigRole(state.role)) {
-      state.role = "finance";
-      document.getElementById("role-select").value = "finance";
-      document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.finance.name}`;
+      state.role = h === "admin-config" ? "admin" : "finance";
+      document.getElementById("role-select").value = state.role;
+      document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
       syncRoleMenus();
     }
-    go(h === "fill-scope" ? "fill-scope" : "config");
+    go("config");
   } else if (h === "basic" || h === "brand") go("basic");
   else if (h === "project") go("project");
   else if (h === "review" || h === "review-alloc" || h === "leader" || h === "mine") {
@@ -3493,14 +3270,14 @@ window.addEventListener("hashchange", () => {
       state.reviewTab = "audit";
     }
     go("review");
-  } else if (h === "admin-config" || h === "admin-watch" || h === "admin-progress") {
+  } else if (h === "admin-watch" || h === "admin-progress") {
     if (state.role !== "admin") {
       state.role = "admin";
       document.getElementById("role-select").value = "admin";
       document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.admin.name}`;
       syncRoleMenus();
     }
-    go(h === "admin-config" ? "admin-config" : "admin-watch");
+    go("admin-watch");
   }
 });
 
@@ -3509,7 +3286,7 @@ const PRD_DOCS = [
   {
     id: "workhour",
     title: "工时与项目人力",
-    desc: "工时填报、部门审核、工时分配、基础报表、项目人力、配置（部门负责人/填报范围）",
+    desc: "工时填报、部门审核、工时分配、基础报表、项目人力、管理配置（部门↔品牌）",
     file: "prd-workhour-manpower.md",
     path: "docs/prd-workhour-manpower.md",
   },

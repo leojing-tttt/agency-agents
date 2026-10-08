@@ -197,6 +197,13 @@ body.yc-role-admin .a3-menu-group-title.admin-only { display: block !important; 
 body.yc-role-cfg .cfg-only { display: list-item !important; }
 body.yc-role-cfg .a3-menu-group-title.cfg-only { display: block !important; }
 
+/* 管理配置：财务/管理员/CFO 可见分组；填报进度仍用 admin-only */
+.mgmt-only { display: none !important; }
+body.yc-role-cfg .mgmt-only,
+body.yc-role-admin .mgmt-only { display: list-item !important; }
+body.yc-role-cfg .a3-menu-group-title.mgmt-only,
+body.yc-role-admin .a3-menu-group-title.mgmt-only { display: block !important; }
+
 .yc-toggle-row {
   display: flex;
   align-items: flex-start;
