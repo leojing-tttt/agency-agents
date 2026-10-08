@@ -838,16 +838,12 @@
         </button>
       </div>
       <div class="a3-modal-body">
-        <p class="a3-text-secondary a3-mb-12">选择要加入本周填报的营销部（已添加的不可再选）。列表展示部门与负责人（来自配置 / 人事系统）。</p>
-        <div class="yc-dept-pick-list" id="add-dept-options" role="radiogroup" aria-label="可选营销部"></div>
-        <div class="a3-empty" id="add-dept-empty" style="display:none;padding:24px 0">
-          <i class="fas fa-check-circle"></i>
-          <div class="a3-empty-text">九个营销部均已添加</div>
-        </div>
+        <p class="a3-text-secondary a3-mb-12">可多选营销部一并添加。始终列出一部–九部；已添加的置灰并标注「已添加」。负责人来自配置 / 人事系统。</p>
+        <div class="yc-dept-pick-list" id="add-dept-options" role="group" aria-label="营销部多选"></div>
       </div>
       <div class="a3-modal-footer">
         <button type="button" class="a3-btn a3-btn-default" id="add-dept-cancel">取消</button>
-        <button type="button" class="a3-btn a3-btn-primary" id="add-dept-confirm"><i class="fas fa-plus"></i> 添加所选部门</button>
+        <button type="button" class="a3-btn a3-btn-primary" id="add-dept-confirm" disabled><i class="fas fa-plus"></i> 添加所选部门</button>
       </div>
     </div>
   </div>

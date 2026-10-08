@@ -1400,25 +1400,49 @@ body.yc-fin-active .yc-docs-entry:hover {
   cursor: pointer;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
-.yc-dept-pick:hover { border-color: var(--a3-primary); }
+.yc-dept-pick:hover:not(.is-added) { border-color: var(--a3-primary); }
 .yc-dept-pick.is-checked {
   border-color: var(--a3-primary);
   background: var(--a3-primary-light);
   box-shadow: 0 0 0 2px var(--a3-focus-ring, rgba(47, 111, 143, 0.14));
 }
+.yc-dept-pick.is-added {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--a3-bg-body);
+}
+.yc-dept-pick.is-added:hover { border-color: var(--a3-border); }
 .yc-dept-pick input {
   margin-top: 3px;
   accent-color: var(--a3-primary);
 }
+.yc-dept-pick input:disabled { cursor: not-allowed; }
 .yc-dept-pick-main {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
+}
+.yc-dept-pick-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 .yc-dept-pick-main strong {
   color: var(--a3-text-primary);
   font-size: 14px;
+}
+.yc-dept-pick-badge {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--a3-text-secondary);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--a3-bg-body);
+  border: 1px solid var(--a3-border);
 }
 .yc-dept-pick-owner {
   font-size: 12px;

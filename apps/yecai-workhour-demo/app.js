@@ -1395,54 +1395,64 @@ function closeAddDeptModal() {
   mask.setAttribute("aria-hidden", "true");
 }
 
+function syncAddDeptConfirmLabel() {
+  const confirmBtn = document.getElementById("add-dept-confirm");
+  if (!confirmBtn) return;
+  const n = document.querySelectorAll('input[name="add-dept-pick"]:checked:not(:disabled)').length;
+  confirmBtn.disabled = n === 0;
+  confirmBtn.innerHTML =
+    n > 0
+      ? `<i class="fas fa-plus"></i> 添加所选部门（${n}）`
+      : `<i class="fas fa-plus"></i> 添加所选部门`;
+}
+
 function openAddDeptModal() {
   if (state.locked) return toast("warning", "该周已锁定，不可添加营销部");
   const mask = document.getElementById("add-dept-modal");
   const list = document.getElementById("add-dept-options");
-  const empty = document.getElementById("add-dept-empty");
-  const confirmBtn = document.getElementById("add-dept-confirm");
   if (!mask || !list) return;
   const used = new Set(state.rows.map((r) => r.group).filter(Boolean));
-  const available = GROUPS.filter((g) => !used.has(g));
-  if (!available.length) {
-    list.innerHTML = "";
-    if (empty) empty.style.display = "block";
-    if (confirmBtn) confirmBtn.disabled = true;
-  } else {
-    if (empty) empty.style.display = "none";
-    if (confirmBtn) confirmBtn.disabled = false;
-    list.innerHTML = available
-      .map(
-        (g, i) => `
-      <label class="yc-dept-pick${i === 0 ? " is-checked" : ""}">
-        <input type="radio" name="add-dept-pick" value="${g}" ${i === 0 ? "checked" : ""} />
+  list.innerHTML = GROUPS.map((g) => {
+    const added = used.has(g);
+    return `
+      <label class="yc-dept-pick${added ? " is-added" : ""}">
+        <input type="checkbox" name="add-dept-pick" value="${g}" ${added ? "disabled" : ""} />
         <span class="yc-dept-pick-main">
-          <strong>${g}</strong>
+          <span class="yc-dept-pick-title">
+            <strong>${g}</strong>
+            ${added ? '<span class="yc-dept-pick-badge">已添加</span>' : ""}
+          </span>
           <span class="yc-dept-pick-owner">负责人 · ${ownerOf(g)}</span>
         </span>
-      </label>`,
-      )
-      .join("");
-    list.querySelectorAll(".yc-dept-pick").forEach((el) => {
-      el.addEventListener("change", () => {
-        list.querySelectorAll(".yc-dept-pick").forEach((x) => x.classList.toggle("is-checked", x.querySelector("input")?.checked));
-      });
+      </label>`;
+  }).join("");
+  list.querySelectorAll('input[name="add-dept-pick"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      const label = el.closest(".yc-dept-pick");
+      if (label && !label.classList.contains("is-added")) {
+        label.classList.toggle("is-checked", el.checked);
+      }
+      syncAddDeptConfirmLabel();
     });
-  }
+  });
+  syncAddDeptConfirmLabel();
   mask.classList.add("show");
   mask.setAttribute("aria-hidden", "false");
 }
 
 function confirmAddDeptFromModal() {
-  const picked = document.querySelector('input[name="add-dept-pick"]:checked');
-  if (!picked) return toast("warning", "请选择要添加的营销部");
-  const group = picked.value;
+  const picked = [...document.querySelectorAll('input[name="add-dept-pick"]:checked:not(:disabled)')].map(
+    (el) => el.value,
+  );
+  if (!picked.length) return toast("warning", "请至少选择一个营销部");
   const used = new Set(state.rows.map((r) => r.group).filter(Boolean));
-  if (used.has(group)) return toast("warning", `${group} 已在本周填报中`);
-  state.rows.push(emptyRow(group));
+  const toAdd = picked.filter((g) => !used.has(g));
+  if (!toAdd.length) return toast("warning", "所选部门均已添加");
+  toAdd.forEach((g) => state.rows.push(emptyRow(g)));
   closeAddDeptModal();
   renderFill();
-  toast("success", `已添加 ${group}（负责人 ${ownerOf(group)}）`);
+  const names = toAdd.map((g) => `${g}（${ownerOf(g)}）`).join("、");
+  toast("success", `已添加 ${toAdd.length} 个部门：${names}`);
 }
 
 document.getElementById("add-dept").addEventListener("click", () => openAddDeptModal());
