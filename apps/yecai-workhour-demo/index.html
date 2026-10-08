@@ -390,21 +390,21 @@
           </div>
         </section>
 
-        <!-- 管理配置 · 部门负责人：仅部门 ↔ 品牌（旧 #admin-config 重定向至此） -->
+        <!-- 管理配置 · 部门负责人：部门 | 品牌 | 负责人（旧 #admin-config 重定向至此） -->
         <section class="page" id="page-config">
           <div class="yc-title-row a3-mb-16">
             <h1 class="yc-title a3-text-primary">部门负责人</h1>
-            <p class="a3-text-secondary a3-mt-4">维护各营销部与可服务品牌的对应关系。工时填报中该部门的品牌下拉仅显示已映射品牌。财务 / 管理员可编辑；暂存/保存写入本机。</p>
+            <p class="a3-text-secondary a3-mt-4">维护各营销部的可服务品牌与部门负责人。品牌映射约束工时填报下拉；负责人默认来自人事系统（HR）样例，财务 / 管理员可覆盖编辑。暂存/保存写入本机。</p>
           </div>
           <div class="a3-alert a3-alert-info a3-mb-16" id="config-gate" style="display:none">
             <i class="fas fa-lock"></i>
-            <span>请切换身份为「财务」或「管理员」后编辑部门↔品牌映射。</span>
+            <span>请切换身份为「财务」或「管理员」后编辑部门↔品牌与负责人。</span>
           </div>
           <div id="config-body">
             <div class="a3-card a3-mb-16">
               <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
-                <span class="a3-card-title">部门 ↔ 品牌</span>
-                <span class="a3-tag a3-tag-default">约束填报品牌级联</span>
+                <span class="a3-card-title">部门 ↔ 品牌 ↔ 负责人</span>
+                <span class="a3-tag a3-tag-default" id="cfg-owner-source">来源：人事系统</span>
               </div>
               <div class="a3-card-body">
                 <div class="yc-toolbar a3-mb-16">
@@ -418,13 +418,14 @@
                     </div>
                   </div>
                 </div>
-                <p class="a3-text-secondary a3-mb-16">为每个营销部勾选可服务的品牌（来自业财 BRAND_LINE_MASTER）。至少保留一个品牌。</p>
+                <p class="a3-text-secondary a3-mb-16">列为：营销部 → 对应品牌 → 部门负责人。品牌来自业财 BRAND_LINE_MASTER（至少保留一个）；负责人默认 HR 同步样例，可编辑后本机覆盖（正式环境仍以人事为准）。</p>
                 <div class="a3-table-wrapper">
                   <table class="a3-table" id="cfg-dept-brand-table">
                     <thead>
                       <tr>
                         <th style="width:140px">营销部</th>
                         <th>对应品牌</th>
+                        <th style="width:180px">部门负责人</th>
                       </tr>
                     </thead>
                     <tbody></tbody>

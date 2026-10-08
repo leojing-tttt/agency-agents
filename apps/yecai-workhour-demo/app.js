@@ -2490,11 +2490,30 @@ function staffTotal() {
 
 function updateCfgMeta() {
   const el = document.getElementById("cfg-save-meta");
+  const source = document.getElementById("cfg-owner-source");
   if (!el) return;
   const parts = [];
-  if (state.adminConfig.savedAt) parts.push("已保存 " + state.adminConfig.savedAt);
+  if (state.deptOwners?.source === "hr" && !state.deptOwners.savedAt && !state.deptOwners.fromDraft) {
+    parts.push("负责人默认已从人事系统载入");
+  }
+  if (state.adminConfig.savedAt) parts.push("品牌已保存 " + state.adminConfig.savedAt);
+  if (state.deptOwners?.savedAt) parts.push("负责人已保存 " + state.deptOwners.savedAt);
   if (state.adminDraftMeta) parts.push("草稿 " + state.adminDraftMeta);
+  if (state.deptOwners?.fromDraft && state.deptOwners.draftedAt) parts.push("负责人草稿 " + state.deptOwners.draftedAt);
   el.textContent = parts.length ? parts.join(" · ") : "尚未保存";
+  if (source) {
+    source.textContent = state.deptOwners?.source === "local" ? "来源：本机覆盖（原 HR）" : "来源：人事系统";
+  }
+}
+
+function readDeptOwnerInputs() {
+  const owners = { ...defaultDeptOwners() };
+  document.querySelectorAll("[data-dept-owner]").forEach((el) => {
+    const g = el.getAttribute("data-dept-owner");
+    const v = (el.value || "").trim();
+    if (g && v) owners[g] = v;
+  });
+  return owners;
 }
 
 
@@ -2676,7 +2695,16 @@ function renderDeptBrandConfig() {
         ${b}
       </label>
     `).join("");
-    return `<tr><td>${g}</td><td><div class="yc-brand-tags">${tags}</div></td></tr>`;
+    const owner = ownerOf(g);
+    return `<tr>
+      <td>${g}</td>
+      <td><div class="yc-brand-tags">${tags}</div></td>
+      <td>
+        <div class="a3-input-wrapper" style="max-width:160px">
+          <input class="a3-input" type="text" maxlength="32" value="${owner}" data-dept-owner="${g}" aria-label="${g}部门负责人" />
+        </div>
+      </td>
+    </tr>`;
   }).join("");
 
   document.querySelectorAll("[data-dept-brand]").forEach((el) => {
@@ -2691,6 +2719,16 @@ function renderDeptBrandConfig() {
       }
       /* 同步约束当前填报区品牌下拉 */
       if (document.getElementById("page-fill")?.classList.contains("active")) renderFill();
+    });
+  });
+  document.querySelectorAll("[data-dept-owner]").forEach((el) => {
+    el.addEventListener("change", () => {
+      const dept = el.getAttribute("data-dept-owner");
+      const v = (el.value || "").trim() || DEFAULT_DEPT_OWNERS[dept] || "—";
+      el.value = v;
+      if (!state.deptOwners) state.deptOwners = loadDeptOwners();
+      state.deptOwners.owners[dept] = v;
+      state.deptOwners.source = "local";
     });
   });
   updateCfgMeta();
@@ -2708,9 +2746,21 @@ document.getElementById("cfg-draft")?.addEventListener("click", () => {
     deptBrands: state.adminConfig.deptBrands,
     draftedAt,
   }));
+  const owners = readDeptOwnerInputs();
+  state.deptOwners = {
+    owners,
+    savedAt: state.deptOwners?.savedAt || null,
+    source: "local",
+    fromDraft: true,
+    draftedAt,
+  };
+  localStorage.setItem(
+    DEPT_OWNER_DRAFT_KEY,
+    JSON.stringify({ owners, draftedAt, source: "local", savedAt: state.deptOwners.savedAt }),
+  );
   state.adminDraftMeta = draftedAt;
   updateCfgMeta();
-  toast("info", "部门↔品牌草稿已暂存到本机");
+  toast("info", "部门↔品牌与负责人草稿已暂存到本机");
 });
 
 document.getElementById("cfg-save")?.addEventListener("click", () => {
@@ -2724,9 +2774,13 @@ document.getElementById("cfg-save")?.addEventListener("click", () => {
   }));
   localStorage.removeItem(ADMIN_DRAFT_KEY);
   state.adminDraftMeta = null;
+  const owners = readDeptOwnerInputs();
+  state.deptOwners = { owners, savedAt, source: "local", fromDraft: false };
+  localStorage.setItem(DEPT_OWNER_STORAGE_KEY, JSON.stringify({ owners, savedAt, source: "local" }));
+  localStorage.removeItem(DEPT_OWNER_DRAFT_KEY);
   updateCfgMeta();
   if (document.getElementById("page-fill")?.classList.contains("active")) renderFill();
-  toast("success", "部门↔品牌已保存，工时填报品牌下拉已按映射约束");
+  toast("success", "部门↔品牌与负责人已保存（品牌约束填报下拉；负责人 Demo 本机生效，正式仍以 HR 为准）");
 });
 
 function weekProgress(week) {
