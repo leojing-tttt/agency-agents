@@ -3430,6 +3430,7 @@ else if (bootHash === "config" || bootHash === "fill-scope") {
   }
   go(bootHash === "fill-scope" ? "fill-scope" : "config");
 } else if (bootHash === "basic" || bootHash === "brand") go("basic");
+else if (bootHash === "project") go("project");
 else if (bootHash === "review" || bootHash === "review-alloc" || bootHash === "leader" || bootHash === "mine") {
   if (bootHash === "review-alloc") {
     state.role = "owner";
@@ -3472,6 +3473,7 @@ window.addEventListener("hashchange", () => {
     }
     go(h === "fill-scope" ? "fill-scope" : "config");
   } else if (h === "basic" || h === "brand") go("basic");
+  else if (h === "project") go("project");
   else if (h === "review" || h === "review-alloc" || h === "leader" || h === "mine") {
     if (h === "review-alloc") {
       if (state.role !== "owner" && state.role !== "leader") {

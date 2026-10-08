@@ -132,7 +132,7 @@
 
 | 项 | 说明 |
 |----|------|
-| 入口 | `#fill` · `#review` / `#review-alloc` · `#config` · `#fill-scope` · `#basic` |
+| 入口 | `#fill` · `#review` / `#review-alloc` · `#config` · `#fill-scope` · `#basic` · `#project` |
 | 身份 | 顶栏角色切换：填报人 / Leader / 财务 / 管理员… |
 | 技术 | 静态 HTML + JS；样例数据 mock；配置可 localStorage |
 | 周条 | `#fill-week-strip` / `renderFillWeekStrip()` |
