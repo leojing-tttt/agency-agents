@@ -765,6 +765,10 @@ function weekFillStatus(weekId) {
   const hist = state.history.find((h) => h.week === weekId);
   if (hist?.status === "locked" || weekId === "2026-W38") return "locked";
   if (hist?.status === "submitted") return "submitted";
+  /* 演示用历史样例：更早周有锁定/已提交，便于左右滑动查看 */
+  const n = weekNumOf(weekId);
+  if (n >= 20 && n <= 29) return "locked";
+  if (n >= 30 && n <= 35) return "submitted";
   if (state.draftWeeks && state.draftWeeks.has(weekId)) return "draft";
   if (weekId === state.week) {
     if (state.rows.length && sumPct(state.rows) > 0) return "draft";
@@ -772,10 +776,6 @@ function weekFillStatus(weekId) {
   }
   const rows = FILL_BY_WEEK[weekId] || [];
   if (rows.length && sumPct(rows) > 0) return "draft";
-  /* 演示用历史样例：更早周有锁定/已提交，便于左右滑动查看 */
-  const n = weekNumOf(weekId);
-  if (n >= 20 && n <= 29) return "locked";
-  if (n >= 30 && n <= 35) return "submitted";
   return "empty";
 }
 
@@ -792,9 +792,9 @@ function selectFillWeek(weekId, { force } = {}) {
   FILL_BY_WEEK[state.week] = state.rows.map((r) => ({ ...r }));
   state.week = weekId;
   state.rows = cloneRows(weekId);
-  const hist = state.history.find((h) => h.week === weekId);
-  state.locked = hist?.status === "locked" || weekId === "2026-W38";
-  state.submitted = !!hist && (hist.status === "submitted" || hist.status === "locked");
+  const status = weekFillStatus(weekId);
+  state.locked = status === "locked";
+  state.submitted = status === "submitted" || status === "locked";
   renderFill();
 }
 
