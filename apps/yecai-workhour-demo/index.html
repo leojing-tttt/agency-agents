@@ -29,8 +29,7 @@
       <ul class="a3-menu">
         <li class="a3-menu-group-title">人效 / 工时</li>
         <li class="a3-menu-item active" data-page="fill"><i class="fas fa-pen-to-square"></i><span>工时填报</span></li>
-        <li class="a3-menu-item" data-page="mine"><i class="fas fa-list"></i><span>我的填报</span></li>
-        <li class="a3-menu-item" data-page="leader"><i class="fas fa-clipboard-check"></i><span>待我确认</span></li>
+        <li class="a3-menu-item" data-page="review"><i class="fas fa-clipboard-check"></i><span>部门审核</span></li>
         <li class="a3-menu-item" data-page="config"><i class="fas fa-sitemap"></i><span>配置</span></li>
         <li class="a3-menu-group-title">报表</li>
         <li class="a3-menu-item" data-page="basic"><i class="fas fa-table"></i><span>基础报表</span></li>
@@ -75,7 +74,8 @@
           <div class="a3-select-wrapper yc-role-select-wrap">
             <select class="a3-select" id="role-select">
               <option value="filler">填报人 · 林可（媒介）</option>
-              <option value="leader">Leader · 周衡（营销一部）</option>
+              <option value="leader">部门 Leader · 周衡（营销一部）</option>
+              <option value="owner">业务一号位 · 韩叙（营销一部）</option>
               <option value="finance">财务 · 沈岚</option>
               <option value="ceo">CEO · 顾岑</option>
               <option value="cfo">CFO · 沈岚</option>
@@ -156,86 +156,120 @@
           </div>
         </section>
 
-        <!-- 2 Mine -->
-        <section class="page" id="page-mine">
+        <!-- 2 部门审核 + 工时分配 -->
+        <section class="page" id="page-review">
           <div class="yc-title-row a3-mb-16">
-            <h1 class="yc-title a3-text-primary">我的填报记录</h1>
-            <p class="a3-text-secondary a3-mt-4">仅展示本人已填占比与提交状态。拆分归属结果对填报人不可见。</p>
+            <h1 class="yc-title a3-text-primary">部门审核</h1>
+            <p class="a3-text-secondary a3-mt-4">营销部 Leader 按周审核本组填报人；确认后填报才生效。审核通过后，可在「工时分配」将人天按项目执行单支出比例分摊，并由业务一号位确认。</p>
           </div>
-          <div class="a3-alert a3-alert-info a3-mb-16">
-            <i class="fas fa-info-circle"></i>
-            <span>权限提示：归集拆分结果仅各业务组 Leader 可见，本页不展示项目/执行单分摊。</span>
+          <div class="yc-seg a3-mb-16" id="review-tabs" role="tablist" aria-label="部门审核视图">
+            <button type="button" class="yc-seg-btn active" data-review-tab="audit" role="tab" aria-selected="true">部门审核</button>
+            <button type="button" class="yc-seg-btn" data-review-tab="alloc" role="tab" aria-selected="false">工时分配</button>
           </div>
-          <div class="a3-card">
-            <div class="a3-table-wrapper">
-              <table class="a3-table" id="mine-table">
-                <thead>
-                  <tr>
-                    <th>填报周</th>
-                    <th>业务组</th>
-                    <th>品牌</th>
-                    <th>品线</th>
-                    <th>执行单类型</th>
-                    <th>子类型</th>
-                    <th>占比(%)</th>
-                    <th>状态</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
 
-        <!-- 3 Leader -->
-        <section class="page" id="page-leader">
-          <div class="yc-title-row a3-mb-16">
-            <h1 class="yc-title a3-text-primary">归集拆分与确认</h1>
-            <p class="a3-text-secondary a3-mt-4">按业务组查看系统拆分到项目 / 执行单的结果，确认后锁定纳入人效统计。</p>
-          </div>
-          <div class="a3-alert a3-alert-warning a3-mb-16" id="leader-gate">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>当前身份不是业务组 Leader。请在左侧切换为「Leader · 周衡」后查看。</span>
-          </div>
-          <div id="leader-body" style="display:none">
-            <div class="yc-stats a3-mb-16">
-              <div class="a3-card yc-stat"><div class="a3-card-body">
-                <div class="a3-text-secondary" style="font-size:12px">业务组</div>
-                <div class="a3-text-primary a3-mt-8" style="font-weight:600">营销一部</div>
-              </div></div>
-              <div class="a3-card yc-stat"><div class="a3-card-body">
-                <div class="a3-text-secondary" style="font-size:12px">待确认占比</div>
-                <div class="a3-text-brand a3-mt-8" style="font-size:22px;font-weight:600" id="leader-hours">0%</div>
-              </div></div>
-              <div class="a3-card yc-stat"><div class="a3-card-body">
-                <div class="a3-text-secondary" style="font-size:12px">涉及项目</div>
-                <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600" id="leader-projects">0</div>
-              </div></div>
-              <div class="a3-card yc-stat"><div class="a3-card-body">
-                <div class="a3-text-secondary" style="font-size:12px">状态</div>
-                <div class="a3-mt-8" id="leader-status-wrap"><span class="a3-tag a3-tag-warning" id="leader-status"><span class="a3-tag-dot"></span>待确认</span></div>
-              </div></div>
+          <div id="review-tab-audit">
+            <div class="a3-alert a3-alert-warning a3-mb-16" id="review-gate">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span>请切换为「部门 Leader · 周衡」以审核本组填报。填报仅在 Leader 确认后生效。</span>
             </div>
-            <div class="a3-card">
-              <div class="a3-table-wrapper">
-                <table class="a3-table" id="leader-table">
-                  <thead>
-                    <tr>
-                      <th>填报人</th>
-                      <th>品牌 / 品线</th>
-                      <th>执行单类型</th>
-                      <th>填报占比</th>
-                      <th>归集项目</th>
-                      <th>执行单</th>
-                      <th>分摊权重</th>
-                      <th>分摊占比</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
+            <div id="review-audit-body" style="display:none">
+              <div class="yc-toolbar a3-mb-16">
+                <div class="yc-field">
+                  <label class="a3-text-secondary">审核周</label>
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="review-week"></select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+                <div class="a3-text-secondary" style="align-self:flex-end;padding-bottom:6px">业务组 <b class="a3-text-primary">营销一部</b></div>
               </div>
-              <div class="a3-card-footer">
-                <button type="button" class="a3-btn a3-btn-success" id="lock-btn"><i class="fas fa-lock"></i> 确认并锁定本周</button>
+              <div class="yc-stats a3-mb-16">
+                <div class="a3-card yc-stat"><div class="a3-card-body">
+                  <div class="a3-text-secondary" style="font-size:12px">待审核人数</div>
+                  <div class="a3-text-brand a3-mt-8" style="font-size:22px;font-weight:600" id="review-pending-n">0</div>
+                </div></div>
+                <div class="a3-card yc-stat"><div class="a3-card-body">
+                  <div class="a3-text-secondary" style="font-size:12px">已确认</div>
+                  <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600" id="review-ok-n">0</div>
+                </div></div>
+                <div class="a3-card yc-stat"><div class="a3-card-body">
+                  <div class="a3-text-secondary" style="font-size:12px">已驳回</div>
+                  <div class="a3-text-primary a3-mt-8" style="font-size:22px;font-weight:600" id="review-reject-n">0</div>
+                </div></div>
+                <div class="a3-card yc-stat"><div class="a3-card-body">
+                  <div class="a3-text-secondary" style="font-size:12px">周状态</div>
+                  <div class="a3-mt-8" id="review-week-status"><span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>待确认</span></div>
+                </div></div>
+              </div>
+              <div class="a3-card">
+                <div class="a3-card-header"><span class="a3-card-title">本组填报人（按周）</span></div>
+                <div class="a3-table-wrapper">
+                  <table class="a3-table" id="review-table">
+                    <thead>
+                      <tr>
+                        <th>填报人</th>
+                        <th>岗位</th>
+                        <th>品牌 / 品线</th>
+                        <th>业务类型</th>
+                        <th>占比(%)</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
+                  <span class="a3-text-secondary" style="font-size:12px">规则：填报提交后进入待审核；Leader 确认后生效，驳回后填报人需重填。</span>
+                  <button type="button" class="a3-btn a3-btn-success" id="review-confirm-all"><i class="fas fa-check-double"></i> 全部确认并生效</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="review-tab-alloc" style="display:none">
+            <div class="a3-alert a3-alert-info a3-mb-16" id="alloc-gate">
+              <i class="fas fa-info-circle"></i>
+              <span id="alloc-gate-text">工时分配：Leader 可查看/调整分摊；业务一号位确认后锁定。请切换身份体验。</span>
+            </div>
+            <div id="alloc-body">
+              <div class="yc-toolbar a3-mb-16">
+                <div class="yc-field">
+                  <label class="a3-text-secondary">分配周</label>
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="alloc-week"></select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+                <div class="a3-text-secondary" style="align-self:flex-end;padding-bottom:6px" id="alloc-status-line">分摊状态 —</div>
+              </div>
+              <div class="a3-card a3-mb-16">
+                <div class="a3-card-header"><span class="a3-card-title">按项目执行单支出比例分配</span></div>
+                <div class="a3-card-body">
+                  <p class="a3-text-secondary a3-mb-12">将已确认生效的填报（品牌 / 品线 / 业务类型）按本部项目执行单支出比例拆到项目。比例可微调，合计须为 100%。</p>
+                  <div class="a3-table-wrapper">
+                    <table class="a3-table" id="alloc-table">
+                      <thead>
+                        <tr>
+                          <th>来源（品牌/品线/类型）</th>
+                          <th>填报占比</th>
+                          <th>项目</th>
+                          <th>执行单</th>
+                          <th>支出比例(%)</th>
+                          <th>分摊占比(%)</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
+                  <span class="a3-text-secondary" style="font-size:12px" id="alloc-meta">需先完成部门审核确认</span>
+                  <div class="a3-flex" style="gap:8px">
+                    <button type="button" class="a3-btn a3-btn-default" id="alloc-save"><i class="fas fa-floppy-disk"></i> 保存分摊</button>
+                    <button type="button" class="a3-btn a3-btn-primary" id="alloc-confirm"><i class="fas fa-user-check"></i> 一号位确认分配</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -357,8 +357,8 @@ function fillersForBasicRow(r) {
 
 const TITLES = {
   fill: "工时填报",
-  mine: "我的填报",
-  leader: "待我确认",
+  review: "部门审核",
+  leader: "部门审核",
   config: "配置",
   basic: "基础报表",
   project: "项目人力",
@@ -1116,6 +1116,12 @@ const state = {
   adminDraftMeta: null,
   deptOwners: loadDeptOwners(),
   watchWeek: "2026-W39",
+  reviewWeek: "2026-W39",
+  reviewTab: "audit",
+  /** 部门审核：personKey → pending|confirmed|rejected */
+  reviewStatus: {},
+  /** 工时分配：week → { status: draft|confirmed, ratios: {sourceKey|project|order: pct} } */
+  allocByWeek: {},
   ovPreset: "today",
   ovFrom: "2026-10-05",
   ovTo: "2026-10-05",
@@ -1143,6 +1149,7 @@ try {
 const roleMeta = {
   filler: { name: "林可 · 媒介", showCost: false, fin: false },
   leader: { name: "周衡 · 营销一部 Leader", showCost: false, fin: false },
+  owner: { name: "韩叙 · 业务一号位", showCost: false, fin: false },
   finance: { name: "沈岚 · 财务", showCost: true, fin: true },
   ceo: { name: "顾岑 · CEO", showCost: true, fin: true },
   cfo: { name: "沈岚 · CFO", showCost: true, fin: true },
@@ -1271,6 +1278,11 @@ function syncObsChrome(page) {
 
 function go(page) {
   if (page === "brand") page = "basic";
+  if (page === "leader" || page === "mine") page = "review";
+  if (page === "review-alloc") {
+    page = "review";
+    state.reviewTab = "alloc";
+  }
   if ((page === "admin-config" || page === "admin-watch") && state.role !== "admin") {
     toast("warning", "请先切换为管理员身份");
     page = "fill";
@@ -1284,8 +1296,7 @@ function go(page) {
   syncObsChrome(page);
   updateFinBreadcrumb(page);
   if (page === "fill") renderFill();
-  if (page === "mine") renderMine();
-  if (page === "leader") renderLeader();
+  if (page === "review") renderReview();
   if (page === "config") renderDeptOwnerConfig();
   if (page === "basic") renderBasic();
   if (page === "project") renderProject();
@@ -1300,6 +1311,7 @@ function go(page) {
     fill: "fill",
     config: "config",
     basic: "basic",
+    review: state.reviewTab === "alloc" ? "review-alloc" : "review",
     "admin-config": "admin-config",
     "admin-watch": "admin-progress",
     "fin-overview": "fin-overview",
@@ -1351,7 +1363,13 @@ document.getElementById("role-select").addEventListener("change", (e) => {
   if (state.role === "ceo" || state.role === "cfo") go("fin-overview");
   else if (state.role === "finance") go("fin-overview");
   else if (state.role === "admin") go(onAdminPage ? activePage : "admin-config");
-  else if (onAdminPage || (onFinPage && !isExecRole(state.role))) go("fill");
+  else if (state.role === "leader") {
+    state.reviewTab = "audit";
+    go("review");
+  } else if (state.role === "owner") {
+    state.reviewTab = "alloc";
+    go("review");
+  } else if (onAdminPage || (onFinPage && !isExecRole(state.role))) go("fill");
   else go(activePage || "fill");
 });
 
@@ -1628,106 +1646,344 @@ document.getElementById("submit-fill").addEventListener("click", () => {
   FILL_BY_WEEK[state.week] = state.rows.map((r) => ({ ...r }));
   syncHistoryCurrentWeek();
   renderFillWeekStrip();
-  toast("success", "提交成功。拆分结果仅业务组 Leader 可见。");
-  go("mine");
+  toast("success", "已提交，待部门 Leader 审核确认后生效");
 });
 
-function statusTag(status) {
-  if (status === "locked") {
-    return '<span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>已锁定</span>';
-  }
-  return '<span class="a3-tag a3-tag-info"><span class="a3-tag-dot"></span>已提交</span>';
+function reviewPersonKey(week, person, brand, line, type) {
+  return `${week}|${person}|${brand}|${line}|${type}`;
 }
 
-function renderMine() {
-  const tbody = document.querySelector("#mine-table tbody");
-  const entries = state.history.length
-    ? state.history
-    : state.submitted
-      ? [{ week: state.week, status: state.locked ? "locked" : "submitted", rows: state.rows }]
-      : [];
-  if (!entries.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="a3-empty"><i class="fas fa-inbox"></i><div class="a3-empty-text">暂无提交记录，请先在「工时填报」提交</div></div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML = entries.flatMap((h) =>
-    h.rows.map((r) => `
-      <tr>
-        <td>${h.week}</td>
-        <td>${r.group}</td>
-        <td>${r.brand}</td>
-        <td>${r.line}</td>
-        <td>${EXECUTE_LABEL[r.type] || r.type}</td>
-        <td>${subLabel(r.type, r.sub)}</td>
-        <td>${r.pct}%</td>
-        <td>${statusTag(h.status)}</td>
-      </tr>
-    `)
-  ).join("");
+function sourceKey(brand, line, type) {
+  return `${brand}|${line}|${type}`;
 }
 
-function expandParts(person, brand, line, typeLabel, filled, parts) {
-  return parts.map((p) => ({
-    person,
-    brand: `${brand} / ${line}`,
-    type: typeLabel,
-    filled: filled + "%",
-    project: p.project,
-    order: p.order,
-    pct: Math.round(p.w * 100) + "%",
-    hours: round1(filled * p.w) + "%",
-  }));
-}
-
-function buildSplits() {
-  const dept = state.rows.filter((r) => r.group === LEADER_GROUP);
-  const out = [];
-  dept.forEach((r) => {
-    const typeLabel = `${EXECUTE_LABEL[r.type] || r.type}${r.sub ? " / " + subLabel(r.type, r.sub) : ""}`;
-    const parts = SPLIT_CATALOG[`${r.brand}|${r.line}|${r.type}`] || [{ project: "待匹配项目", order: "—", w: 1 }];
-    out.push(...expandParts("林可", r.brand, r.line, typeLabel, r.pct, parts));
+/** 本组按周填报人列表（mock：林可 + W39 额外成员） */
+function buildReviewPeople(week) {
+  const rows = (FILL_BY_WEEK[week] || []).filter((r) => r.group === LEADER_GROUP);
+  const people = [];
+  rows.forEach((r) => {
+    people.push({
+      person: "林可",
+      role: "媒介",
+      brand: r.brand,
+      line: r.line,
+      type: r.type,
+      sub: r.sub,
+      pct: r.pct,
+    });
   });
-  if (state.week === "2026-W39") {
+  if (week === "2026-W39") {
     TEAM_DEPT1_EXTRAS.forEach((m) => {
-      const typeLabel = `${EXECUTE_LABEL[m.type] || m.type}${m.sub ? " / " + subLabel(m.type, m.sub) : ""}`;
-      out.push(...expandParts(m.person, m.brand, m.line, typeLabel, m.filled, m.parts));
+      people.push({
+        person: m.person,
+        role: m.person === "陈屿" ? "投放" : "投放",
+        brand: m.brand,
+        line: m.line,
+        type: m.type,
+        sub: m.sub,
+        pct: m.filled,
+      });
     });
   }
-  return out;
+  return people.map((p) => {
+    const key = reviewPersonKey(week, p.person, p.brand, p.line, p.type);
+    const st = state.reviewStatus[key] || "pending";
+    return { ...p, key, status: st };
+  });
 }
 
-function renderLeader() {
+function reviewStatusTag(st) {
+  if (st === "confirmed") return '<span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>已确认生效</span>';
+  if (st === "rejected") return '<span class="a3-tag a3-tag-danger"><span class="a3-tag-dot"></span>已驳回</span>';
+  return '<span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>待审核</span>';
+}
+
+function weekReviewEffective(week) {
+  const people = buildReviewPeople(week);
+  if (!people.length) return false;
+  return people.every((p) => p.status === "confirmed");
+}
+
+function ensureReviewWeekSelects() {
+  ["review-week", "alloc-week"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el || el.options.length) return;
+    const weeks = ["2026-W36", "2026-W37", "2026-W38", "2026-W39", "2026-W40"];
+    weeks.forEach((w) => {
+      const o = document.createElement("option");
+      o.value = w;
+      o.textContent = w;
+      el.appendChild(o);
+    });
+  });
+  const rw = document.getElementById("review-week");
+  const aw = document.getElementById("alloc-week");
+  if (rw) rw.value = state.reviewWeek;
+  if (aw) aw.value = state.reviewWeek;
+}
+
+function setReviewTab(tab) {
+  state.reviewTab = tab === "alloc" ? "alloc" : "audit";
+  document.querySelectorAll("[data-review-tab]").forEach((btn) => {
+    const on = btn.getAttribute("data-review-tab") === state.reviewTab;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  const audit = document.getElementById("review-tab-audit");
+  const alloc = document.getElementById("review-tab-alloc");
+  if (audit) audit.style.display = state.reviewTab === "audit" ? "block" : "none";
+  if (alloc) alloc.style.display = state.reviewTab === "alloc" ? "block" : "none";
+  const want = state.reviewTab === "alloc" ? "review-alloc" : "review";
+  if ((location.hash || "").replace("#", "") !== want) {
+    history.replaceState(null, "", "#" + want);
+  }
+}
+
+function syncWeekEffectiveFlag(week) {
+  const effective = weekReviewEffective(week);
+  if (week === state.week) {
+    state.locked = effective;
+    state.submitted = true;
+  }
+  const hist = state.history.find((h) => h.week === week);
+  if (hist) hist.status = effective ? "locked" : "submitted";
+  else if (effective) {
+    state.history.push({ week, status: "locked", rows: cloneRows(week) });
+  }
+  renderFillWeekStrip();
+}
+
+function renderReviewAudit() {
+  const canLead = state.role === "leader";
+  const gate = document.getElementById("review-gate");
+  const body = document.getElementById("review-audit-body");
+  if (gate) gate.style.display = canLead ? "none" : "flex";
+  if (body) body.style.display = canLead ? "block" : "none";
+  if (!canLead) return;
+
+  ensureReviewWeekSelects();
+  const week = state.reviewWeek;
+  const people = buildReviewPeople(week);
+  const pending = people.filter((p) => p.status === "pending").length;
+  const ok = people.filter((p) => p.status === "confirmed").length;
+  const rej = people.filter((p) => p.status === "rejected").length;
+  document.getElementById("review-pending-n").textContent = String(pending);
+  document.getElementById("review-ok-n").textContent = String(ok);
+  document.getElementById("review-reject-n").textContent = String(rej);
+  const effective = people.length > 0 && pending === 0 && rej === 0 && ok === people.length;
+  document.getElementById("review-week-status").innerHTML = effective
+    ? '<span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>已全部确认生效</span>'
+    : rej
+      ? '<span class="a3-tag a3-tag-danger"><span class="a3-tag-dot"></span>含驳回</span>'
+      : '<span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>待确认</span>';
+
+  const tbody = document.querySelector("#review-table tbody");
+  tbody.innerHTML = people.length
+    ? people
+        .map((p) => {
+          const typeLabel = `${EXECUTE_LABEL[p.type] || p.type}${p.sub ? " / " + subLabel(p.type, p.sub) : ""}`;
+          const ops =
+            p.status === "pending"
+              ? `<button type="button" class="a3-btn a3-btn-success a3-btn-sm" data-review-ok="${p.key}">确认</button>
+                 <button type="button" class="a3-btn a3-btn-default a3-btn-sm" data-review-reject="${p.key}">驳回</button>`
+              : p.status === "confirmed"
+                ? `<span class="a3-text-secondary">已生效</span>`
+                : `<button type="button" class="a3-btn a3-btn-default a3-btn-sm" data-review-reset="${p.key}">重新待审</button>`;
+          return `<tr>
+            <td>${p.person}</td><td>${p.role}</td>
+            <td>${p.brand} / ${p.line}</td><td>${typeLabel}</td><td>${p.pct}%</td>
+            <td>${reviewStatusTag(p.status)}</td>
+            <td><div class="a3-flex" style="gap:6px;flex-wrap:wrap">${ops}</div></td>
+          </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="7"><div class="a3-table-empty">本周本组暂无填报</div></td></tr>`;
+
+  tbody.querySelectorAll("[data-review-ok]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.reviewStatus[btn.getAttribute("data-review-ok")] = "confirmed";
+      syncWeekEffectiveFlag(week);
+      toast("success", "已确认，该笔填报生效");
+      renderReview();
+    });
+  });
+  tbody.querySelectorAll("[data-review-reject]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.reviewStatus[btn.getAttribute("data-review-reject")] = "rejected";
+      syncWeekEffectiveFlag(week);
+      toast("warning", "已驳回，填报未生效");
+      renderReview();
+    });
+  });
+  tbody.querySelectorAll("[data-review-reset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.reviewStatus[btn.getAttribute("data-review-reset")] = "pending";
+      syncWeekEffectiveFlag(week);
+      renderReview();
+    });
+  });
+
+  const allBtn = document.getElementById("review-confirm-all");
+  if (allBtn) {
+    allBtn.disabled = !people.length || effective;
+    allBtn.onclick = () => {
+      people.forEach((p) => {
+        state.reviewStatus[p.key] = "confirmed";
+      });
+      syncWeekEffectiveFlag(week);
+      toast("success", "本组本周填报已全部确认生效");
+      renderReview();
+    };
+  }
+}
+
+function buildAllocRows(week) {
+  const people = buildReviewPeople(week).filter((p) => p.status === "confirmed");
+  const bySource = new Map();
+  people.forEach((p) => {
+    const sk = sourceKey(p.brand, p.line, p.type);
+    const cur = bySource.get(sk) || { brand: p.brand, line: p.line, type: p.type, pct: 0 };
+    cur.pct += p.pct;
+    bySource.set(sk, cur);
+  });
+  const bag = state.allocByWeek[week] || { status: "draft", ratios: {} };
+  const rows = [];
+  bySource.forEach((src) => {
+    const parts = SPLIT_CATALOG[sourceKey(src.brand, src.line, src.type)] || [
+      { project: "待匹配项目", order: "—", w: 1 },
+    ];
+    parts.forEach((part) => {
+      const rk = `${sourceKey(src.brand, src.line, src.type)}|${part.project}|${part.order}`;
+      const ratioPct = bag.ratios[rk] != null ? bag.ratios[rk] : Math.round(part.w * 100);
+      rows.push({
+        brand: src.brand,
+        line: src.line,
+        type: src.type,
+        filledPct: src.pct,
+        project: part.project,
+        order: part.order,
+        ratioKey: rk,
+        ratioPct,
+        allocPct: Math.round((src.pct * ratioPct) / 1000) / 10,
+      });
+    });
+  });
+  return { rows, status: bag.status || "draft" };
+}
+
+function renderReviewAlloc() {
+  ensureReviewWeekSelects();
+  const week = state.reviewWeek;
+  const isOwner = state.role === "owner";
   const isLeader = state.role === "leader";
-  document.getElementById("leader-gate").style.display = isLeader ? "none" : "flex";
-  document.getElementById("leader-body").style.display = isLeader ? "block" : "none";
-  if (!isLeader) return;
-  const splits = buildSplits();
-  const hours = round1(splits.reduce((s, r) => s + parseFloat(r.hours), 0));
-  document.getElementById("leader-hours").textContent = hours + "%";
-  document.getElementById("leader-projects").textContent = new Set(splits.map((r) => r.project)).size;
-  document.getElementById("leader-status").className = state.locked ? "a3-tag a3-tag-success" : "a3-tag a3-tag-warning";
-  document.getElementById("leader-status").innerHTML = state.locked
-    ? '<span class="a3-tag-dot"></span>已锁定'
-    : '<span class="a3-tag-dot"></span>待确认';
-  const lockBtn = document.getElementById("lock-btn");
-  lockBtn.disabled = state.locked;
-  lockBtn.innerHTML = state.locked
-    ? '<i class="fas fa-lock"></i> 本周已锁定'
-    : '<i class="fas fa-lock"></i> 确认并锁定本周';
-  document.querySelector("#leader-table tbody").innerHTML = splits.length
-    ? splits.map((r) => `
-      <tr>
-        <td>${r.person}</td><td>${r.brand}</td><td>${r.type}</td><td>${r.filled}</td>
-        <td>${r.project}</td><td>${r.order}</td><td>${r.pct}</td><td>${r.hours}</td>
-      </tr>`).join("")
-    : `<tr><td colspan="8"><div class="a3-table-empty"><i class="fas fa-inbox"></i>本组本周暂无待确认工时</div></td></tr>`;
+  const gate = document.getElementById("alloc-gate-text");
+  if (gate) {
+    if (isOwner) gate.textContent = "当前为业务一号位：可确认工时分配并锁定。";
+    else if (isLeader) gate.textContent = "当前为部门 Leader：可按支出比例调整分摊并保存；确认需业务一号位。";
+    else gate.textContent = "请切换为「部门 Leader」调整分摊，或「业务一号位」确认分配。";
+  }
+
+  const { rows, status } = buildAllocRows(week);
+  const effective = weekReviewEffective(week);
+  document.getElementById("alloc-status-line").innerHTML =
+    status === "confirmed"
+      ? '<span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>一号位已确认</span>'
+      : effective
+        ? '<span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>待一号位确认</span>'
+        : '<span class="a3-tag a3-tag-default"><span class="a3-tag-dot"></span>需先完成部门审核</span>';
+  document.getElementById("alloc-meta").textContent = effective
+    ? status === "confirmed"
+      ? "分配已锁定"
+      : "分摊按项目执行单支出比例；同来源比例合计须为 100%"
+    : "需先在「部门审核」确认填报人生效后，才能分配到项目";
+
+  const locked = status === "confirmed" || !effective;
+  const tbody = document.querySelector("#alloc-table tbody");
+  tbody.innerHTML = rows.length
+    ? rows
+        .map((r) => {
+          const typeLabel = EXECUTE_LABEL[r.type] || r.type;
+          return `<tr>
+          <td>${r.brand} / ${r.line}<div class="a3-text-secondary" style="font-size:12px">${typeLabel}</div></td>
+          <td>${r.filledPct}%</td>
+          <td>${r.project}</td>
+          <td>${r.order}</td>
+          <td><div class="a3-input-wrapper" style="max-width:100px">
+            <input class="a3-input" type="number" min="0" max="100" step="1" value="${r.ratioPct}" data-alloc-ratio="${r.ratioKey}" ${locked && !isLeader ? "disabled" : status === "confirmed" ? "disabled" : ""} />
+          </div></td>
+          <td>${r.allocPct}%</td>
+        </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="6"><div class="a3-table-empty">${effective ? "无已确认填报可分配" : "请先完成部门审核确认"}</div></td></tr>`;
+
+  const saveBtn = document.getElementById("alloc-save");
+  const confBtn = document.getElementById("alloc-confirm");
+  if (saveBtn) {
+    saveBtn.disabled = !effective || status === "confirmed" || (!isLeader && !isOwner);
+    saveBtn.onclick = () => {
+      const ratios = {};
+      document.querySelectorAll("[data-alloc-ratio]").forEach((el) => {
+        ratios[el.getAttribute("data-alloc-ratio")] = Number(el.value) || 0;
+      });
+      /* 校验同来源合计 100 */
+      const bySrc = {};
+      Object.keys(ratios).forEach((rk) => {
+        const src = rk.split("|").slice(0, 3).join("|");
+        bySrc[src] = (bySrc[src] || 0) + ratios[rk];
+      });
+      const bad = Object.entries(bySrc).find(([, v]) => Math.abs(v - 100) > 0.5);
+      if (bad) return toast("warning", `来源 ${bad[0]} 支出比例合计为 ${bad[1]}%，须为 100%`);
+      state.allocByWeek[week] = { status: "draft", ratios };
+      toast("info", "分摊已保存（草稿）");
+      renderReviewAlloc();
+    };
+  }
+  if (confBtn) {
+    confBtn.disabled = !effective || status === "confirmed" || !isOwner;
+    confBtn.onclick = () => {
+      if (!isOwner) return toast("warning", "请切换为业务一号位后确认");
+      const cur = state.allocByWeek[week] || { ratios: {} };
+      if (!Object.keys(cur.ratios || {}).length) {
+        /* 用当前输入 */
+        const ratios = {};
+        document.querySelectorAll("[data-alloc-ratio]").forEach((el) => {
+          ratios[el.getAttribute("data-alloc-ratio")] = Number(el.value) || 0;
+        });
+        state.allocByWeek[week] = { status: "confirmed", ratios };
+      } else {
+        state.allocByWeek[week] = { ...cur, status: "confirmed" };
+      }
+      toast("success", "业务一号位已确认工时分配");
+      renderReviewAlloc();
+    };
+  }
 }
 
-document.getElementById("lock-btn").addEventListener("click", () => {
-  state.locked = true;
-  syncHistoryCurrentWeek();
-  toast("success", "已确认锁定，纳入人效统计");
-  renderLeader();
+function renderReview() {
+  ensureReviewWeekSelects();
+  setReviewTab(state.reviewTab);
+  if (state.reviewTab === "alloc") renderReviewAlloc();
+  else renderReviewAudit();
+}
+
+document.querySelectorAll("[data-review-tab]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    state.reviewTab = btn.getAttribute("data-review-tab");
+    renderReview();
+  });
+});
+document.getElementById("review-week")?.addEventListener("change", (e) => {
+  state.reviewWeek = e.target.value;
+  const aw = document.getElementById("alloc-week");
+  if (aw) aw.value = state.reviewWeek;
+  renderReview();
+});
+document.getElementById("alloc-week")?.addEventListener("change", (e) => {
+  state.reviewWeek = e.target.value;
+  const rw = document.getElementById("review-week");
+  if (rw) rw.value = state.reviewWeek;
+  renderReview();
 });
 
 function renderProject() {
@@ -2815,7 +3071,19 @@ if (adminBoot) {
 } else if (bootHash === "fill" || bootHash === "fill-cmp") go("fill");
 else if (bootHash === "config") go("config");
 else if (bootHash === "basic" || bootHash === "brand") go("basic");
-else renderFill();
+else if (bootHash === "review" || bootHash === "review-alloc" || bootHash === "leader" || bootHash === "mine") {
+  if (bootHash === "review-alloc") {
+    state.role = "owner";
+    state.reviewTab = "alloc";
+  } else {
+    state.role = "leader";
+    state.reviewTab = "audit";
+  }
+  document.getElementById("role-select").value = state.role;
+  document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta[state.role].name}`;
+  syncRoleMenus();
+  go("review");
+} else renderFill();
 
 window.addEventListener("hashchange", () => {
   const h = (location.hash || "").replace("#", "");
@@ -2835,10 +3103,29 @@ window.addEventListener("hashchange", () => {
       syncRoleMenus();
     }
     go(h);
-  }   else if (h === "fill" || h === "fill-cmp") go("fill");
+  } else if (h === "fill" || h === "fill-cmp") go("fill");
   else if (h === "config") go("config");
   else if (h === "basic" || h === "brand") go("basic");
-  else if (h === "admin-config" || h === "admin-watch" || h === "admin-progress") {
+  else if (h === "review" || h === "review-alloc" || h === "leader" || h === "mine") {
+    if (h === "review-alloc") {
+      if (state.role !== "owner" && state.role !== "leader") {
+        state.role = "owner";
+        document.getElementById("role-select").value = "owner";
+        document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.owner.name}`;
+        syncRoleMenus();
+      }
+      state.reviewTab = "alloc";
+    } else {
+      if (state.role !== "leader" && state.role !== "owner") {
+        state.role = "leader";
+        document.getElementById("role-select").value = "leader";
+        document.getElementById("user-chip").innerHTML = `<i class="fas fa-user"></i> ${roleMeta.leader.name}`;
+        syncRoleMenus();
+      }
+      state.reviewTab = "audit";
+    }
+    go("review");
+  } else if (h === "admin-config" || h === "admin-watch" || h === "admin-progress") {
     if (state.role !== "admin") {
       state.role = "admin";
       document.getElementById("role-select").value = "admin";
@@ -2854,7 +3141,7 @@ const PRD_DOCS = [
   {
     id: "workhour",
     title: "工时与项目人力",
-    desc: "工时填报、拆分确认、基础报表、项目人力",
+    desc: "工时填报、部门审核、工时分配、基础报表、项目人力",
     file: "prd-workhour-manpower.md",
     path: "docs/prd-workhour-manpower.md",
   },
