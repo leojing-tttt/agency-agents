@@ -2714,7 +2714,7 @@ const PRD_DOCS = [
   {
     id: "workhour",
     title: "工时与项目人力",
-    desc: "工时填报、拆分确认、项目/品牌品线人力报表",
+    desc: "工时填报、拆分确认、基础报表、项目人力",
     file: "prd-workhour-manpower.md",
     path: "docs/prd-workhour-manpower.md",
   },
