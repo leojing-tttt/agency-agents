@@ -31,6 +31,7 @@
         <li class="a3-menu-item active" data-page="fill"><i class="fas fa-pen-to-square"></i><span>工时填报</span></li>
         <li class="a3-menu-item" data-page="mine"><i class="fas fa-list"></i><span>我的填报</span></li>
         <li class="a3-menu-item" data-page="leader"><i class="fas fa-clipboard-check"></i><span>待我确认</span></li>
+        <li class="a3-menu-item" data-page="config"><i class="fas fa-sitemap"></i><span>配置</span></li>
         <li class="a3-menu-group-title">报表</li>
         <li class="a3-menu-item" data-page="project"><i class="fas fa-diagram-project"></i><span>项目人力</span></li>
         <li class="a3-menu-item" data-page="brand"><i class="fas fa-tags"></i><span>品牌品线人力</span></li>
@@ -313,6 +314,46 @@
                   </thead>
                   <tbody></tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 人效配置：部门 ↔ 负责人 -->
+        <section class="page" id="page-config">
+          <div class="yc-title-row a3-mb-16">
+            <h1 class="yc-title a3-text-primary">配置</h1>
+            <p class="a3-text-secondary a3-mt-4">维护营销部与部门负责人对应关系。默认数据来自人事系统同步；本页可演示编辑并暂存/保存到本机。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16">
+            <i class="fas fa-building-user"></i>
+            <span>数据来源：<b>人事系统（HR）</b> · 演示样例已预置营销一部–九部负责人；正式环境以 HR 同步为准，本地修改仅 Demo 生效。</span>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
+              <span class="a3-card-title">部门 ↔ 负责人</span>
+              <span class="a3-tag a3-tag-default" id="cfg-owner-source">来源：人事系统</span>
+            </div>
+            <div class="a3-card-body">
+              <div class="a3-table-wrapper">
+                <table class="a3-table" id="cfg-owner-table">
+                  <thead>
+                    <tr>
+                      <th style="width:180px">营销部（业务组）</th>
+                      <th>部门负责人</th>
+                      <th style="width:120px">同步状态</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="a3-card-footer a3-flex-between" style="justify-content:space-between">
+              <span class="a3-text-secondary" id="cfg-owner-meta">默认已从人事系统载入</span>
+              <div class="a3-flex" style="gap:8px">
+                <button type="button" class="a3-btn a3-btn-default" id="cfg-owner-reset"><i class="fas fa-rotate-left"></i> 恢复 HR 默认</button>
+                <button type="button" class="a3-btn a3-btn-default" id="cfg-owner-draft"><i class="fas fa-floppy-disk"></i> 暂存草稿</button>
+                <button type="button" class="a3-btn a3-btn-primary" id="cfg-owner-save"><i class="fas fa-check"></i> 保存</button>
               </div>
             </div>
           </div>
@@ -783,6 +824,30 @@
         <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="docs-download-all">
           <i class="fas fa-file-arrow-down"></i> 下载合集
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加营销部：先选部门 -->
+  <div class="a3-modal-mask" id="add-dept-modal" aria-hidden="true">
+    <div class="a3-modal yc-add-dept-modal" role="dialog" aria-modal="true" aria-labelledby="add-dept-modal-title">
+      <div class="a3-modal-header">
+        <span id="add-dept-modal-title">添加营销部</span>
+        <button type="button" class="a3-modal-close" id="add-dept-modal-close" aria-label="关闭">
+          <i class="fas fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="a3-modal-body">
+        <p class="a3-text-secondary a3-mb-12">选择要加入本周填报的营销部（已添加的不可再选）。列表展示部门与负责人（来自配置 / 人事系统）。</p>
+        <div class="yc-dept-pick-list" id="add-dept-options" role="radiogroup" aria-label="可选营销部"></div>
+        <div class="a3-empty" id="add-dept-empty" style="display:none;padding:24px 0">
+          <i class="fas fa-check-circle"></i>
+          <div class="a3-empty-text">九个营销部均已添加</div>
+        </div>
+      </div>
+      <div class="a3-modal-footer">
+        <button type="button" class="a3-btn a3-btn-default" id="add-dept-cancel">取消</button>
+        <button type="button" class="a3-btn a3-btn-primary" id="add-dept-confirm"><i class="fas fa-plus"></i> 添加所选部门</button>
       </div>
     </div>
   </div>

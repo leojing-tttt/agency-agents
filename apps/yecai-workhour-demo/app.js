@@ -47,6 +47,22 @@ const GROUPS = [
   "营销六部", "营销七部", "营销八部", "营销九部",
 ];
 
+/** 部门负责人默认（来源：人事系统 HR 同步样例） */
+const DEFAULT_DEPT_OWNERS = {
+  营销一部: "周衡",
+  营销二部: "陈予安",
+  营销三部: "韩若溪",
+  营销四部: "陆景明",
+  营销五部: "苏念初",
+  营销六部: "叶知秋",
+  营销七部: "江澄",
+  营销八部: "白叙",
+  营销九部: "唐小满",
+};
+
+const DEPT_OWNER_STORAGE_KEY = "yecai-workhour-dept-owners-v1";
+const DEPT_OWNER_DRAFT_KEY = "yecai-workhour-dept-owners-draft-v1";
+
 /**
  * 执行单类型 L1→L2（与 CreateExecutionOrder/store.ts initialDictData 对齐）
  * 无子类型的 L1：子类型下拉显示「—」且值为空
@@ -208,6 +224,7 @@ const TITLES = {
   fill: "工时填报",
   mine: "我的填报",
   leader: "待我确认",
+  config: "配置",
   project: "项目人力",
   brand: "品牌品线人力",
   "fin-overview": "今日总览",
@@ -737,6 +754,49 @@ function brandsForGroup(group) {
   return valid.length ? valid : BRANDS.slice();
 }
 
+function defaultDeptOwners() {
+  const out = {};
+  GROUPS.forEach((g) => {
+    out[g] = DEFAULT_DEPT_OWNERS[g] || "—";
+  });
+  return out;
+}
+
+function normalizeDeptOwners(raw) {
+  const base = defaultDeptOwners();
+  if (!raw || typeof raw !== "object") return { owners: base, savedAt: null, source: "hr" };
+  const owners = { ...base };
+  GROUPS.forEach((g) => {
+    if (typeof raw.owners?.[g] === "string" && raw.owners[g].trim()) owners[g] = raw.owners[g].trim();
+    else if (typeof raw[g] === "string" && raw[g].trim()) owners[g] = raw[g].trim();
+  });
+  return {
+    owners,
+    savedAt: raw.savedAt || null,
+    source: raw.source === "local" ? "local" : "hr",
+  };
+}
+
+function loadDeptOwners() {
+  try {
+    const draft = localStorage.getItem(DEPT_OWNER_DRAFT_KEY);
+    if (draft) {
+      const parsed = normalizeDeptOwners(JSON.parse(draft));
+      parsed.fromDraft = true;
+      return parsed;
+    }
+  } catch (_) { /* ignore */ }
+  try {
+    const raw = localStorage.getItem(DEPT_OWNER_STORAGE_KEY);
+    if (raw) return normalizeDeptOwners(JSON.parse(raw));
+  } catch (_) { /* ignore */ }
+  return normalizeDeptOwners(null);
+}
+
+function ownerOf(group) {
+  return (state.deptOwners?.owners && state.deptOwners.owners[group]) || DEFAULT_DEPT_OWNERS[group] || "—";
+}
+
 /** 填报进度面板：各周已提交人数 mock（应填 = 配置员工数） */
 const WATCH_WEEKS = ["2026-W36", "2026-W37", "2026-W38", "2026-W39"];
 const WATCH_SUBMITTED = {
@@ -918,6 +978,7 @@ const state = {
   ],
   adminConfig: loadAdminConfig(),
   adminDraftMeta: null,
+  deptOwners: loadDeptOwners(),
   watchWeek: "2026-W39",
   ovPreset: "today",
   ovFrom: "2026-10-05",
@@ -1088,6 +1149,7 @@ function go(page) {
   if (page === "fill") renderFill();
   if (page === "mine") renderMine();
   if (page === "leader") renderLeader();
+  if (page === "config") renderDeptOwnerConfig();
   if (page === "project") renderProject();
   if (page === "brand") renderBrand();
   if (page === "fin-overview") renderFinOverview();
@@ -1099,6 +1161,7 @@ function go(page) {
   if (page === "master") renderMaster();
   const pageHashes = {
     fill: "fill",
+    config: "config",
     "admin-config": "admin-config",
     "admin-watch": "admin-progress",
     brand: "brand",
@@ -1325,12 +1388,74 @@ function renderFill() {
   updateFillSum();
 }
 
-document.getElementById("add-dept").addEventListener("click", () => {
-  const used = new Set(state.rows.map((r) => r.group));
-  const next = GROUPS.find((g) => !used.has(g));
-  if (!next) return toast("warning", "九个营销部均已添加");
-  state.rows.push(emptyRow(next));
+function closeAddDeptModal() {
+  const mask = document.getElementById("add-dept-modal");
+  if (!mask) return;
+  mask.classList.remove("show");
+  mask.setAttribute("aria-hidden", "true");
+}
+
+function openAddDeptModal() {
+  if (state.locked) return toast("warning", "该周已锁定，不可添加营销部");
+  const mask = document.getElementById("add-dept-modal");
+  const list = document.getElementById("add-dept-options");
+  const empty = document.getElementById("add-dept-empty");
+  const confirmBtn = document.getElementById("add-dept-confirm");
+  if (!mask || !list) return;
+  const used = new Set(state.rows.map((r) => r.group).filter(Boolean));
+  const available = GROUPS.filter((g) => !used.has(g));
+  if (!available.length) {
+    list.innerHTML = "";
+    if (empty) empty.style.display = "block";
+    if (confirmBtn) confirmBtn.disabled = true;
+  } else {
+    if (empty) empty.style.display = "none";
+    if (confirmBtn) confirmBtn.disabled = false;
+    list.innerHTML = available
+      .map(
+        (g, i) => `
+      <label class="yc-dept-pick${i === 0 ? " is-checked" : ""}">
+        <input type="radio" name="add-dept-pick" value="${g}" ${i === 0 ? "checked" : ""} />
+        <span class="yc-dept-pick-main">
+          <strong>${g}</strong>
+          <span class="yc-dept-pick-owner">负责人 · ${ownerOf(g)}</span>
+        </span>
+      </label>`,
+      )
+      .join("");
+    list.querySelectorAll(".yc-dept-pick").forEach((el) => {
+      el.addEventListener("change", () => {
+        list.querySelectorAll(".yc-dept-pick").forEach((x) => x.classList.toggle("is-checked", x.querySelector("input")?.checked));
+      });
+    });
+  }
+  mask.classList.add("show");
+  mask.setAttribute("aria-hidden", "false");
+}
+
+function confirmAddDeptFromModal() {
+  const picked = document.querySelector('input[name="add-dept-pick"]:checked');
+  if (!picked) return toast("warning", "请选择要添加的营销部");
+  const group = picked.value;
+  const used = new Set(state.rows.map((r) => r.group).filter(Boolean));
+  if (used.has(group)) return toast("warning", `${group} 已在本周填报中`);
+  state.rows.push(emptyRow(group));
+  closeAddDeptModal();
   renderFill();
+  toast("success", `已添加 ${group}（负责人 ${ownerOf(group)}）`);
+}
+
+document.getElementById("add-dept").addEventListener("click", () => openAddDeptModal());
+document.getElementById("add-dept-confirm")?.addEventListener("click", () => confirmAddDeptFromModal());
+document.getElementById("add-dept-cancel")?.addEventListener("click", () => closeAddDeptModal());
+document.getElementById("add-dept-modal-close")?.addEventListener("click", () => closeAddDeptModal());
+document.getElementById("add-dept-modal")?.addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeAddDeptModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.getElementById("add-dept-modal")?.classList.contains("show")) {
+    closeAddDeptModal();
+  }
 });
 
 document.getElementById("save-draft").addEventListener("click", () => {
@@ -1542,6 +1667,83 @@ function progressBarHtml(pct, success) {
     </div>
   `;
 }
+
+function updateDeptOwnerMeta() {
+  const el = document.getElementById("cfg-owner-meta");
+  const source = document.getElementById("cfg-owner-source");
+  if (!el) return;
+  const parts = [];
+  if (state.deptOwners.source === "hr" && !state.deptOwners.savedAt && !state.deptOwners.fromDraft) {
+    parts.push("默认已从人事系统载入");
+  }
+  if (state.deptOwners.savedAt) parts.push("已保存 " + state.deptOwners.savedAt);
+  if (state.deptOwners.fromDraft) parts.push("草稿已恢复");
+  if (state.deptOwners.draftedAt) parts.push("草稿 " + state.deptOwners.draftedAt);
+  el.textContent = parts.length ? parts.join(" · ") : "默认已从人事系统载入";
+  if (source) {
+    source.textContent = state.deptOwners.source === "local" ? "来源：本机覆盖（原 HR）" : "来源：人事系统";
+  }
+}
+
+function readDeptOwnerInputs() {
+  const owners = { ...defaultDeptOwners() };
+  document.querySelectorAll("[data-dept-owner]").forEach((el) => {
+    const g = el.getAttribute("data-dept-owner");
+    const v = (el.value || "").trim();
+    if (g && v) owners[g] = v;
+  });
+  return owners;
+}
+
+function renderDeptOwnerConfig() {
+  const tbody = document.querySelector("#cfg-owner-table tbody");
+  if (!tbody) return;
+  tbody.innerHTML = GROUPS.map((g) => {
+    const name = ownerOf(g);
+    const sync = state.deptOwners.source === "local" ? "本机覆盖" : "HR 同步";
+    return `
+      <tr>
+        <td>${g}</td>
+        <td>
+          <div class="a3-input-wrapper" style="max-width:220px">
+            <input class="a3-input" type="text" maxlength="32" value="${name}" data-dept-owner="${g}" />
+          </div>
+        </td>
+        <td><span class="a3-tag a3-tag-default">${sync}</span></td>
+      </tr>`;
+  }).join("");
+  updateDeptOwnerMeta();
+}
+
+document.getElementById("cfg-owner-draft")?.addEventListener("click", () => {
+  const draftedAt = new Date().toLocaleString("zh-CN", { hour12: false });
+  const owners = readDeptOwnerInputs();
+  state.deptOwners = { owners, savedAt: state.deptOwners.savedAt || null, source: "local", fromDraft: true, draftedAt };
+  localStorage.setItem(
+    DEPT_OWNER_DRAFT_KEY,
+    JSON.stringify({ owners, draftedAt, source: "local", savedAt: state.deptOwners.savedAt }),
+  );
+  updateDeptOwnerMeta();
+  toast("info", "部门负责人草稿已暂存到本机");
+});
+
+document.getElementById("cfg-owner-save")?.addEventListener("click", () => {
+  const savedAt = new Date().toLocaleString("zh-CN", { hour12: false });
+  const owners = readDeptOwnerInputs();
+  state.deptOwners = { owners, savedAt, source: "local", fromDraft: false };
+  localStorage.setItem(DEPT_OWNER_STORAGE_KEY, JSON.stringify({ owners, savedAt, source: "local" }));
+  localStorage.removeItem(DEPT_OWNER_DRAFT_KEY);
+  renderDeptOwnerConfig();
+  toast("success", "部门负责人已保存（Demo 本机生效；正式环境仍以 HR 为准）");
+});
+
+document.getElementById("cfg-owner-reset")?.addEventListener("click", () => {
+  localStorage.removeItem(DEPT_OWNER_STORAGE_KEY);
+  localStorage.removeItem(DEPT_OWNER_DRAFT_KEY);
+  state.deptOwners = normalizeDeptOwners(null);
+  renderDeptOwnerConfig();
+  toast("info", "已恢复人事系统默认负责人");
+});
 
 function staffTotal() {
   return GROUPS.reduce((s, g) => s + (Number(state.adminConfig.staffByDept[g]) || 0), 0);
@@ -2265,6 +2467,7 @@ if (adminBoot) {
   syncRoleMenus();
   go(land);
 } else if (bootHash === "fill" || bootHash === "fill-cmp") go("fill");
+else if (bootHash === "config") go("config");
 else if (bootHash === "brand") go(bootHash);
 else renderFill();
 
@@ -2287,6 +2490,7 @@ window.addEventListener("hashchange", () => {
     }
     go(h);
   } else if (h === "fill" || h === "fill-cmp") go("fill");
+  else if (h === "config") go("config");
   else if (h === "brand") go(h);
   else if (h === "admin-config" || h === "admin-watch" || h === "admin-progress") {
     if (state.role !== "admin") {

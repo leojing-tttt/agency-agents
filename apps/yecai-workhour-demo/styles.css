@@ -1381,3 +1381,46 @@ body.yc-fin-active .yc-docs-entry:hover {
   .yc-docs-drawer-body { grid-template-columns: 1fr; }
   .yc-docs-list { max-height: 180px; border-right: 0; border-bottom: 1px solid var(--a3-border); }
 }
+
+/* —— 添加营销部弹窗 / 部门负责人配置 —— */
+.yc-add-dept-modal { width: 480px; }
+.yc-dept-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.yc-dept-pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--a3-border);
+  border-radius: 8px;
+  background: var(--a3-bg-card);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.yc-dept-pick:hover { border-color: var(--a3-primary); }
+.yc-dept-pick.is-checked {
+  border-color: var(--a3-primary);
+  background: var(--a3-primary-light);
+  box-shadow: 0 0 0 2px var(--a3-focus-ring, rgba(47, 111, 143, 0.14));
+}
+.yc-dept-pick input {
+  margin-top: 3px;
+  accent-color: var(--a3-primary);
+}
+.yc-dept-pick-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.yc-dept-pick-main strong {
+  color: var(--a3-text-primary);
+  font-size: 14px;
+}
+.yc-dept-pick-owner {
+  font-size: 12px;
+  color: var(--a3-text-secondary);
+}
