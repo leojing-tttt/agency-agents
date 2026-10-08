@@ -134,11 +134,11 @@
                   </div>
                 </div>
                 <div class="yc-week-strip-wrap">
-                  <button type="button" class="yc-week-nav" id="fill-week-prev" aria-label="更早的周" title="更早的周">
+                  <button type="button" class="yc-week-strip-nav" id="fill-week-prev" aria-label="更早的周" title="更早的周">
                     <i class="fas fa-chevron-left" aria-hidden="true"></i>
                   </button>
                   <div class="yc-week-strip" id="fill-week-strip" role="listbox" aria-label="选择填报周（可左右滑动）"></div>
-                  <button type="button" class="yc-week-nav" id="fill-week-next" aria-label="更新的周" title="更新的周">
+                  <button type="button" class="yc-week-strip-nav" id="fill-week-next" aria-label="更新的周" title="更新的周">
                     <i class="fas fa-chevron-right" aria-hidden="true"></i>
                   </button>
                 </div>
@@ -556,14 +556,14 @@
             <span>请切换身份为「管理员 · 顾澄」后查看进度。</span>
           </div>
           <div id="admin-watch-body">
-            <div class="yc-week-nav a3-mb-16">
-              <button type="button" class="a3-btn a3-btn-default" id="watch-week-prev" title="上一周"><i class="fas fa-chevron-left"></i> 上一周</button>
-              <div class="yc-week-nav-label">
-                <span class="a3-text-secondary" style="font-size:12px">当前周次</span>
+            <div class="yc-watch-week-bar a3-mb-16" role="group" aria-label="切换填报周次">
+              <button type="button" class="a3-btn a3-btn-default yc-watch-week-btn" id="watch-week-prev" title="上一周"><i class="fas fa-chevron-left"></i> 上一周</button>
+              <div class="yc-watch-week-center">
+                <span class="yc-watch-week-kicker a3-text-secondary">当前周次</span>
                 <strong class="a3-text-primary" id="watch-week-label">2026-W39</strong>
-                <span class="a3-text-disabled" style="font-size:12px" id="watch-week-hint">左键下一周 · 右键上一周</span>
+                <span class="yc-watch-week-hint a3-text-disabled" id="watch-week-hint">左键下一周 · 右键上一周</span>
               </div>
-              <button type="button" class="a3-btn a3-btn-default" id="watch-week-next" title="下一周">下一周 <i class="fas fa-chevron-right"></i></button>
+              <button type="button" class="a3-btn a3-btn-default yc-watch-week-btn" id="watch-week-next" title="下一周">下一周 <i class="fas fa-chevron-right"></i></button>
             </div>
             <div class="yc-stats a3-mb-16" id="watch-week-cards" title="左键：下一周 · 右键：上一周"></div>
             <div class="a3-card">

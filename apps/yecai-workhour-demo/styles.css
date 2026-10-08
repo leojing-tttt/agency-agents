@@ -603,26 +603,47 @@ body.yc-role-admin .cfo-only { display: table-cell; }
   font-size: 14px;
 }
 
-.yc-week-nav {
+/* 填报进度面板：周次切换条（勿与工时填报 .yc-week-strip-nav 混用） */
+.yc-watch-week-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   padding: 12px 16px;
   background: var(--a3-bg-card, #fff);
   border: 1px solid var(--a3-border);
   border-radius: 8px;
+  min-width: 0;
 }
-
-.yc-week-nav-label {
+.yc-watch-week-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.yc-watch-week-center {
+  flex: 1 1 auto;
+  min-width: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
   text-align: center;
+  padding: 0 8px;
 }
-
-.yc-week-nav-label strong { font-size: 18px; }
+.yc-watch-week-kicker {
+  font-size: 12px;
+  line-height: 1.3;
+}
+.yc-watch-week-center strong {
+  font-size: 18px;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+.yc-watch-week-hint {
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
 
 #watch-week-cards {
   cursor: pointer;
@@ -1239,7 +1260,7 @@ body.yc-role-admin .cfo-only { display: table-cell; }
   gap: 6px;
   min-width: 0;
 }
-.yc-week-nav {
+.yc-week-strip-nav {
   flex: none;
   width: 34px;
   display: inline-flex;
@@ -1252,12 +1273,12 @@ body.yc-role-admin .cfo-only { display: table-cell; }
   cursor: pointer;
   transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
 }
-.yc-week-nav:hover:not(:disabled) {
+.yc-week-strip-nav:hover:not(:disabled) {
   border-color: var(--a3-primary);
   color: var(--a3-primary);
   background: var(--a3-primary-light);
 }
-.yc-week-nav:disabled {
+.yc-week-strip-nav:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
@@ -1330,7 +1351,20 @@ body.yc-role-admin .cfo-only { display: table-cell; }
 
 @media (max-width: 900px) {
   .yc-week-chip { width: 96px; }
-  .yc-week-nav { width: 30px; }
+  .yc-week-strip-nav { width: 30px; }
+  .yc-watch-week-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .yc-watch-week-center {
+    order: -1;
+    flex: 1 1 100%;
+    min-width: 0;
+    margin-bottom: 4px;
+  }
+  .yc-watch-week-hint {
+    white-space: normal;
+  }
 }
 
 @media (max-width: 1200px) {
