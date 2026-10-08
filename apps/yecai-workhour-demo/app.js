@@ -252,14 +252,14 @@ const TEAM_DEPT1_EXTRAS = [
 ];
 
 const PROJECT_REPORT = [
-  { project: "好奇小森林 Q3 种草", brand: "好奇 / 小森林", types: "KOL（一口价）", days: 6.8, cost: 27200 },
-  { project: "好奇小森林 会员日", brand: "好奇 / 小森林", types: "KOL（一口价）", days: 1.8, cost: 7200 },
-  { project: "好奇深睡 日化战役", brand: "好奇 / 深睡大师", types: "投流 / 平台付款", days: 2.4, cost: 9600 },
-  { project: "好奇深睡 达人联投", brand: "好奇 / 深睡大师", types: "投流 / 平台付款", days: 1.1, cost: 4400 },
-  { project: "高洁丝卫生巾 双11 预热", brand: "高洁丝 / 卫生巾", types: "硬广 / 定价类广告", days: 4.5, cost: 22500 },
-  { project: "拜耳心肝宝 GEO 战役", brand: "拜耳 / 心肝宝", types: "GEO", days: 3.2, cost: 12800 },
-  { project: "康王洗发水 舆情监测", brand: "康王 / 酮康唑洗发水", types: "舆情", days: 2.8, cost: 11200 },
-  { project: "霞湖世家 液氨棉种草", brand: "霞湖世家 / 120支液氨棉T恤", types: "策划与比稿费用", days: 1.5, cost: 6000 },
+  { code: "PRJ-2026-001", project: "好奇小森林 Q3 种草", group: "营销一部", brand: "好奇 / 小森林", types: "KOL（一口价）", days: 6.8, cost: 27200 },
+  { code: "PRJ-2026-002", project: "好奇小森林 会员日", group: "营销一部", brand: "好奇 / 小森林", types: "KOL（一口价）", days: 1.8, cost: 7200 },
+  { code: "PRJ-2026-003", project: "好奇深睡 日化战役", group: "营销一部", brand: "好奇 / 深睡大师", types: "投流 / 平台付款", days: 2.4, cost: 9600 },
+  { code: "PRJ-2026-004", project: "好奇深睡 达人联投", group: "营销二部", brand: "好奇 / 深睡大师", types: "投流 / 平台付款", days: 1.1, cost: 4400 },
+  { code: "PRJ-2026-005", project: "高洁丝卫生巾 双11 预热", group: "营销三部", brand: "高洁丝 / 卫生巾", types: "硬广 / 定价类广告", days: 4.5, cost: 22500 },
+  { code: "PRJ-2026-006", project: "拜耳心肝宝 GEO 战役", group: "营销五部", brand: "拜耳 / 心肝宝", types: "GEO", days: 3.2, cost: 12800 },
+  { code: "PRJ-2026-007", project: "康王洗发水 舆情监测", group: "营销七部", brand: "康王 / 酮康唑洗发水", types: "舆情", days: 2.8, cost: 11200 },
+  { code: "PRJ-2026-008", project: "霞湖世家 液氨棉种草", group: "营销八部", brand: "霞湖世家 / 120支液氨棉T恤", types: "策划与比稿费用", days: 1.5, cost: 6000 },
 ];
 
 /** 基础报表种子行（按周展开为全年 mock） */
@@ -1451,6 +1451,7 @@ function go(page) {
     config: "config",
     "fill-scope": "fill-scope",
     basic: "basic",
+    project: "project",
     review: state.reviewTab === "alloc" ? "review-alloc" : "review",
     "admin-config": "admin-config",
     "admin-watch": "admin-progress",
@@ -2207,7 +2208,7 @@ function renderProject() {
   });
   document.querySelector("#project-table tbody").innerHTML = PROJECT_REPORT.map((r) => `
     <tr>
-      <td>${r.project}</td><td>${r.brand}</td><td>${r.types}</td><td>${r.days}</td>
+      <td>${r.code}</td><td>${r.project}</td><td>${r.group}</td><td>${r.brand}</td><td>${r.types}</td><td>${r.days}</td>
       <td class="cost-col" style="display:${showCost ? "" : "none"}">${r.cost.toLocaleString()}</td>
     </tr>`).join("");
 }
