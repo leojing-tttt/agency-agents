@@ -1856,10 +1856,10 @@ function filteredBasicRows() {
     .sort(
       (a, b) =>
         a.week - b.week ||
-        (EXECUTE_LABEL[a.type] || a.type).localeCompare(EXECUTE_LABEL[b.type] || b.type, "zh") ||
         a.group.localeCompare(b.group, "zh") ||
         a.brand.localeCompare(b.brand, "zh") ||
-        a.line.localeCompare(b.line, "zh"),
+        a.line.localeCompare(b.line, "zh") ||
+        (EXECUTE_LABEL[a.type] || a.type).localeCompare(EXECUTE_LABEL[b.type] || b.type, "zh"),
     );
 }
 
@@ -1934,10 +1934,10 @@ function renderBasic() {
         (r, i) => `
     <tr data-basic-idx="${i}">
       <td title="${r.periodFull || r.period}"><span class="yc-period-cell">${r.periodLabel || r.period}</span><span class="yc-period-cell-sub">${r.month}月</span></td>
-      <td>${EXECUTE_LABEL[r.type] || r.type}</td>
       <td>${r.group}</td>
       <td>${r.brand}</td>
       <td>${r.line}</td>
+      <td>${EXECUTE_LABEL[r.type] || r.type}</td>
       <td><button type="button" class="yc-days-link" data-basic-days="${i}" title="查看填报人明细">${r.days}</button></td>
       <td>${r.cost.toLocaleString()}</td>
     </tr>`,
