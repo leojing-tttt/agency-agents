@@ -63,6 +63,10 @@ notes/
 TODO.md
 NOTES.md
 
+# ima-skill's notes module is a skill directory, not personal scratch notes
+!.cursor/skills/ima-skill/notes/
+!.cursor/skills/ima-skill/notes/**
+
 # Campaign Agent product (this fork) — keep its lockfile
 !apps/campaign-agent/package-lock.json
 apps/campaign-agent/data/
