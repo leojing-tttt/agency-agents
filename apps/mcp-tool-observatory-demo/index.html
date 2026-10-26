@@ -1,10 +1,21 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-yc-theme="warm" data-a3-theme="classic">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MCP 工具观测台</title>
   <!-- 演示层：A3 a3-* + Font Awesome；非 monorepo Ant Design 组件 -->
+  <!-- 首屏强制经典玫瑰红，避免被其它页 localStorage 冷静主题污染 -->
+  <script>
+    (function () {
+      try {
+        localStorage.removeItem("yecai-theme-v1");
+        localStorage.removeItem("mcp-obs-theme-v1");
+      } catch (e) { /* ignore */ }
+      document.documentElement.setAttribute("data-yc-theme", "warm");
+      document.documentElement.setAttribute("data-a3-theme", "classic");
+    })();
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="a3-components.css" />
   <link rel="stylesheet" href="styles.css" />

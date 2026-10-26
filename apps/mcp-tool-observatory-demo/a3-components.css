@@ -5,39 +5,14 @@
    使用前提：页面需同时引入 Font Awesome 6.4.0
    ============================================================ */
 
-/* ========== 1. 色彩系统（双主题：默认冷静；经典 = 上一版 A3 暖色） ========== */
+/* ========== 1. 色彩系统 ==========
+   MCP 观测台：默认 / 首屏 = A3 玫瑰红 #c9677d（经典）。
+   冷静蓝仅为可选覆盖 html[data-yc-theme="cool"]，本 Demo 无主题切换器。
+   ========== */
 :root,
-html[data-yc-theme="cool"] {
-    /* 冷静 / 财务冷蓝灰 */
-    --a3-primary: #2F6F8F;
-    --a3-primary-light: #E8F1F6;
-    --a3-primary-hover: #255A74;
-    --a3-focus-ring: rgba(47, 111, 143, 0.16);
-
-    --a3-success: #2F9B6A;
-    --a3-success-light: #EAF7F1;
-    --a3-info: #2F6F8F;
-    --a3-info-light: #E8F1F6;
-    --a3-warning: #C9912A;
-    --a3-warning-light: #FFF8EB;
-    --a3-danger: #D4524A;
-    --a3-danger-light: #FDEEEC;
-
-    --a3-text-primary: #1B2430;
-    --a3-text-secondary: #5B6B7C;
-    --a3-text-disabled: #9AA8B5;
-    --a3-border: #E2E8EF;
-    --a3-bg-body: #EEF2F6;
-    --a3-bg-card: #FFFFFF;
-    --a3-bg-layout: #F4F7FA;
-
-    --a3-radius: 4px;
-    --a3-shadow: 0 2px 8px rgba(15, 23, 36, 0.08);
-    --a3-shadow-lg: 0 4px 16px rgba(15, 23, 36, 0.12);
-}
-
-html[data-yc-theme="warm"] {
-    /* 经典 — 上一版 A3 玫瑰红 / 暖灰 */
+html[data-yc-theme="warm"],
+html[data-a3-theme="classic"] {
+    /* 经典 A3 玫瑰红 — 默认主色 */
     --a3-primary: #c9677d;
     --a3-primary-light: #fff8f0;
     --a3-primary-hover: #b55570;
@@ -63,6 +38,35 @@ html[data-yc-theme="warm"] {
     --a3-radius: 4px;
     --a3-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     --a3-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.16);
+}
+
+html[data-yc-theme="cool"] {
+    /* 可选冷静蓝 — 非默认，勿作首屏 */
+    --a3-primary: #2F6F8F;
+    --a3-primary-light: #E8F1F6;
+    --a3-primary-hover: #255A74;
+    --a3-focus-ring: rgba(47, 111, 143, 0.16);
+
+    --a3-success: #2F9B6A;
+    --a3-success-light: #EAF7F1;
+    --a3-info: #2F6F8F;
+    --a3-info-light: #E8F1F6;
+    --a3-warning: #C9912A;
+    --a3-warning-light: #FFF8EB;
+    --a3-danger: #D4524A;
+    --a3-danger-light: #FDEEEC;
+
+    --a3-text-primary: #1B2430;
+    --a3-text-secondary: #5B6B7C;
+    --a3-text-disabled: #9AA8B5;
+    --a3-border: #E2E8EF;
+    --a3-bg-body: #EEF2F6;
+    --a3-bg-card: #FFFFFF;
+    --a3-bg-layout: #F4F7FA;
+
+    --a3-radius: 4px;
+    --a3-shadow: 0 2px 8px rgba(15, 23, 36, 0.08);
+    --a3-shadow-lg: 0 4px 16px rgba(15, 23, 36, 0.12);
 }
 
 /* ========== 2. 基础 ========== */

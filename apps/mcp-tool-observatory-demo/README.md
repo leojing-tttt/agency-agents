@@ -1,6 +1,6 @@
 # MCP 工具观测台 — A3 SaaS UI console demo
 
-平台管理员向的自定义 MCP `tools/call` 观测台（方案 A）。演示层使用 **A3 SaaS UI**（`a3-components.css`，品牌 `#c9677d`），视觉与交互族对齐 `apps/yecai-workhour-demo`。
+平台管理员向的自定义 MCP `tools/call` 观测台（方案 A）。演示层使用 **A3 SaaS UI**（`a3-components.css`），**默认主色 `#c9677d`（经典玫瑰红）**，视觉对齐 `apps/yecai-workhour-demo` 经典主题；无冷静蓝默认、无主题切换器。
 
 ## Open
 
