@@ -58,6 +58,189 @@ function hashStr(s) {
   return Math.abs(h);
 }
 
+/** Demo 默认展示完整 arguments / result（非脱敏），便于评审真实 payload 形态 */
+function buildFullPayload(tool, h, status) {
+  const brands = ["好奇", "高洁丝", "康王"];
+  const brand = brands[h % 3];
+  const orderId = `EO-${10000 + (h % 900)}`;
+  const argsByTool = {
+    search_brand: {
+      brand_name: brand,
+      product_line: brand === "好奇" ? "小森林" : brand === "高洁丝" ? "卫生巾" : "酮康唑洗发水",
+      fuzzy: true,
+      limit: 20,
+      locale: "zh-CN",
+    },
+    get_execution_order: {
+      order_id: orderId,
+      include_lines: true,
+      include_attachments: false,
+    },
+    list_kol_candidates: {
+      brand,
+      platforms: ["xiaohongshu", "douyin"],
+      followers_min: 50000,
+      tags: ["母婴", "种草"],
+      page: 1,
+      page_size: 20,
+    },
+    create_campaign_brief: {
+      campaign_name: `${brand} Q4 种草战役`,
+      brand,
+      objective: "awareness",
+      budget_cny: 120000 + (h % 50) * 1000,
+      start_date: "2026-10-01",
+      end_date: "2026-10-31",
+      owner_email: "lin.ke@example.com",
+    },
+    query_invoice_status: {
+      order_id: orderId,
+      invoice_no: `INV-2026-${1000 + (h % 800)}`,
+      tax_id: "91310000MA1FL3XX0X",
+    },
+    sync_crm_lead: {
+      lead_id: `LD-${80000 + (h % 9000)}`,
+      name: "王敏",
+      mobile: "13800138000",
+      company: "金佰利中国",
+      source: "mcp_agent",
+      force: false,
+    },
+    fetch_opinion_report: {
+      brand,
+      keywords: [brand, "口碑", "差评"],
+      range_days: 7,
+      channels: ["weibo", "xiaohongshu", "news"],
+      format: "json",
+    },
+  };
+  const arguments_full = argsByTool[tool] || { tool };
+
+  let result = null;
+  let error_code = null;
+  let error_message = null;
+
+  if (status === "error") {
+    error_code = ["TOOL_UPSTREAM_4XX", "VALIDATION_FAILED", "AUTH_DENIED"][h % 3];
+    error_message =
+      error_code === "VALIDATION_FAILED"
+        ? `字段校验失败：brand_name「${brand}」不在主数据`
+        : error_code === "AUTH_DENIED"
+          ? "API Key 无权访问该租户资源"
+          : `上游 HTTP 422：order ${orderId} 状态不允许查询`;
+    result = {
+      isError: true,
+      content: [{ type: "text", text: error_message }],
+      upstream: {
+        status: error_code === "AUTH_DENIED" ? 403 : 422,
+        body: { code: error_code, detail: error_message, request_echo: arguments_full },
+      },
+    };
+  } else if (status === "timeout") {
+    error_code = "GATEWAY_TIMEOUT";
+    error_message = "tools/call 超过 30s 未返回";
+    result = {
+      isError: true,
+      content: [{ type: "text", text: error_message }],
+      partial: null,
+    };
+  } else if (status === "canceled") {
+    error_code = "CLIENT_CANCELED";
+    error_message = "客户端取消本次 tools/call";
+    result = {
+      isError: true,
+      content: [{ type: "text", text: error_message }],
+      canceled_at_ms: 200 + (h % 400),
+    };
+  } else {
+    const successByTool = {
+      search_brand: {
+        isError: false,
+        content: [{ type: "text", text: `找到 ${3 + (h % 5)} 条品牌品线` }],
+        structuredContent: {
+          total: 3 + (h % 5),
+          items: [
+            { brand_id: `B-${h % 90}`, brand_name: brand, product_lines: ["小森林", "深睡大师"] },
+            { brand_id: `B-${(h % 90) + 1}`, brand_name: brand, product_lines: ["X系列"] },
+          ],
+        },
+      },
+      get_execution_order: {
+        isError: false,
+        content: [{ type: "text", text: `执行单 ${orderId} 详情` }],
+        structuredContent: {
+          order_id: orderId,
+          status: "confirmed",
+          brand,
+          amount_cny: 35800.5,
+          lines: [
+            { sku: "KOL-一口价", qty: 2, amount_cny: 20000 },
+            { sku: "制作费", qty: 1, amount_cny: 15800.5 },
+          ],
+        },
+      },
+      list_kol_candidates: {
+        isError: false,
+        content: [{ type: "text", text: "返回 20 条 KOL 候选" }],
+        structuredContent: {
+          total: 128,
+          page: 1,
+          candidates: [
+            { kol_id: "K1001", name: "小桃妈日记", followers: 210000, score: 0.91 },
+            { kol_id: "K1044", name: "育儿研究所", followers: 98000, score: 0.86 },
+          ],
+        },
+      },
+      create_campaign_brief: {
+        isError: false,
+        content: [{ type: "text", text: "战役 Brief 已创建" }],
+        structuredContent: {
+          brief_id: `BF-2026-${2000 + (h % 500)}`,
+          status: "draft",
+          share_url: `https://crm.example.com/briefs/BF-2026-${2000 + (h % 500)}`,
+        },
+      },
+      query_invoice_status: {
+        isError: false,
+        content: [{ type: "text", text: "发票已开具" }],
+        structuredContent: {
+          invoice_no: `INV-2026-${1000 + (h % 800)}`,
+          status: "issued",
+          amount_cny: 41200,
+          issued_at: "2026-10-20T08:12:00+08:00",
+          pdf_url: "https://finance.example.com/invoices/INV-demo.pdf",
+        },
+      },
+      sync_crm_lead: {
+        isError: false,
+        content: [{ type: "text", text: "线索已同步" }],
+        structuredContent: {
+          lead_id: `LD-${80000 + (h % 9000)}`,
+          crm_id: `CRM-${50000 + (h % 4000)}`,
+          synced: true,
+          updated_fields: ["mobile", "company", "source"],
+        },
+      },
+      fetch_opinion_report: {
+        isError: false,
+        content: [{ type: "text", text: `${brand} 近 7 日舆情摘要` }],
+        structuredContent: {
+          brand,
+          sentiment: { pos: 0.62, neu: 0.28, neg: 0.1 },
+          volume: 1840 + (h % 200),
+          top_posts: [
+            { platform: "xiaohongshu", title: `${brand} 实测分享`, heat: 9200 },
+            { platform: "weibo", title: `${brand} 话题发酵`, heat: 6100 },
+          ],
+        },
+      },
+    };
+    result = successByTool[tool] || { isError: false, content: [{ type: "text", text: "ok" }] };
+  }
+
+  return { arguments: arguments_full, result, error_code, error_message };
+}
+
 function buildMockEvents(count = 86) {
   const now = new Date(2026, 9, 26, 15, 20, 0); // 2026-10-26 15:20
   const events = [];
@@ -80,31 +263,7 @@ function buildMockEvents(count = 86) {
       40 + (h % 1800);
 
     const env = i % 11 === 0 ? "staging" : i % 19 === 0 ? "dev" : "prod";
-    const args = {
-      tool,
-      query: tool.includes("search") || tool.includes("list") ? `品牌=${["好奇", "高洁丝", "康王"][h % 3]}` : undefined,
-      order_id: tool.includes("execution") || tool.includes("invoice") ? `EO-${10000 + (h % 900)}` : undefined,
-      limit: 20,
-      token: "sk-****redacted****",
-    };
-    Object.keys(args).forEach((k) => args[k] === undefined && delete args[k]);
-
-    let error_code = null;
-    let error_message = null;
-    let result_summary = { ok: true, rows: (h % 12) + 1 };
-    if (status === "error") {
-      error_code = ["TOOL_UPSTREAM_4XX", "VALIDATION_FAILED", "AUTH_DENIED"][h % 3];
-      error_message = "上游返回错误（已脱敏摘要）";
-      result_summary = null;
-    } else if (status === "timeout") {
-      error_code = "GATEWAY_TIMEOUT";
-      error_message = "tools/call 超过 30s";
-      result_summary = null;
-    } else if (status === "canceled") {
-      error_code = "CLIENT_CANCELED";
-      error_message = "客户端取消";
-      result_summary = null;
-    }
+    const payload = buildFullPayload(tool, h, status);
 
     events.push({
       event_id: `evt_${(100000 + i).toString(16)}`,
@@ -115,11 +274,11 @@ function buildMockEvents(count = 86) {
       mcp_server_version: "1.4.2",
       tool_name: tool,
       status,
-      error_code,
-      error_message,
-      arguments_summary: args,
-      arguments_redacted: true,
-      result_summary,
+      error_code: payload.error_code,
+      error_message: payload.error_message,
+      arguments: payload.arguments,
+      arguments_redacted: false,
+      result: payload.result,
       result_is_error: status !== "success",
       client_platform: platform.id,
       client_name: platform.label,
@@ -442,7 +601,7 @@ function openDetail(id) {
   document.getElementById("detail-title").textContent = `调用详情 · ${e.tool_name}`;
   document.getElementById("detail-body").innerHTML = `
     <div class="a3-mb-12">${statusTag(e.status)}
-      <span class="a3-tag a3-tag-default" style="margin-left:6px"><span class="a3-tag-dot"></span>已脱敏</span>
+      <span class="a3-tag a3-tag-info" style="margin-left:6px"><span class="a3-tag-dot"></span>Demo 完整 payload</span>
     </div>
     <dl class="mo-meta-grid">
       <dt>event_id</dt><dd><code>${e.event_id}</code></dd>
@@ -456,10 +615,10 @@ function openDetail(id) {
       <dt>trace_id</dt><dd class="a3-text-disabled">${e.trace_id || "（空）"}</dd>
       ${e.error_code ? `<dt>错误</dt><dd><code>${e.error_code}</code> · ${e.error_message || ""}</dd>` : ""}
     </dl>
-    <div class="mo-section-label">arguments_summary（redacted）</div>
-    <pre class="mo-json">${escapeHtml(JSON.stringify(e.arguments_summary, null, 2))}</pre>
-    <div class="mo-section-label">result_summary</div>
-    <pre class="mo-json">${escapeHtml(JSON.stringify(e.result_summary, null, 2))}</pre>
+    <div class="mo-section-label">参数（arguments · 完整）</div>
+    <pre class="mo-json">${escapeHtml(JSON.stringify(e.arguments, null, 2))}</pre>
+    <div class="mo-section-label">结果（result · 完整）</div>
+    <pre class="mo-json">${escapeHtml(JSON.stringify(e.result, null, 2))}</pre>
   `;
 }
 

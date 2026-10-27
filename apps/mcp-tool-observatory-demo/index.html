@@ -133,7 +133,7 @@
         <section class="page" id="page-calls">
           <div class="mo-title-row a3-mb-16">
             <h1 class="mo-title a3-text-primary">调用流水</h1>
-            <p class="a3-text-secondary a3-mt-4">一行 = 一次 <code>tools/call</code>。筛：谁、哪工具、平台、状态、时间；点行开详情抽屉（参数/结果已脱敏）。</p>
+            <p class="a3-text-secondary a3-mt-4">一行 = 一次 <code>tools/call</code>。筛：谁、哪工具、平台、状态、时间；点行开详情抽屉（Demo 默认展示完整参数/结果 JSON）。</p>
           </div>
           <div class="a3-card">
             <div class="a3-card-body">
@@ -250,15 +250,15 @@
         <section class="page" id="page-settings">
           <div class="mo-title-row a3-mb-16">
             <h1 class="mo-title a3-text-primary">设置</h1>
-            <p class="a3-text-secondary a3-mt-4">脱敏策略说明与保留天数（Demo 说明页，不接真实配置 API）。</p>
+            <p class="a3-text-secondary a3-mt-4">保留天数与 payload 策略说明（Demo 说明页，不接真实配置 API）。</p>
           </div>
           <div class="a3-card a3-mb-16">
-            <div class="a3-card-header"><span class="a3-card-title">脱敏策略</span></div>
+            <div class="a3-card-header"><span class="a3-card-title">Payload 展示策略</span></div>
             <div class="a3-card-body">
-              <p class="a3-text-secondary a3-mb-12">控制台默认展示 <strong>metadata + 摘要</strong>。完整 arguments / result 为敏感面；抽屉内标「已脱敏」。生产明文需二次权限（正式版）。</p>
+              <p class="a3-text-secondary a3-mb-12"><strong>本 Demo 默认展示完整 arguments / result</strong>，便于评审真实 payload 形态（无 <code>***</code> 掩码）。生产环境仍可支持脱敏 / 二次权限；设置页后续可加开关，本期不做。</p>
               <ul class="mo-bullets a3-text-secondary">
-                <li>邮箱 / 手机 / Token → 掩码</li>
-                <li>长文本 → 截断至 2KB 摘要</li>
+                <li>Demo：抽屉「参数」「结果」为完整 JSON</li>
+                <li>生产（规划）：可按租户策略脱敏或仅 metadata</li>
                 <li><code>session_id</code> / <code>trace_id</code> 可空（本期不做 Trace 树）</li>
               </ul>
             </div>
