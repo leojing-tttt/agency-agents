@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-yc-theme="warm" data-a3-theme="classic">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCP 工具观测台</title>
+  <!-- 演示层：A3 a3-* + Font Awesome；非 monorepo Ant Design 组件 -->
+  <!-- 首屏强制经典玫瑰红，避免被其它页 localStorage 冷静主题污染 -->
+  <script>
+    (function () {
+      try {
+        localStorage.removeItem("yecai-theme-v1");
+        localStorage.removeItem("mcp-obs-theme-v1");
+      } catch (e) { /* ignore */ }
+      document.documentElement.setAttribute("data-yc-theme", "warm");
+      document.documentElement.setAttribute("data-a3-theme", "classic");
+    })();
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="a3-components.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js" defer></script>
+</head>
+<body class="a3-page">
+  <div class="mo-shell a3-flex">
+    <aside class="mo-sider a3-bg-card">
+      <div class="mo-logo a3-text-brand">
+        <i class="fas fa-plug"></i>
+        <span>MCP 工具观测台</span>
+      </div>
+      <ul class="a3-menu" id="mo-menu">
+        <li class="a3-menu-group-title admin-nav">MCP 工具管理</li>
+        <li class="a3-menu-item admin-nav active" data-page="overview"><i class="fas fa-gauge-high"></i><span>总览</span></li>
+        <li class="a3-menu-item admin-nav" data-page="calls"><i class="fas fa-list"></i><span>调用流水</span></li>
+        <li class="a3-menu-item admin-nav" data-page="tools"><i class="fas fa-toolbox"></i><span>工具档案</span></li>
+        <li class="a3-menu-group-title user-nav mo-nav-hidden" hidden>个人</li>
+        <li class="a3-menu-item user-nav mo-nav-hidden" data-page="my-calls" hidden><i class="fas fa-user-clock"></i><span>我的调用</span></li>
+      </ul>
+      <div class="mo-sider-foot a3-p-16">
+        <div class="a3-text-disabled a3-mb-8" style="font-size:12px">视图（Demo 切换）</div>
+        <div class="a3-select-wrapper mo-view-wrap" title="Demo：管理员台 ↔ 用户自有日志">
+          <select class="a3-select" id="view-mode">
+            <option value="admin" selected>管理员台</option>
+            <option value="user">我的调用（用户 stub）</option>
+          </select>
+          <i class="fas fa-chevron-down a3-select-arrow"></i>
+        </div>
+        <div class="a3-text-secondary a3-mt-8" style="font-size:12px;line-height:1.5">默认管理员全量审计；切到「我的调用」仅看当前用户 stub。</div>
+      </div>
+    </aside>
+
+    <div class="mo-main a3-flex-1">
+      <header class="mo-topbar">
+        <div class="mo-topbar-row mo-topbar-primary a3-flex-between">
+          <div class="a3-breadcrumb" id="mo-breadcrumb">
+            <span class="a3-breadcrumb-item"><a>MCP</a></span>
+            <span class="a3-breadcrumb-separator">/</span>
+            <span class="a3-breadcrumb-item" id="crumb">总览</span>
+          </div>
+          <div class="mo-topbar-actions">
+            <span class="a3-tag a3-tag-default" id="user-chip">
+              <i class="fas fa-user-shield"></i>
+              管理员 · 顾澄
+            </span>
+          </div>
+        </div>
+        <div class="mo-topbar-row mo-topbar-docs">
+          <button type="button" class="mo-docs-entry" id="docs-entry" title="产品需求文档：预览 / 下载给程序员与 AI">
+            <i class="fas fa-book-open" aria-hidden="true"></i>
+            <span>产品文档</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="a3-page-content">
+        <!-- S1 总览 -->
+        <section class="page active" id="page-overview">
+          <div class="mo-title-row a3-mb-16">
+            <h1 class="mo-title a3-text-primary">总览</h1>
+            <p class="a3-text-secondary a3-mt-4">选定时间窗内的 MCP <code>tools/call</code> 健康快照：调用量、错误率、P95、平台分布。</p>
+          </div>
+          <div class="mo-toolbar a3-mb-16">
+            <div class="mo-seg" id="ov-window" role="group" aria-label="时间窗">
+              <button type="button" class="mo-seg-btn active" data-window="24h">近 24h</button>
+              <button type="button" class="mo-seg-btn" data-window="7d">近 7 天</button>
+              <button type="button" class="mo-seg-btn" data-window="30d">近 30 天</button>
+            </div>
+            <button type="button" class="a3-btn a3-btn-default" id="ov-refresh"><i class="fas fa-rotate"></i> 刷新</button>
+          </div>
+          <div class="mo-kpi a3-mb-16" id="ov-kpi"></div>
+          <div class="mo-split a3-mb-16">
+            <div class="a3-card">
+              <div class="a3-card-header"><span class="a3-card-title">按平台调用量</span></div>
+              <div class="a3-card-body" id="ov-platform"></div>
+            </div>
+            <div class="a3-card">
+              <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
+                <span class="a3-card-title">错误 Top 工具</span>
+                <button type="button" class="a3-btn a3-btn-text a3-btn-sm" data-goto="calls">查看流水</button>
+              </div>
+              <div class="a3-card-body" id="ov-error-top"></div>
+            </div>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-header a3-flex-between" style="justify-content:space-between">
+              <span class="a3-card-title">近期异常抽样</span>
+              <span class="a3-text-secondary" style="font-size:12px">最多 5 条 · 点行进流水</span>
+            </div>
+            <div class="a3-table-wrapper">
+              <table class="a3-table" id="ov-recent-errors">
+                <thead>
+                  <tr>
+                    <th>时间</th>
+                    <th>工具</th>
+                    <th>平台</th>
+                    <th>调用方</th>
+                    <th>状态</th>
+                    <th>耗时</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- S2 调用流水 -->
+        <section class="page" id="page-calls">
+          <div class="mo-title-row a3-mb-16">
+            <h1 class="mo-title a3-text-primary">调用流水</h1>
+            <p class="a3-text-secondary a3-mt-4">一行 = 一次 <code>tools/call</code>。筛：谁、哪工具、平台、状态、时间；点行开详情抽屉（Demo 默认展示完整参数/结果 JSON）。</p>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-body">
+              <div class="mo-toolbar a3-mb-16" id="calls-filters">
+                <div class="mo-field">
+                  <label class="a3-text-secondary">工具</label>
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="f-tool"><option value="">全部</option></select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+                <div class="mo-field">
+                  <label class="a3-text-secondary">平台</label>
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="f-platform"><option value="">全部</option></select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+                <div class="mo-field">
+                  <label class="a3-text-secondary">状态</label>
+                  <div class="a3-select-wrapper">
+                    <select class="a3-select" id="f-status">
+                      <option value="">全部</option>
+                      <option value="success">success</option>
+                      <option value="error">error</option>
+                      <option value="timeout">timeout</option>
+                      <option value="canceled">canceled</option>
+                    </select>
+                    <i class="fas fa-chevron-down a3-select-arrow"></i>
+                  </div>
+                </div>
+                <div class="mo-field">
+                  <label class="a3-text-secondary">调用方</label>
+                  <div class="a3-input-wrapper">
+                    <input class="a3-input" id="f-caller" placeholder="用户 / 租户 / Key" />
+                  </div>
+                </div>
+                <div class="mo-field">
+                  <label class="a3-text-secondary">时间起</label>
+                  <div class="a3-input-wrapper">
+                    <input class="a3-input" type="datetime-local" id="f-from" />
+                  </div>
+                </div>
+                <div class="mo-field">
+                  <label class="a3-text-secondary">时间止</label>
+                  <div class="a3-input-wrapper">
+                    <input class="a3-input" type="datetime-local" id="f-to" />
+                  </div>
+                </div>
+                <button type="button" class="a3-btn a3-btn-primary" id="f-query" style="align-self:flex-end"><i class="fas fa-search"></i> 查询</button>
+                <button type="button" class="a3-btn a3-btn-default" id="f-reset" style="align-self:flex-end">重置</button>
+              </div>
+              <div class="a3-flex-between a3-mb-12" style="justify-content:space-between;align-items:center">
+                <span class="a3-text-secondary" style="font-size:12px" id="calls-count">共 0 条</span>
+                <span class="a3-tag a3-tag-default"><span class="a3-tag-dot"></span>Mock · 无真实 MCP 后端</span>
+              </div>
+              <div class="a3-table-wrapper">
+                <table class="a3-table" id="calls-table">
+                  <thead>
+                    <tr>
+                      <th>时间</th>
+                      <th>调用方</th>
+                      <th>工具</th>
+                      <th>平台</th>
+                      <th>状态</th>
+                      <th>耗时</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="a3-pagination a3-mt-16" id="calls-pager"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- S4 工具档案 -->
+        <section class="page" id="page-tools">
+          <div class="mo-title-row a3-mb-16">
+            <h1 class="mo-title a3-text-primary">工具档案</h1>
+            <p class="a3-text-secondary a3-mt-4">工具身份档案：英文名 / 中文名 / 创建人 / 最后调用。点「查看流水」带工具筛进流水。</p>
+          </div>
+          <div class="a3-card">
+            <div class="a3-card-body">
+              <div class="mo-toolbar a3-mb-16">
+                <div class="mo-field" style="min-width:240px">
+                  <label class="a3-text-secondary">搜索</label>
+                  <div class="a3-input-wrapper a3-input-search">
+                    <input class="a3-input" id="tools-search" placeholder="工具名 / 中文名 / 创建人" />
+                    <span class="a3-input-suffix"><i class="fas fa-search"></i></span>
+                  </div>
+                </div>
+              </div>
+              <div class="a3-table-wrapper">
+                <table class="a3-table" id="tools-table">
+                  <thead>
+                    <tr>
+                      <th>工具</th>
+                      <th>中文名</th>
+                      <th>工具创建人</th>
+                      <th>最后调用</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 用户 stub：我的调用 -->
+        <section class="page" id="page-my-calls">
+          <div class="mo-title-row a3-mb-16">
+            <h1 class="mo-title a3-text-primary">我的调用</h1>
+            <p class="a3-text-secondary a3-mt-4">用户自有调用日志（轻量 stub）。仅展示当前演示用户相关行；无平台级筛选与工具档案。</p>
+          </div>
+          <div class="a3-alert a3-alert-info a3-mb-16">
+            <i class="fas fa-info-circle"></i>
+            <span>这是与管理员台分离的轻页面。侧栏底部切回「管理员台」可看全量。</span>
+          </div>
+          <div class="a3-card">
+            <div class="a3-table-wrapper">
+              <table class="a3-table" id="my-calls-table">
+                <thead>
+                  <tr>
+                    <th>时间</th>
+                    <th>工具</th>
+                    <th>平台</th>
+                    <th>状态</th>
+                    <th>耗时</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- 调用详情抽屉 -->
+  <div class="a3-drawer-mask" id="detail-mask" aria-hidden="true"></div>
+  <aside class="a3-drawer" id="detail-drawer" aria-hidden="true" role="dialog" aria-labelledby="detail-title">
+    <div class="a3-drawer-header">
+      <span id="detail-title">调用详情</span>
+      <button type="button" class="a3-modal-close" id="detail-close" aria-label="关闭">
+        <i class="fas fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="a3-drawer-body" id="detail-body"></div>
+    <div class="a3-drawer-footer">
+      <button type="button" class="a3-btn a3-btn-default" id="detail-done">关闭</button>
+      <button type="button" class="a3-btn a3-btn-primary" id="detail-copy-id"><i class="fas fa-copy"></i> 复制 event_id</button>
+    </div>
+  </aside>
+
+  <!-- 产品文档 -->
+  <div class="mo-docs-overlay" id="docs-overlay" hidden>
+    <div class="mo-docs-drawer" role="dialog" aria-modal="true" aria-labelledby="docs-drawer-title">
+      <div class="mo-docs-drawer-head">
+        <div>
+          <div class="mo-docs-kicker">给程序员 / AI</div>
+          <h2 class="mo-docs-drawer-title" id="docs-drawer-title">产品需求文档</h2>
+        </div>
+        <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="docs-close" aria-label="关闭">
+          <i class="fas fa-times"></i> 关闭
+        </button>
+      </div>
+      <div class="mo-docs-drawer-body">
+        <aside class="mo-docs-list" id="docs-list" aria-label="文档列表"></aside>
+        <section class="mo-docs-preview">
+          <div class="mo-docs-preview-toolbar">
+            <span class="mo-docs-preview-name" id="docs-preview-name">选择左侧文档</span>
+            <div class="mo-docs-preview-actions">
+              <a class="a3-btn a3-btn-default a3-btn-sm" id="docs-open-raw" href="#" target="_blank" rel="noopener">原始 MD</a>
+              <button type="button" class="a3-btn a3-btn-primary a3-btn-sm" id="docs-download" disabled>
+                <i class="fas fa-download"></i> 下载
+              </button>
+            </div>
+          </div>
+          <div class="mo-docs-preview-scroll" id="docs-preview-body">
+            <p class="a3-text-secondary">点击左侧文档预览；可下载 `.md` 交给 AI 阅读。</p>
+          </div>
+        </section>
+      </div>
+      <div class="mo-docs-drawer-foot">
+        <span class="a3-text-secondary" style="font-size:12px">静态路径：<code>/docs/*.md</code> · 合集适合一次丢给 AI</span>
+        <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="docs-download-all">
+          <i class="fas fa-file-arrow-down"></i> 下载合集
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-root"></div>
+  <script src="app.js"></script>
+</body>
+</html>
