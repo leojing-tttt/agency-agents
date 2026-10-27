@@ -303,7 +303,6 @@ const ALL_EVENTS = buildMockEvents();
 const state = {
   view: "admin", // admin | user
   page: "overview",
-  env: "prod",
   window: "24h",
   filters: { tool: "", platform: "", status: "", caller: "", from: "", to: "" },
   pageSize: 12,
@@ -318,9 +317,9 @@ const PAGE_TITLES = {
   "my-calls": "我的调用",
 };
 
-/** KPI 白话提示（UI ?）；范围 = 当前环境 ∩ 时间窗。技术口径见 docs/prd */
+/** KPI 白话提示（UI ?）；范围 = 总览时间窗（全量 mock，无环境筛选）。技术口径见 docs/prd */
 const KPI_FORMULAS = {
-  calls: "当前环境和时间窗里，一共发生了多少次工具调用。",
+  calls: "选定时间窗里，一共发生了多少次工具调用。",
   error_rate: "失败调用占全部调用的比例。失败指报错或超时（不含用户取消）；没有调用时按 0% 显示。",
   p95: "把时间窗内所有调用耗时从小到大排好，取排在大约 95% 位置上的那个耗时。意思是约 95% 的调用不慢于该值，只有最慢约 5% 更慢。",
   active_tools: "时间窗里至少被调用过一次的不同工具有多少个。",
@@ -355,8 +354,9 @@ function platformLabel(id) {
   return (PLATFORMS.find((p) => p.id === id) || {}).label || id;
 }
 
-function eventsInEnv() {
-  return ALL_EVENTS.filter((e) => e.environment === state.env);
+/** Demo 无环境筛选：全量 mock 事件（字段 environment 仍保留在详情里） */
+function eventsScoped() {
+  return ALL_EVENTS;
 }
 
 function windowCutoff() {
@@ -429,12 +429,10 @@ function syncViewChrome() {
       : `<i class="fas fa-user"></i> ${DEMO_USER.name} · 我的调用`;
   }
   document.getElementById("view-mode").value = state.view;
-  document.getElementById("env-select").value = state.env;
-  document.getElementById("env-select").disabled = !isAdmin;
 }
 
 function renderOverview() {
-  const base = eventsInWindow(eventsInEnv());
+  const base = eventsInWindow(eventsScoped());
   const total = base.length;
   const errors = base.filter((e) => e.status === "error" || e.status === "timeout").length;
   const errRate = total ? ((errors / total) * 100).toFixed(1) : "0.0";
@@ -446,7 +444,7 @@ function renderOverview() {
     <div class="mo-kpi-card">
       <div class="mo-kpi-label"><span>调用数</span>${tipIcon(KPI_FORMULAS.calls, true)}</div>
       <div class="mo-kpi-value is-brand">${total}</div>
-      <div class="mo-kpi-hint">当前环境 · ${state.window}</div>
+      <div class="mo-kpi-hint">时间窗 · ${state.window}</div>
     </div>
     <div class="mo-kpi-card">
       <div class="mo-kpi-label"><span>错误率</span>${tipIcon(KPI_FORMULAS.error_rate, true)}</div>
@@ -519,7 +517,7 @@ function fillFilterOptions() {
 
 function renderCalls() {
   fillFilterOptions();
-  const filtered = applyCallFilters(eventsInEnv());
+  const filtered = applyCallFilters(eventsScoped());
   const total = filtered.length;
   const pages = Math.max(1, Math.ceil(total / state.pageSize));
   if (state.pageIndex > pages) state.pageIndex = pages;
@@ -581,7 +579,7 @@ function aggregateTools(list) {
 
 function renderTools() {
   const q = (document.getElementById("tools-search").value || "").trim().toLowerCase();
-  let rows = aggregateTools(eventsInEnv());
+  let rows = aggregateTools(eventsScoped());
   if (q) {
     rows = rows.filter((r) =>
       r.tool.toLowerCase().includes(q) ||
@@ -601,7 +599,7 @@ function renderTools() {
 }
 
 function renderMyCalls() {
-  const mine = eventsInEnv().filter((e) => e.caller_user_id === DEMO_USER.id).slice(0, 40);
+  const mine = eventsScoped().filter((e) => e.caller_user_id === DEMO_USER.id).slice(0, 40);
   const tb = document.querySelector("#my-calls-table tbody");
   tb.innerHTML = mine.length
     ? mine.map((e) => `
@@ -804,13 +802,6 @@ document.querySelectorAll("#mo-menu .a3-menu-item").forEach((li) => {
 document.getElementById("view-mode").addEventListener("change", (e) => {
   state.view = e.target.value;
   go(state.view === "user" ? "my-calls" : "overview");
-});
-
-document.getElementById("env-select").addEventListener("change", (e) => {
-  state.env = e.target.value;
-  state.pageIndex = 1;
-  renderPage();
-  toast("success", `已切换环境 · ${state.env}`);
 });
 
 document.getElementById("ov-window")?.addEventListener("click", (e) => {
