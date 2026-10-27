@@ -318,12 +318,12 @@ const PAGE_TITLES = {
   "my-calls": "我的调用",
 };
 
-/** KPI 口径（与 docs/prd 一致；范围 = 当前环境 ∩ 时间窗） */
+/** KPI 白话提示（UI ?）；范围 = 当前环境 ∩ 时间窗。技术口径见 docs/prd */
 const KPI_FORMULAS = {
-  calls: "调用数 = 选定时间窗 ∩ 当前环境内 tools/call 事件条数（count）",
-  error_rate: "错误率 = failed / total × 100%；failed = status ∈ {error, timeout}；total = 调用数；分母为 0 时显示 0%",
-  p95: "P95 延迟 = 选定范围内全部调用的 duration_ms（latency）第 95 百分位（升序排列后取 ceil(0.95×n) 位）",
-  active_tools: "活跃工具 = 选定范围内至少有 1 次调用的 distinct tool_name 个数",
+  calls: "当前环境和时间窗里，一共发生了多少次工具调用。",
+  error_rate: "失败调用占全部调用的比例。失败指报错或超时（不含用户取消）；没有调用时按 0% 显示。",
+  p95: "把时间窗内所有调用耗时从小到大排好，取排在大约 95% 位置上的那个耗时。意思是约 95% 的调用不慢于该值，只有最慢约 5% 更慢。",
+  active_tools: "时间窗里至少被调用过一次的不同工具有多少个。",
 };
 
 function tipIcon(html, side) {
@@ -451,17 +451,17 @@ function renderOverview() {
     <div class="mo-kpi-card">
       <div class="mo-kpi-label"><span>错误率</span>${tipIcon(KPI_FORMULAS.error_rate, true)}</div>
       <div class="mo-kpi-value">${errRate}%</div>
-      <div class="mo-kpi-hint">error + timeout / 全部</div>
+      <div class="mo-kpi-hint">报错+超时 ÷ 全部调用</div>
     </div>
     <div class="mo-kpi-card">
       <div class="mo-kpi-label"><span>P95 延迟</span>${tipIcon(KPI_FORMULAS.p95, true)}</div>
       <div class="mo-kpi-value">${p95} ms</div>
-      <div class="mo-kpi-hint">范围内全部调用</div>
+      <div class="mo-kpi-hint">约 95% 调用不慢于此</div>
     </div>
     <div class="mo-kpi-card">
       <div class="mo-kpi-label"><span>活跃工具</span>${tipIcon(KPI_FORMULAS.active_tools, true)}</div>
       <div class="mo-kpi-value">${activeTools}</div>
-      <div class="mo-kpi-hint">distinct tool_name</div>
+      <div class="mo-kpi-hint">被调用过的工具种数</div>
     </div>
   `;
 

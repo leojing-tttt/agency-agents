@@ -58,19 +58,30 @@ MCP 工具观测台
 
 ---
 
-## 5. 总览 KPI 计算公式（给 AI / 研发）
+## 5. 总览 KPI 口径
 
-**范围（所有 KPI 共用）：** `当前顶栏环境` ∩ `总览时间窗`（近 24h / 7d / 30d，相对 mock 最新事件时间）。  
-事件粒度：一行 = 一次 `tools/call`。
+**范围（所有 KPI 共用）：** 当前顶栏环境 ∩ 总览时间窗（近 24h / 7d / 30d）。  
+事件粒度：一行 = 一次工具调用（`tools/call`）。
 
-| KPI | 公式 |
+### 5.1 白话（与 UI `?` 一致）
+
+| KPI | 说明 |
 |-----|------|
-| **调用数** | `count(events in range)` — 选定范围内 tools/call 事件条数 |
-| **错误率** | `failed / total × 100%`；`failed` = `status ∈ {error, timeout}`；`total` = 调用数；`total=0` 时显示 `0%`（`canceled` 不计入 failed） |
-| **P95 延迟** | 选定范围内**全部**调用的 `duration_ms` 升序后，取第 95 百分位（实现：`ceil(0.95 × n)` 位，1-based 再转 0-based index） |
-| **活跃工具** | 选定范围内至少有 1 次调用的 `distinct tool_name` 个数 |
+| **调用数** | 当前环境和时间窗里，一共发生了多少次工具调用。 |
+| **错误率** | 失败调用占全部调用的比例。失败指报错或超时（不含用户取消）；没有调用时按 0% 显示。 |
+| **P95 延迟** | 把时间窗内所有调用耗时从小到大排好，取排在大约 95% 位置上的那个耗时。意思是约 95% 的调用不慢于该值，只有最慢约 5% 更慢。 |
+| **活跃工具** | 时间窗里至少被调用过一次的不同工具有多少个。 |
 
-UI：每个 KPI 标签旁有 `?` hover/popover，文案与上表一致（`app.js` → `KPI_FORMULAS`）。
+### 5.2 技术备注（给 AI / 研发，可选）
+
+| KPI | 实现口径 |
+|-----|----------|
+| 调用数 | `count(events in range)` |
+| 错误率 | `failed / total × 100%`；`failed` = `status ∈ {error, timeout}`；`canceled` 不计入；`total=0` → `0%` |
+| P95 延迟 | 范围内全部调用的 `duration_ms` 升序后取第 95 百分位（`ceil(0.95 × n)` 位） |
+| 活跃工具 | `distinct tool_name` 且该工具在范围内 ≥1 次调用 |
+
+UI tip：`app.js` → `KPI_FORMULAS`（白话）。
 
 ---
 
