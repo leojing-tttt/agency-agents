@@ -58,6 +58,35 @@ body {
   font-weight: 600;
 }
 
+.mo-topbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  background: var(--a3-bg-card);
+  border-bottom: 1px solid var(--a3-border);
+}
+
+.mo-topbar-row {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 16px;
+}
+
+.mo-topbar-primary {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mo-topbar-docs {
+  justify-content: flex-start;
+  min-height: 40px;
+  padding-top: 0;
+  padding-bottom: 10px;
+  border-top: 1px solid var(--a3-border);
+}
+
 .mo-topbar-actions {
   display: flex;
   align-items: center;
@@ -66,8 +95,11 @@ body {
   justify-content: flex-end;
 }
 
-.mo-view-wrap,
-.mo-env-wrap { min-width: 160px; }
+.mo-view-wrap { width: 100%; max-width: 100%; }
+.mo-view-wrap .a3-select { width: 100%; }
+.mo-env-wrap { min-width: 140px; }
+
+.mo-sider-foot .mo-view-wrap { margin-top: 4px; }
 
 .mo-toolbar {
   display: flex;

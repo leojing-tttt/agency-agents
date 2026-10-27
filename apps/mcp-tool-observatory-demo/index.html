@@ -29,7 +29,7 @@
         <span>MCP 工具观测台</span>
       </div>
       <ul class="a3-menu" id="mo-menu">
-        <li class="a3-menu-group-title admin-nav">平台管理</li>
+        <li class="a3-menu-group-title admin-nav">MCP 工具管理</li>
         <li class="a3-menu-item admin-nav active" data-page="overview"><i class="fas fa-gauge-high"></i><span>总览</span></li>
         <li class="a3-menu-item admin-nav" data-page="calls"><i class="fas fa-list"></i><span>调用流水</span></li>
         <li class="a3-menu-item admin-nav" data-page="tools"><i class="fas fa-toolbox"></i><span>工具档案</span></li>
@@ -38,41 +38,45 @@
       </ul>
       <div class="mo-sider-foot a3-p-16">
         <div class="a3-text-disabled a3-mb-8" style="font-size:12px">视图（Demo 切换）</div>
-        <div class="a3-text-secondary" style="font-size:12px;line-height:1.5">默认<strong>平台管理员</strong>全量审计。切到「我的调用」仅看当前用户 stub 日志（更轻页面）。</div>
+        <div class="a3-select-wrapper mo-view-wrap" title="Demo：管理员台 ↔ 用户自有日志">
+          <select class="a3-select" id="view-mode">
+            <option value="admin" selected>管理员台</option>
+            <option value="user">我的调用（用户 stub）</option>
+          </select>
+          <i class="fas fa-chevron-down a3-select-arrow"></i>
+        </div>
+        <div class="a3-text-secondary a3-mt-8" style="font-size:12px;line-height:1.5">默认管理员全量审计；切到「我的调用」仅看当前用户 stub。</div>
       </div>
     </aside>
 
     <div class="mo-main a3-flex-1">
-      <header class="a3-page-header a3-flex-between mo-topbar">
-        <div class="a3-breadcrumb" id="mo-breadcrumb">
-          <span class="a3-breadcrumb-item"><a>MCP</a></span>
-          <span class="a3-breadcrumb-separator">/</span>
-          <span class="a3-breadcrumb-item" id="crumb">总览</span>
+      <header class="mo-topbar">
+        <div class="mo-topbar-row mo-topbar-primary a3-flex-between">
+          <div class="a3-breadcrumb" id="mo-breadcrumb">
+            <span class="a3-breadcrumb-item"><a>MCP</a></span>
+            <span class="a3-breadcrumb-separator">/</span>
+            <span class="a3-breadcrumb-item" id="crumb">总览</span>
+          </div>
+          <div class="mo-topbar-actions">
+            <div class="a3-select-wrapper mo-env-wrap">
+              <select class="a3-select" id="env-select">
+                <option value="prod" selected>环境 · prod</option>
+                <option value="staging">环境 · staging</option>
+                <option value="dev">环境 · dev</option>
+              </select>
+              <i class="fas fa-chevron-down a3-select-arrow"></i>
+            </div>
+            <span class="a3-tag a3-tag-default" id="user-chip">
+              <i class="fas fa-user-shield"></i>
+              管理员 · 顾澄
+            </span>
+          </div>
         </div>
-        <div class="mo-topbar-actions">
+        <div class="mo-topbar-row mo-topbar-docs">
           <button type="button" class="mo-docs-entry" id="docs-entry" title="产品需求文档：预览 / 下载给程序员与 AI">
             <i class="fas fa-book-open" aria-hidden="true"></i>
             <span>产品文档</span>
           </button>
-          <div class="a3-select-wrapper mo-view-wrap" title="Demo：管理员台 ↔ 用户自有日志">
-            <select class="a3-select" id="view-mode">
-              <option value="admin" selected>平台管理员台</option>
-              <option value="user">我的调用（用户 stub）</option>
-            </select>
-            <i class="fas fa-chevron-down a3-select-arrow"></i>
-          </div>
-          <div class="a3-select-wrapper mo-env-wrap">
-            <select class="a3-select" id="env-select">
-              <option value="prod" selected>环境 · prod</option>
-              <option value="staging">环境 · staging</option>
-              <option value="dev">环境 · dev</option>
-            </select>
-            <i class="fas fa-chevron-down a3-select-arrow"></i>
-          </div>
-          <span class="a3-tag a3-tag-default" id="user-chip">
-            <i class="fas fa-user-shield"></i>
-            管理员 · 顾澄
-          </span>
         </div>
       </header>
 
@@ -253,7 +257,7 @@
           </div>
           <div class="a3-alert a3-alert-info a3-mb-16">
             <i class="fas fa-info-circle"></i>
-            <span>这是与管理员台分离的轻页面。顶栏切回「平台管理员台」可看全量。</span>
+            <span>这是与管理员台分离的轻页面。侧栏底部切回「管理员台」可看全量。</span>
           </div>
           <div class="a3-card">
             <div class="a3-table-wrapper">
