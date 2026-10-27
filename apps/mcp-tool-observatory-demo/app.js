@@ -6,15 +6,22 @@
 const DEMO_USER = { id: "u_lin_ke", name: "林可", tenant: "tenant_a3" };
 const DEMO_ADMIN = { name: "顾澄" };
 
-const TOOLS = [
-  "search_brand",
-  "get_execution_order",
-  "list_kol_candidates",
-  "create_campaign_brief",
-  "query_invoice_status",
-  "sync_crm_lead",
-  "fetch_opinion_report",
+/** 工具档案主数据：id = tools/call name；中文名 / 创建人仅档案页展示 */
+const TOOL_CATALOG = [
+  { id: "search_brand", zh: "品牌检索", creator: "林可" },
+  { id: "get_execution_order", zh: "执行单查询", creator: "周衡" },
+  { id: "list_kol_candidates", zh: "KOL 候选列表", creator: "韩叙" },
+  { id: "create_campaign_brief", zh: "创建战役 Brief", creator: "林可" },
+  { id: "query_invoice_status", zh: "发票状态查询", creator: "沈岚" },
+  { id: "sync_crm_lead", zh: "同步 CRM 线索", creator: "周衡" },
+  { id: "fetch_opinion_report", zh: "拉取舆情报告", creator: "韩叙" },
 ];
+const TOOLS = TOOL_CATALOG.map((t) => t.id);
+const TOOL_META = Object.fromEntries(TOOL_CATALOG.map((t) => [t.id, t]));
+
+function toolMeta(id) {
+  return TOOL_META[id] || { id, zh: id, creator: "—" };
+}
 
 const PLATFORMS = [
   { id: "cursor", label: "Cursor" },
@@ -366,45 +373,44 @@ function renderCalls() {
 }
 
 function aggregateTools(list) {
-  const map = {};
+  const lastByTool = {};
   list.forEach((e) => {
-    if (!map[e.tool_name]) {
-      map[e.tool_name] = { tool: e.tool_name, count: 0, errors: 0, durs: [], last: e.ts_start };
-    }
-    const row = map[e.tool_name];
-    row.count += 1;
-    if (e.status !== "success") row.errors += 1;
-    row.durs.push(e.duration_ms);
-    if (new Date(e.ts_start) > new Date(row.last)) row.last = e.ts_start;
+    const prev = lastByTool[e.tool_name];
+    if (!prev || new Date(e.ts_start) > new Date(prev)) lastByTool[e.tool_name] = e.ts_start;
   });
-  return Object.values(map).map((r) => {
-    const sorted = r.durs.slice().sort((a, b) => a - b);
-    return {
-      tool: r.tool,
-      count: r.count,
-      error_rate: r.count ? r.errors / r.count : 0,
-      p50: percentile(sorted, 50),
-      p95: percentile(sorted, 95),
-      last: r.last,
-    };
-  }).sort((a, b) => b.count - a.count);
+  // 档案以主数据为准；无调用的工具 last 为空
+  return TOOL_CATALOG.map((meta) => ({
+    tool: meta.id,
+    zh: meta.zh,
+    creator: meta.creator,
+    last: lastByTool[meta.id] || null,
+  })).sort((a, b) => {
+    if (!a.last && !b.last) return a.tool.localeCompare(b.tool);
+    if (!a.last) return 1;
+    if (!b.last) return -1;
+    return new Date(b.last) - new Date(a.last);
+  });
 }
 
 function renderTools() {
   const q = (document.getElementById("tools-search").value || "").trim().toLowerCase();
   let rows = aggregateTools(eventsInEnv());
-  if (q) rows = rows.filter((r) => r.tool.toLowerCase().includes(q));
+  if (q) {
+    rows = rows.filter((r) =>
+      r.tool.toLowerCase().includes(q) ||
+      r.zh.toLowerCase().includes(q) ||
+      r.creator.toLowerCase().includes(q)
+    );
+  }
   const tb = document.querySelector("#tools-table tbody");
   tb.innerHTML = rows.map((r) => `
     <tr>
       <td><code>${r.tool}</code></td>
-      <td>${r.count}</td>
-      <td>${(r.error_rate * 100).toFixed(1)}%</td>
-      <td>${r.p50} ms</td>
-      <td>${r.p95} ms</td>
-      <td>${fmtTs(new Date(r.last))}</td>
+      <td>${r.zh}</td>
+      <td>${r.creator}</td>
+      <td>${r.last ? fmtTs(new Date(r.last)) : "—"}</td>
       <td><button type="button" class="a3-btn a3-btn-text a3-btn-sm" data-filter-tool="${r.tool}">查看流水</button></td>
-    </tr>`).join("") || `<tr><td colspan="7" class="a3-text-secondary">暂无工具</td></tr>`;
+    </tr>`).join("") || `<tr><td colspan="5" class="a3-text-secondary">暂无工具</td></tr>`;
 }
 
 function renderMyCalls() {
