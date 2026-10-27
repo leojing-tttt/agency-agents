@@ -131,8 +131,68 @@ body {
 }
 
 .mo-kpi-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   font-size: 12px;
   color: var(--a3-text-secondary);
+}
+
+/* KPI 公式提示（对齐 yecai yc-hint） */
+.mo-hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  color: var(--a3-text-secondary);
+  cursor: help;
+  vertical-align: middle;
+  flex: none;
+}
+.mo-hint i { font-size: 12px; }
+.mo-hint-pop {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  z-index: 40;
+  min-width: 200px;
+  max-width: 280px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(33, 37, 41, 0.94);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+  text-align: left;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+.mo-hint-side .mo-hint-pop {
+  left: calc(100% + 8px);
+  right: auto;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  min-width: 220px;
+  max-width: 280px;
+}
+.mo-kpi-card:nth-last-child(-n+2) .mo-hint-side .mo-hint-pop {
+  left: auto;
+  right: calc(100% + 8px);
+}
+.mo-hint:hover .mo-hint-pop,
+.mo-hint:focus-visible .mo-hint-pop {
+  opacity: 1;
+  visibility: visible;
 }
 
 .mo-kpi-value {

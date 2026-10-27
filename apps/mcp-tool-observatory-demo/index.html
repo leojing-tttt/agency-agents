@@ -33,7 +33,6 @@
         <li class="a3-menu-item admin-nav active" data-page="overview"><i class="fas fa-gauge-high"></i><span>总览</span></li>
         <li class="a3-menu-item admin-nav" data-page="calls"><i class="fas fa-list"></i><span>调用流水</span></li>
         <li class="a3-menu-item admin-nav" data-page="tools"><i class="fas fa-toolbox"></i><span>工具档案</span></li>
-        <li class="a3-menu-item admin-nav" data-page="settings"><i class="fas fa-sliders"></i><span>设置</span></li>
         <li class="a3-menu-group-title user-nav mo-nav-hidden" hidden>个人</li>
         <li class="a3-menu-item user-nav mo-nav-hidden" data-page="my-calls" hidden><i class="fas fa-user-clock"></i><span>我的调用</span></li>
       </ul>
@@ -241,42 +240,6 @@
                   </thead>
                   <tbody></tbody>
                 </table>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 设置（轻） -->
-        <section class="page" id="page-settings">
-          <div class="mo-title-row a3-mb-16">
-            <h1 class="mo-title a3-text-primary">设置</h1>
-            <p class="a3-text-secondary a3-mt-4">保留天数与 payload 策略说明（Demo 说明页，不接真实配置 API）。</p>
-          </div>
-          <div class="a3-card a3-mb-16">
-            <div class="a3-card-header"><span class="a3-card-title">Payload 展示策略</span></div>
-            <div class="a3-card-body">
-              <p class="a3-text-secondary a3-mb-12"><strong>本 Demo 默认展示完整 arguments / result</strong>，便于评审真实 payload 形态（无 <code>***</code> 掩码）。生产环境仍可支持脱敏 / 二次权限；设置页后续可加开关，本期不做。</p>
-              <ul class="mo-bullets a3-text-secondary">
-                <li>Demo：抽屉「参数」「结果」为完整 JSON</li>
-                <li>生产（规划）：可按租户策略脱敏或仅 metadata</li>
-                <li><code>session_id</code> / <code>trace_id</code> 可空（本期不做 Trace 树）</li>
-              </ul>
-            </div>
-          </div>
-          <div class="a3-card">
-            <div class="a3-card-header"><span class="a3-card-title">保留与 Mock</span></div>
-            <div class="a3-card-body">
-              <div class="mo-toolbar">
-                <div class="mo-field">
-                  <label class="a3-text-secondary">日志保留（天）</label>
-                  <div class="a3-input-wrapper">
-                    <input class="a3-input" type="number" value="30" disabled />
-                  </div>
-                </div>
-                <div class="mo-field">
-                  <label class="a3-text-secondary">Mock 数据</label>
-                  <div class="a3-text-primary" style="padding-top:6px">已启用 · 本机静态 JSON</div>
-                </div>
               </div>
             </div>
           </div>

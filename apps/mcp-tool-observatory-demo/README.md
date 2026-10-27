@@ -9,7 +9,7 @@ cd apps/mcp-tool-observatory-demo
 npx --yes serve -l 5188 .
 # http://localhost:5188/
 # 默认：平台管理员台 · 总览
-# 直达：#overview | #calls | #tools | #settings | #my-calls
+# 直达：#overview | #calls | #tools | #my-calls
 # 顶栏「产品文档」：预览 / 下载 PRD（docs/*.md，合集可喂给 AI）
 # 顶栏视图切换：平台管理员台 ↔ 我的调用（用户 stub）
 ```
@@ -21,7 +21,6 @@ MCP 工具观测台
 ├── 总览
 ├── 调用流水
 ├── 工具档案
-├── 设置
 └── 我的调用（用户 stub，顶栏切换）
 ```
 

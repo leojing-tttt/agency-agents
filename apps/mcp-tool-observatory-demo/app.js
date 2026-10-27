@@ -1,5 +1,5 @@
 /* MCP 工具观测台 demo — A3 SaaS UI 演示层
- * 方案 A MVP：总览 / 调用流水 / 详情抽屉 / 工具档案 / 设置
+ * 方案 A MVP：总览 / 调用流水 / 详情抽屉 / 工具档案
  * 一行 = 一次 tools/call；Mock 数据，无真实 MCP 后端
  */
 
@@ -315,9 +315,21 @@ const PAGE_TITLES = {
   overview: "总览",
   calls: "调用流水",
   tools: "工具档案",
-  settings: "设置",
   "my-calls": "我的调用",
 };
+
+/** KPI 口径（与 docs/prd 一致；范围 = 当前环境 ∩ 时间窗） */
+const KPI_FORMULAS = {
+  calls: "调用数 = 选定时间窗 ∩ 当前环境内 tools/call 事件条数（count）",
+  error_rate: "错误率 = failed / total × 100%；failed = status ∈ {error, timeout}；total = 调用数；分母为 0 时显示 0%",
+  p95: "P95 延迟 = 选定范围内全部调用的 duration_ms（latency）第 95 百分位（升序排列后取 ceil(0.95×n) 位）",
+  active_tools: "活跃工具 = 选定范围内至少有 1 次调用的 distinct tool_name 个数",
+};
+
+function tipIcon(html, side) {
+  const sideCls = side ? " mo-hint-side" : "";
+  return `<span class="mo-hint${sideCls}" tabindex="0" aria-label="计算公式"><i class="far fa-circle-question" aria-hidden="true"></i><span class="mo-hint-pop" role="tooltip">${html}</span></span>`;
+}
 
 function toast(type, msg) {
   const root = document.getElementById("toast-root");
@@ -426,15 +438,31 @@ function renderOverview() {
   const total = base.length;
   const errors = base.filter((e) => e.status === "error" || e.status === "timeout").length;
   const errRate = total ? ((errors / total) * 100).toFixed(1) : "0.0";
-  const durs = base.filter((e) => e.status === "success").map((e) => e.duration_ms).sort((a, b) => a - b);
+  const durs = base.map((e) => e.duration_ms).sort((a, b) => a - b);
   const p95 = percentile(durs, 95);
   const activeTools = new Set(base.map((e) => e.tool_name)).size;
 
   document.getElementById("ov-kpi").innerHTML = `
-    <div class="mo-kpi-card"><div class="mo-kpi-label">调用数</div><div class="mo-kpi-value is-brand">${total}</div><div class="mo-kpi-hint">当前环境 · ${state.window}</div></div>
-    <div class="mo-kpi-card"><div class="mo-kpi-label">错误率</div><div class="mo-kpi-value">${errRate}%</div><div class="mo-kpi-hint">error + timeout</div></div>
-    <div class="mo-kpi-card"><div class="mo-kpi-label">P95 延迟</div><div class="mo-kpi-value">${p95} ms</div><div class="mo-kpi-hint">success only</div></div>
-    <div class="mo-kpi-card"><div class="mo-kpi-label">活跃工具</div><div class="mo-kpi-value">${activeTools}</div><div class="mo-kpi-hint">去重 tool_name</div></div>
+    <div class="mo-kpi-card">
+      <div class="mo-kpi-label"><span>调用数</span>${tipIcon(KPI_FORMULAS.calls, true)}</div>
+      <div class="mo-kpi-value is-brand">${total}</div>
+      <div class="mo-kpi-hint">当前环境 · ${state.window}</div>
+    </div>
+    <div class="mo-kpi-card">
+      <div class="mo-kpi-label"><span>错误率</span>${tipIcon(KPI_FORMULAS.error_rate, true)}</div>
+      <div class="mo-kpi-value">${errRate}%</div>
+      <div class="mo-kpi-hint">error + timeout / 全部</div>
+    </div>
+    <div class="mo-kpi-card">
+      <div class="mo-kpi-label"><span>P95 延迟</span>${tipIcon(KPI_FORMULAS.p95, true)}</div>
+      <div class="mo-kpi-value">${p95} ms</div>
+      <div class="mo-kpi-hint">范围内全部调用</div>
+    </div>
+    <div class="mo-kpi-card">
+      <div class="mo-kpi-label"><span>活跃工具</span>${tipIcon(KPI_FORMULAS.active_tools, true)}</div>
+      <div class="mo-kpi-value">${activeTools}</div>
+      <div class="mo-kpi-hint">distinct tool_name</div>
+    </div>
   `;
 
   const byPlat = {};
@@ -876,6 +904,10 @@ document.addEventListener("keydown", (e) => {
 
 window.addEventListener("hashchange", () => {
   const h = (location.hash || "").replace("#", "");
+  if (h === "settings") {
+    go("overview");
+    return;
+  }
   if (PAGE_TITLES[h]) {
     if (h === "my-calls") state.view = "user";
     else if (state.view === "user" && h !== "my-calls") state.view = "admin";
@@ -890,7 +922,9 @@ window.addEventListener("hashchange", () => {
   document.getElementById("f-from").min = toLocalInput(oldest);
   document.getElementById("f-to").max = toLocalInput(newest);
   const h = (location.hash || "").replace("#", "");
-  if (h === "my-calls") {
+  if (h === "settings") {
+    go("overview");
+  } else if (h === "my-calls") {
     state.view = "user";
     go("my-calls");
   } else if (PAGE_TITLES[h]) {
