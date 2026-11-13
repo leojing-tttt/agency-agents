@@ -109,7 +109,10 @@ def cmd_tag(args: argparse.Namespace) -> int:
 
     out_jsonl = Path(args.out_jsonl)
     out_review = Path(args.out_review_csv)
+    out_jsonl.parent.mkdir(parents=True, exist_ok=True)
     out_review.parent.mkdir(parents=True, exist_ok=True)
+    # Each tag run overwrites outputs so reruns do not duplicate JSONL rows.
+    out_jsonl.write_text("", encoding="utf-8")
 
     review_rows: list[dict[str, str]] = []
     for img in images:

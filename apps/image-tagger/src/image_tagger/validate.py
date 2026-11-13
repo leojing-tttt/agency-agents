@@ -66,11 +66,10 @@ def validate_model_tags(
             continue
         tags[dim.id] = resolved.id
 
-    # Open fields
-    scene_max = 3
-    for f in taxonomy.open_fields:
-        if f.id == "scene_tags":
-            scene_max = f.max_items
+    # Open fields — caps come from taxonomy.open_fields
+    open_limits = {f.id: f.max_items for f in taxonomy.open_fields}
+    scene_max = open_limits.get("scene_tags", 3)
+    ocr_max = open_limits.get("ocr_text", 12)
     tags["scene_tags"] = _normalize_scene_tags(
         raw.get("scene_tags"), taxonomy.synonyms, scene_max
     )
@@ -82,7 +81,7 @@ def validate_model_tags(
         ocr_list = [str(x).strip() for x in ocr if str(x).strip()]
     else:
         ocr_list = []
-    tags["ocr_text"] = ocr_list[:12]
+    tags["ocr_text"] = ocr_list[:ocr_max]
 
     # observations passthrough (optional)
     if "observations" in raw and isinstance(raw["observations"], dict):

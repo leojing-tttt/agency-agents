@@ -63,6 +63,15 @@ def test_validate_rejects_invalid_enum_and_low_confidence():
     assert low.needs_review is True
 
 
+def test_ocr_text_respects_taxonomy_max_items():
+    tax = load_taxonomy(DEFAULT_TAXONOMY)
+    mapping = load_mapping(DEFAULT_MAPPING)
+    ocr_max = next(f.max_items for f in tax.open_fields if f.id == "ocr_text")
+    too_many = [f"line-{i}" for i in range(ocr_max + 5)]
+    result = validate_model_tags(_valid_raw(ocr_text=too_many), tax, mapping)
+    assert len(result.tags["ocr_text"]) == ocr_max
+
+
 def test_tag_one_image_single_call(tmp_path: Path):
     tax = load_taxonomy(DEFAULT_TAXONOMY)
     mapping = load_mapping(DEFAULT_MAPPING)
@@ -71,7 +80,8 @@ def test_tag_one_image_single_call(tmp_path: Path):
 
     def fake_generate(**kwargs):
         assert kwargs["image_path"] == img
-        assert "product_id" in kwargs["prompt"] or True
+        assert "product_id: P-1" in kwargs["prompt"]
+        assert "示例产品" in kwargs["prompt"]
         return _valid_raw()
 
     record = tag_one_image(
