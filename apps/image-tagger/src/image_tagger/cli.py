@@ -199,10 +199,10 @@ def build_parser() -> argparse.ArgumentParser:
     val.add_argument("--mapping", default=str(DEFAULT_MAPPING))
     val.set_defaults(func=cmd_validate_config)
 
-    tag = sub.add_parser("tag", help="批量打标（先选产品，再扫 inbox）")
+    tag = sub.add_parser("tag", help="批量打标（产品可选；未传则用占位产品）")
     tag.add_argument("--inbox", required=True, help="图片文件夹")
-    tag.add_argument("--product-id", required=True)
-    tag.add_argument("--product-name", required=True)
+    tag.add_argument("--product-id", default="PRODUCT-UNSPECIFIED")
+    tag.add_argument("--product-name", default="未指定产品")
     tag.add_argument("--knowledge-id", default="")
     tag.add_argument("--brand-project-id", default="")
     tag.add_argument("--taxonomy", default=str(DEFAULT_TAXONOMY))
@@ -213,7 +213,31 @@ def build_parser() -> argparse.ArgumentParser:
     tag.add_argument("--out-review-csv", default="out/review.csv")
     tag.set_defaults(func=cmd_tag)
 
+    serve = sub.add_parser("serve", help="启动标签管理前后端（浏览器打开）")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8787)
+    serve.add_argument("--taxonomy", default=str(DEFAULT_TAXONOMY))
+    serve.add_argument("--mapping", default=str(DEFAULT_MAPPING))
+    serve.set_defaults(func=cmd_serve)
+
     return p
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    try:
+        import uvicorn
+    except ImportError:
+        print(
+            "缺少依赖。请执行: python -m pip install -e \".[ui]\"",
+            file=sys.stderr,
+        )
+        return 1
+    from .server import create_app
+
+    app = create_app(Path(args.taxonomy), Path(args.mapping))
+    print(f"标签管理 UI: http://{args.host}:{args.port}/")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:

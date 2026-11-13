@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>图库标签管理</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <p class="brand">图库标签管理</p>
+      <p class="brand-sub">维度 → 枚举 · 本地词表</p>
+      <nav>
+        <button type="button" class="nav-btn active" data-view="dimensions">维度管理</button>
+        <button type="button" class="nav-btn" data-view="mapping">映射管理</button>
+        <button type="button" class="nav-btn" data-view="validate">校验</button>
+      </nav>
+      <p class="hint">不选品牌也能先检查词表。打标仍用命令行或后续页面。</p>
+    </aside>
+
+    <main class="main">
+      <header class="top">
+        <h1 id="view-title">维度管理</h1>
+        <div id="status-pill" class="pill muted">加载中…</div>
+      </header>
+
+      <section id="view-dimensions" class="view">
+        <div class="split">
+          <div class="panel">
+            <h2>维度</h2>
+            <ul id="dimension-list" class="list"></ul>
+          </div>
+          <div class="panel grow">
+            <div class="panel-head">
+              <h2 id="dim-title">选择左侧维度</h2>
+              <p id="dim-meta" class="muted"></p>
+            </div>
+            <table class="table" id="enum-table">
+              <thead>
+                <tr><th>枚举 id</th><th>中文名</th><th></th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <form id="add-enum-form" class="form-row hidden">
+              <input name="enum_id" placeholder="enum_id，如 yonghui" required />
+              <input name="label" placeholder="中文名，如 永辉" required />
+              <button type="submit">新增枚举</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-mapping" class="view hidden">
+        <div class="panel">
+          <h2>图片类型叶子 → 大类</h2>
+          <p class="muted">标注只选叶子；大类仅用于汇总筛图。</p>
+          <table class="table" id="mapping-table">
+            <thead>
+              <tr><th>叶子 id</th><th>叶子中文</th><th>大类</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="view-validate" class="view hidden">
+        <div class="panel">
+          <h2>词表与映射一致性</h2>
+          <button type="button" id="btn-validate">重新校验</button>
+          <pre id="validate-out" class="code-block">尚未校验</pre>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

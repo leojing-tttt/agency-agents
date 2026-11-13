@@ -92,6 +92,12 @@ python --version
 python -m pip install -e ".[dev]"
 ```
 
+若只要管理界面、暂不跑 pytest，可：
+
+```powershell
+python -m pip install -e ".[ui]"
+```
+
 若 `python` 不可用，试 `py -3`：
 
 ```powershell
@@ -105,7 +111,24 @@ py -3 -m pip install -e ".[dev]"
 python -m image_tagger.cli --help
 ```
 
-应看到子命令：`taxonomy-list`、`mapping-list`、`validate-config`、`tag` 等。
+应看到子命令：`taxonomy-list`、`mapping-list`、`validate-config`、`tag`、`serve` 等。
+
+### 4.1 打开标签管理界面（推荐先做）
+
+```powershell
+cd D:\image-tagger-test\image-tagger
+python -m image_tagger.cli serve --host 127.0.0.1 --port 8787
+```
+
+本机浏览器打开：**http://127.0.0.1:8787/**
+
+可检查并改：
+
+- **维度管理**：各标签类型下的枚举
+- **映射管理**：图片类型叶子 → 大类
+- **校验**：词表与映射是否一致
+
+不选品牌/产品也能先把词表看完。关窗口或 `Ctrl+C` 停止服务。
 
 ---
 

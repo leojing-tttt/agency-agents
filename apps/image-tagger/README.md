@@ -5,6 +5,16 @@
 
 ## 功能清单
 
+### 0. 管理界面（前后端）
+
+```bash
+python -m pip install -e ".[ui]"
+python -m image_tagger.cli serve --port 8787
+# 浏览器打开 http://127.0.0.1:8787/
+```
+
+本地 FastAPI 后端 + `web/` 前端（无外网 CDN）。可管理维度枚举、叶子→大类映射、一键校验。
+
 ### A. 维度（标签类型）管理
 
 | 能力 | 命令 |
