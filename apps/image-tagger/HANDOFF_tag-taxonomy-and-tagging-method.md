@@ -595,7 +595,7 @@ apps/image-tagger/
   src/image_tagger/server.py      # 管理 API
   web/                            # 管理前端
   DESKTOP-TEST-Windows.md         # 离线机测试说明
-  HANDOFF_标签体系与打标方法_给业务文档方.md  # 本文
+  HANDOFF_tag-taxonomy-and-tagging-method.md  # 本文
 ```
 
 ---
