@@ -54,7 +54,9 @@ canonical() {
 # produce a false failure.
 actual_dirs() {
   local base
-  git ls-files | awk -F/ 'NF>1{print $1}' | sort -u | while IFS= read -r base; do
+  # core.quotepath=false: non-ASCII paths must not be C-quoted, or a file like
+  # apps/.../中文.md becomes "apps/... and awk thinks the top segment is `"apps`.
+  git -c core.quotepath=false ls-files | awk -F/ 'NF>1{print $1}' | sort -u | while IFS= read -r base; do
     [[ "$base" == .* ]] && continue
     case " ${NON_DIVISION_DIRS[*]} " in *" $base "*) continue ;; esac
     echo "$base"

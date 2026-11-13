@@ -1,5 +1,7 @@
 # 项目图库打标 · 现行标签定义与打标方法（完整说明）
 
+> 文件名（英文便于跨系统拷贝）：`HANDOFF_tag-taxonomy-and-tagging-method.md`
+
 > **读者**：原先《配图推荐 IT 交付包》作者侧的 Agent / 业务同学  
 > **目的**：说明我们在落地实现后，**标签怎么定义、打标怎么做**；与你们 v1/v2 文档的对照关系；便于对齐，而不是另起一套语义。  
 > **机器可读源**：`apps/image-tagger/data/taxonomy.json`（词表 v1.0.0）、`apps/image-tagger/data/image_type_category_map.json`（映射 v1.0.0）  
