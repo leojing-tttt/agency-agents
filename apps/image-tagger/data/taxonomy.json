@@ -1,0 +1,270 @@
+{
+  "version": "1.0.0",
+  "description": "两层标签：维度 → 枚举。产品身份由上传前选择写入，不在此表。",
+  "dimensions": [
+    {
+      "id": "image_type",
+      "name": "图片类型",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "product_shot", "label": "产品实拍" },
+        { "id": "feature_single", "label": "产品特点-单点" },
+        { "id": "feature_collection", "label": "产品特点-合集" },
+        { "id": "need_pure", "label": "纯需求" },
+        { "id": "need_with_answer", "label": "需求+答案" },
+        { "id": "scene_intro", "label": "场景介绍" },
+        { "id": "scene_need", "label": "场景需求" },
+        { "id": "scene_use", "label": "场景使用" },
+        { "id": "person_persona", "label": "人设表达" },
+        { "id": "person_need", "label": "人物需求" },
+        { "id": "person_state", "label": "人物状态" },
+        { "id": "multi_collection", "label": "多品合集" },
+        { "id": "multi_compare", "label": "多品对比" },
+        { "id": "multi_combo", "label": "多品搭配" },
+        { "id": "multi_native", "label": "多品原生" },
+        { "id": "ingredient_highlight", "label": "成分圈选" },
+        { "id": "ingredient_list", "label": "核心成分列表" },
+        { "id": "ingredient_raw", "label": "原料特写" },
+        { "id": "experiment_method", "label": "实验方法" },
+        { "id": "experiment_result", "label": "实验结果" },
+        { "id": "experiment_compare", "label": "实验对比" },
+        { "id": "principle", "label": "原理/示意" },
+        { "id": "usage_steps", "label": "使用步骤" },
+        { "id": "usage_method", "label": "使用方法" },
+        { "id": "checkin_record", "label": "打卡记录" },
+        { "id": "usage_record", "label": "使用记录" },
+        { "id": "empty_bottle", "label": "空瓶复购" },
+        { "id": "before_after", "label": "使用前后" },
+        { "id": "version_compare", "label": "版本前后" },
+        { "id": "price_mechanism", "label": "价格/机制" },
+        { "id": "endorse_cert", "label": "证书检测" },
+        { "id": "endorse_award", "label": "奖项榜单" },
+        { "id": "endorse_expert", "label": "专家机构媒体" },
+        { "id": "endorse_celebrity", "label": "明星达人" },
+        { "id": "endorse_supply", "label": "品牌供应链" },
+        { "id": "brand_map", "label": "品牌图谱" },
+        { "id": "review_platform", "label": "平台评价" },
+        { "id": "review_chat", "label": "群聊记录" },
+        { "id": "checklist", "label": "清单/列表" },
+        { "id": "other", "label": "其他" }
+      ]
+    },
+    {
+      "id": "tonality_primary",
+      "name": "调性主",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "promo", "label": "大促型" },
+        { "id": "pro", "label": "专业型" },
+        { "id": "dry", "label": "干货型" },
+        { "id": "persona", "label": "人设型" },
+        { "id": "creative", "label": "创意型" },
+        { "id": "meme", "label": "梗图型" },
+        { "id": "ai", "label": "AI型" },
+        { "id": "magazine", "label": "杂志型" },
+        { "id": "atmosphere", "label": "氛围型" },
+        { "id": "native", "label": "原生型" },
+        { "id": "general", "label": "通用型" }
+      ]
+    },
+    {
+      "id": "tonality_secondary",
+      "name": "调性辅",
+      "required": false,
+      "multi": false,
+      "enums": [
+        { "id": "promo", "label": "大促型" },
+        { "id": "pro", "label": "专业型" },
+        { "id": "dry", "label": "干货型" },
+        { "id": "persona", "label": "人设型" },
+        { "id": "creative", "label": "创意型" },
+        { "id": "meme", "label": "梗图型" },
+        { "id": "ai", "label": "AI型" },
+        { "id": "magazine", "label": "杂志型" },
+        { "id": "atmosphere", "label": "氛围型" },
+        { "id": "native", "label": "原生型" },
+        { "id": "general", "label": "通用型" }
+      ]
+    },
+    {
+      "id": "cover_fit",
+      "name": "封面适配",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "yes", "label": "是" },
+        { "id": "no", "label": "否" },
+        { "id": "unknown", "label": "待定" }
+      ]
+    },
+    {
+      "id": "cover_hook",
+      "name": "封面钩子",
+      "required": false,
+      "multi": false,
+      "enums": [
+        { "id": "pain", "label": "痛点" },
+        { "id": "result", "label": "结果" },
+        { "id": "persona", "label": "人设" },
+        { "id": "scene", "label": "场景" },
+        { "id": "science", "label": "科普" },
+        { "id": "price", "label": "价格" },
+        { "id": "list", "label": "清单" }
+      ]
+    },
+    {
+      "id": "scene_category",
+      "name": "场景分类",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "indoor", "label": "室内" },
+        { "id": "outdoor", "label": "室外" },
+        { "id": "white", "label": "白底" },
+        { "id": "other", "label": "其他" }
+      ]
+    },
+    {
+      "id": "channel",
+      "name": "渠道",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "mannings", "label": "万宁" },
+        { "id": "watsons", "label": "屈臣氏" },
+        { "id": "sam", "label": "山姆" },
+        { "id": "costco", "label": "Costco" },
+        { "id": "kids", "label": "孩子王" },
+        { "id": "ole", "label": "Olé" },
+        { "id": "pangdonglai", "label": "胖东来" },
+        { "id": "other", "label": "其他" },
+        { "id": "none", "label": "无" },
+        { "id": "unknown", "label": "看不清" }
+      ]
+    },
+    {
+      "id": "backing_type",
+      "name": "背书类型",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "gov_media", "label": "政府媒体" },
+        { "id": "celebrity", "label": "明星达人" },
+        { "id": "channel", "label": "渠道" },
+        { "id": "evidence", "label": "实证" },
+        { "id": "brand_rd", "label": "品牌历史研发" },
+        { "id": "other", "label": "其他" },
+        { "id": "none", "label": "无" },
+        { "id": "unknown", "label": "看不清" }
+      ]
+    },
+    {
+      "id": "person_visibility",
+      "name": "人物可见",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "full", "label": "完整人物" },
+        { "id": "hand_only", "label": "只有手" },
+        { "id": "background", "label": "背景小人" },
+        { "id": "none", "label": "无" }
+      ]
+    },
+    {
+      "id": "person_count",
+      "name": "人物数量",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "0", "label": "0" },
+        { "id": "1", "label": "1" },
+        { "id": "2plus", "label": "2+" }
+      ]
+    },
+    {
+      "id": "product_count",
+      "name": "画面产品数",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "0", "label": "0" },
+        { "id": "1", "label": "1" },
+        { "id": "2", "label": "2" },
+        { "id": "3plus", "label": "3+" }
+      ]
+    },
+    {
+      "id": "package",
+      "name": "包装形态",
+      "required": false,
+      "multi": false,
+      "enums": [
+        { "id": "box", "label": "盒" },
+        { "id": "bottle", "label": "瓶" },
+        { "id": "sachet", "label": "条包" },
+        { "id": "blister", "label": "泡罩" },
+        { "id": "can", "label": "罐" },
+        { "id": "tube", "label": "管" },
+        { "id": "other", "label": "其他" },
+        { "id": "unknown", "label": "看不清" }
+      ]
+    },
+    {
+      "id": "product_role",
+      "name": "产品角色",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "hero", "label": "主角" },
+        { "id": "prop", "label": "道具" },
+        { "id": "background", "label": "背景" },
+        { "id": "absent", "label": "未出现" }
+      ]
+    },
+    {
+      "id": "set_relation",
+      "name": "同框关系",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "single", "label": "单品" },
+        { "id": "same_brand_multi", "label": "同品牌多品" },
+        { "id": "same_category_multi", "label": "同品类多品" },
+        { "id": "cross_category", "label": "跨品类合集" },
+        { "id": "unclear", "label": "不明确" },
+        { "id": "none", "label": "无产品" }
+      ]
+    },
+    {
+      "id": "confidence",
+      "name": "置信度",
+      "required": true,
+      "multi": false,
+      "enums": [
+        { "id": "high", "label": "高" },
+        { "id": "medium", "label": "中" },
+        { "id": "low", "label": "低" }
+      ]
+    }
+  ],
+  "open_fields": [
+    {
+      "id": "scene_tags",
+      "name": "场景标签",
+      "max_items": 3,
+      "description": "开放短词，最多 3 个；同义词由程序归并"
+    },
+    {
+      "id": "ocr_text",
+      "name": "画面文字",
+      "max_items": 12,
+      "description": "只抄看得见的字，不做功效断言"
+    }
+  ],
+  "synonyms": {
+    "爬山": "登山",
+    "办公室": "工位"
+  }
+}
