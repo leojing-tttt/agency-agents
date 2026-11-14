@@ -102,7 +102,26 @@
           </div>
         </div>
 
-        <div class="cm-summary" id="detail-summary"></div>
+        <div class="cm-filter-bar" id="detail-filter-bar">
+          <div class="cm-filter-dates">
+            <label for="filter-start">笔记发布时间</label>
+            <input class="a3-date-picker" type="date" id="filter-start" />
+            <span class="cm-filter-sep">至</span>
+            <input class="a3-date-picker" type="date" id="filter-end" />
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="btn-filter-reset">重置</button>
+          </div>
+          <div class="cm-range-stats">
+            <div class="cm-range-stat">
+              <span class="label">区间笔记数</span>
+              <strong id="range-note-count">0</strong>
+            </div>
+            <div class="cm-range-stat">
+              <span class="label">区间互动量</span>
+              <strong id="range-engagement">0</strong>
+              <span class="hint">赞+藏+评</span>
+            </div>
+          </div>
+        </div>
 
         <div class="cm-board-grid">
           <div class="cm-board-card">
@@ -167,6 +186,27 @@
         </button>
       </div>
       <div class="a3-modal-body">
+        <div class="cm-summary cm-config-summary cm-hidden" id="config-summary" aria-label="当前配置摘要">
+          <div class="cm-summary-item">
+            <div class="label">品牌词</div>
+            <div class="value" style="font-size:14px" id="cfg-keywords">—</div>
+          </div>
+          <div class="cm-summary-item">
+            <div class="label">抓取频次</div>
+            <div class="value" style="font-size:16px" id="cfg-freq">—</div>
+            <div class="sub" id="cfg-limit-sub">—</div>
+          </div>
+          <div class="cm-summary-item">
+            <div class="label">笔记数（累计）</div>
+            <div class="value" id="cfg-note-count">0</div>
+            <div class="sub">去重后</div>
+          </div>
+          <div class="cm-summary-item">
+            <div class="label">互动合计（累计）</div>
+            <div class="value" id="cfg-engagement">0</div>
+            <div class="sub">赞+藏+评</div>
+          </div>
+        </div>
         <form id="competitor-form" autocomplete="off">
           <input type="hidden" id="field-id" />
           <div class="cm-form-grid">

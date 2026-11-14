@@ -55,6 +55,8 @@
   let draftKeywords = [];
   let currentDetailId = null;
   let trendChart = null;
+  let filterStart = "";
+  let filterEnd = "";
   let docsCurrent = PRD_DOCS.find((d) => d.id === "all");
 
   const seed = () => [
@@ -270,6 +272,71 @@
     renderKeywords();
   }
 
+  function totalEngagement(notes) {
+    return (notes || []).reduce((s, n) => s + n.liked + n.collected + n.commented, 0);
+  }
+
+  function parseNoteTime(publishedAt) {
+    if (!publishedAt) return null;
+    if (publishedAt instanceof Date) return publishedAt;
+    const normalized = String(publishedAt).trim().replace(" ", "T");
+    const withZone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(normalized)
+      ? normalized
+      : `${normalized.length === 16 ? `${normalized}:00` : normalized}+08:00`;
+    const d = new Date(withZone);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function noteInRange(note, startStr, endStr) {
+    const t = parseNoteTime(note.publishedAt);
+    if (!t) return false;
+    const ms = t.getTime();
+    const start = startStr ? new Date(`${startStr}T00:00:00+08:00`).getTime() : -Infinity;
+    const end = endStr ? new Date(`${endStr}T23:59:59.999+08:00`).getTime() : Infinity;
+    return ms >= start && ms <= end;
+  }
+
+  function filteredNotes(item) {
+    return (item.notes || []).filter((n) => noteInRange(n, filterStart, filterEnd));
+  }
+
+  function defaultFilterRange(item) {
+    const notes = item.notes || [];
+    if (!notes.length) {
+      const today = localDateKey(new Date());
+      return { start: today, end: today };
+    }
+    let min = Infinity;
+    let max = -Infinity;
+    notes.forEach((n) => {
+      const d = parseNoteTime(n.publishedAt);
+      if (!d) return;
+      const ms = d.getTime();
+      if (ms < min) min = ms;
+      if (ms > max) max = ms;
+    });
+    return {
+      start: localDateKey(new Date(min)),
+      end: localDateKey(new Date(max)),
+    };
+  }
+
+  function renderConfigSummary(item) {
+    const box = document.getElementById("config-summary");
+    if (!item) {
+      box.classList.add("cm-hidden");
+      return;
+    }
+    box.classList.remove("cm-hidden");
+    document.getElementById("cfg-keywords").textContent = item.keywords.join("、") || "—";
+    document.getElementById("cfg-freq").textContent = freqLabel(item.frequency);
+    document.getElementById("cfg-limit-sub").textContent = `上限 ${item.limitPerKeyword}/词 · 时间排序`;
+    document.getElementById("cfg-note-count").textContent = String(item.noteCount ?? (item.notes || []).length);
+    const eng =
+      item.engagementTotal ?? totalEngagement(item.notes || []);
+    document.getElementById("cfg-engagement").textContent = eng.toLocaleString();
+  }
+
   function resetForm() {
     editingId = null;
     draftKeywords = [];
@@ -282,6 +349,7 @@
     document.getElementById("field-tier-mid").value = "500000";
     document.getElementById("field-enabled").checked = true;
     document.getElementById("field-kw-input").value = "";
+    renderConfigSummary(null);
     renderKeywords();
   }
 
@@ -296,6 +364,7 @@
     document.getElementById("field-tier-bottom").value = String(item.tierBottomMax);
     document.getElementById("field-tier-mid").value = String(item.tierMidMax);
     document.getElementById("field-enabled").checked = !!item.enabled;
+    renderConfigSummary(item);
     renderKeywords();
   }
 
@@ -341,7 +410,7 @@
     renderList();
   }
 
-  function showDetail(id) {
+  function showDetail(id, keepFilter) {
     const item = competitors.find((c) => c.id === id);
     if (!item) return;
     currentDetailId = id;
@@ -353,37 +422,62 @@
       'id="detail-status" class="a3-tag'
     );
 
-    const engagement =
-      item.engagementTotal ??
-      (item.notes || []).reduce((s, n) => s + n.liked + n.collected + n.commented, 0);
-
-    document.getElementById("detail-summary").innerHTML = `
-      <div class="cm-summary-item"><div class="label">品牌词</div><div class="value" style="font-size:14px">${item.keywords
-        .map(escapeHtml)
-        .join("、")}</div></div>
-      <div class="cm-summary-item"><div class="label">抓取频次</div><div class="value" style="font-size:16px">${freqLabel(
-        item.frequency
-      )}</div><div class="sub">上限 ${item.limitPerKeyword}/词 · 时间排序</div></div>
-      <div class="cm-summary-item"><div class="label">笔记数</div><div class="value">${item.noteCount ?? 0}</div><div class="sub">去重后</div></div>
-      <div class="cm-summary-item"><div class="label">互动合计</div><div class="value">${engagement.toLocaleString()}</div><div class="sub">赞+藏+评</div></div>
-    `;
+    if (!keepFilter) {
+      const range = defaultFilterRange(item);
+      filterStart = range.start;
+      filterEnd = range.end;
+      document.getElementById("filter-start").value = filterStart;
+      document.getElementById("filter-end").value = filterEnd;
+    }
 
     document.getElementById("tier-legend").textContent = `底 <${formatFans(
       item.tierBottomMax
     )} · 中 <${formatFans(item.tierMidMax)} · 头 ≥${formatFans(item.tierMidMax)}`;
 
-    renderPyramid(item);
-    renderWordcloud(item);
-    renderNotes(item);
+    renderDetailBody(item);
+  }
+
+  function renderDetailBody(item) {
+    const notes = filteredNotes(item);
+    const engagement = totalEngagement(notes);
+    document.getElementById("range-note-count").textContent = String(notes.length);
+    document.getElementById("range-engagement").textContent = engagement.toLocaleString();
+
+    renderPyramid(item, notes);
+    renderWordcloud(item, notes);
+    renderNotes(notes);
     renderTrend(item);
   }
 
-  function renderPyramid(item) {
-    const notes = item.notes || [];
+  function applyDetailFilter() {
+    const item = competitors.find((c) => c.id === currentDetailId);
+    if (!item) return;
+    filterStart = document.getElementById("filter-start").value;
+    filterEnd = document.getElementById("filter-end").value;
+    if (filterStart && filterEnd && filterStart > filterEnd) {
+      alert("开始日期不能晚于结束日期");
+      return;
+    }
+    renderDetailBody(item);
+  }
+
+  function resetDetailFilter() {
+    const item = competitors.find((c) => c.id === currentDetailId);
+    if (!item) return;
+    const range = defaultFilterRange(item);
+    filterStart = range.start;
+    filterEnd = range.end;
+    document.getElementById("filter-start").value = filterStart;
+    document.getElementById("filter-end").value = filterEnd;
+    renderDetailBody(item);
+  }
+
+  function renderPyramid(item, notesOverride) {
+    const notes = notesOverride || filteredNotes(item);
     const el = document.getElementById("pyramid");
     if (!notes.length) {
       el.innerHTML =
-        '<div class="a3-table-empty" style="padding:24px 0"><i class="fas fa-inbox"></i>暂无笔记，等待首次抓取后再看达人结构</div>';
+        '<div class="a3-table-empty" style="padding:24px 0"><i class="fas fa-inbox"></i>当前时间范围内暂无笔记</div>';
       return;
     }
     const counts = { 底部: 0, 中腰: 0, 头部: 0 };
@@ -404,12 +498,13 @@
     `;
   }
 
-  function renderWordcloud(item) {
-    const words = item.words || [];
+  function renderWordcloud(item, notesOverride) {
+    const notes = notesOverride || filteredNotes(item);
     const el = document.getElementById("wordcloud");
-    if (!words.length) {
+    const words = item.words || [];
+    if (!notes.length || !words.length) {
       el.innerHTML =
-        '<div class="a3-table-empty" style="padding:24px 0"><i class="fas fa-inbox"></i>暂无语料，等待首次抓取后再看词云</div>';
+        '<div class="a3-table-empty" style="padding:24px 0"><i class="fas fa-inbox"></i>当前时间范围内暂无语料</div>';
       return;
     }
     el.innerHTML = words
@@ -422,12 +517,11 @@
       .join("");
   }
 
-  function renderNotes(item) {
-    const notes = item.notes || [];
+  function renderNotes(notes) {
     const tbody = document.getElementById("notes-tbody");
     if (!notes.length) {
       tbody.innerHTML =
-        '<tr><td colspan="9"><div class="a3-table-empty"><i class="fas fa-inbox"></i>暂无笔记（等待首次抓取）</div></td></tr>';
+        '<tr><td colspan="9"><div class="a3-table-empty"><i class="fas fa-inbox"></i>当前时间范围内暂无笔记</div></td></tr>';
       return;
     }
     tbody.innerHTML = notes
@@ -451,7 +545,11 @@
   function renderTrend(item) {
     const canvas = document.getElementById("trend-chart");
     const wrap = canvas.parentElement;
-    const data = item.trend || [];
+    const data = (item.trend || []).filter((p) => {
+      if (filterStart && p.date < filterStart) return false;
+      if (filterEnd && p.date > filterEnd) return false;
+      return true;
+    });
     if (trendChart) {
       trendChart.destroy();
       trendChart = null;
@@ -465,8 +563,10 @@
         emptyEl.id = emptyId;
         emptyEl.className = "a3-table-empty";
         emptyEl.style.padding = "48px 0";
-        emptyEl.innerHTML = '<i class="fas fa-inbox"></i>暂无批次数据，等待首次抓取';
+        emptyEl.innerHTML = '<i class="fas fa-inbox"></i>当前时间范围内暂无批次数据';
         wrap.appendChild(emptyEl);
+      } else {
+        emptyEl.innerHTML = '<i class="fas fa-inbox"></i>当前时间范围内暂无批次数据';
       }
       emptyEl.classList.remove("cm-hidden");
       return;
@@ -586,10 +686,11 @@
       });
     }
 
+    const stayedOnDetail = currentDetailId && editingId === currentDetailId;
     save();
     closeModal("competitorModal");
-    if (currentDetailId && editingId === currentDetailId) {
-      showDetail(currentDetailId);
+    if (stayedOnDetail) {
+      showDetail(currentDetailId, true);
     } else {
       showList();
     }
@@ -726,6 +827,9 @@
       fillForm(item);
       openModal("competitorModal");
     });
+    document.getElementById("filter-start").addEventListener("change", applyDetailFilter);
+    document.getElementById("filter-end").addEventListener("change", applyDetailFilter);
+    document.getElementById("btn-filter-reset").addEventListener("click", resetDetailFilter);
 
     document.getElementById("docs-entry").addEventListener("click", openDocs);
     document.getElementById("docs-close").addEventListener("click", closeDocs);
