@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>竞品投放监控 · A3 SaaS 演示</title>
+  <!-- 演示层：非 monorepo 组件。产品落地请用 antd Layout / ProTable / Modal。 -->
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="./assets/a3-components.css" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+</head>
+<body class="a3-page">
+  <div class="a3-alert a3-alert-info cm-demo-banner">
+    <i class="fas fa-info-circle"></i>
+    演示层原型 · 前端交互与产品文档对齐 · 后端接口由他方实现 · 数据为本地 mock
+  </div>
+
+  <header class="cm-header">
+    <div class="cm-logo">
+      <i class="fas fa-cube"></i>
+      <span>A3 SaaS</span>
+    </div>
+    <div class="cm-top-tabs" aria-label="系统切换（演示近似）">
+      <span class="cm-top-tab"><i class="fas fa-users"></i> 人才库</span>
+      <span class="cm-top-tab active"><i class="fas fa-chart-line"></i> 投放洞察</span>
+      <span class="cm-top-tab"><i class="fas fa-briefcase"></i> OA</span>
+    </div>
+    <div class="cm-header-actions">
+      <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="docs-entry">
+        <i class="fas fa-book"></i> 产品文档
+      </button>
+      <span class="a3-tag a3-tag-default"><i class="fas fa-user"></i> 林运营</span>
+    </div>
+  </header>
+
+  <div class="cm-shell">
+    <aside class="cm-sider">
+      <ul class="a3-menu">
+        <li class="a3-menu-group-title">投放洞察</li>
+        <li class="a3-menu-item active" data-nav="list" id="nav-list">
+          <i class="fas fa-binoculars"></i> 竞品监控
+        </li>
+        <li class="a3-menu-item" style="opacity: 0.45; cursor: default">
+          <i class="fas fa-fire"></i> 热帖追踪（占位）
+        </li>
+      </ul>
+      <div class="cm-sider-foot">演示近似 · 产品用 antd Menu</div>
+    </aside>
+
+    <main class="cm-main">
+      <!-- 列表 -->
+      <section class="cm-page-card" id="view-list">
+        <div class="cm-page-hd">
+          <h1>竞品监控</h1>
+        </div>
+        <div class="cm-toolbar">
+          <div class="a3-input-wrapper a3-input-search" style="max-width: 280px">
+            <input class="a3-input" id="list-search" placeholder="搜索竞品品牌" />
+            <span class="a3-input-suffix"><i class="fas fa-search"></i></span>
+          </div>
+          <button type="button" class="a3-btn a3-btn-primary" id="btn-create">
+            <i class="fas fa-plus"></i> 新建竞品
+          </button>
+        </div>
+        <div class="a3-table-wrapper">
+          <table class="a3-table">
+            <thead>
+              <tr>
+                <th>竞品品牌</th>
+                <th>品牌词</th>
+                <th>抓取频次</th>
+                <th>单次上限/词</th>
+                <th>状态</th>
+                <th>上次更新</th>
+                <th>笔记数</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="competitor-tbody"></tbody>
+          </table>
+        </div>
+        <div class="a3-pagination" id="list-pagination"></div>
+      </section>
+
+      <!-- 详情 -->
+      <section class="cm-page-card cm-hidden" id="view-detail">
+        <div class="cm-page-hd">
+          <div class="cm-page-hd-left">
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="btn-back">
+              <i class="fas fa-arrow-left"></i> 返回
+            </button>
+            <h1 id="detail-title">竞品详情</h1>
+            <span class="a3-tag a3-tag-success" id="detail-status"><span class="a3-tag-dot"></span>已更新</span>
+          </div>
+          <div>
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="btn-edit-detail">
+              <i class="fas fa-pen"></i> 编辑配置
+            </button>
+          </div>
+        </div>
+
+        <div class="cm-filter-bar" id="detail-filter-bar">
+          <div class="cm-filter-dates">
+            <label for="filter-start">笔记发布时间</label>
+            <input class="a3-date-picker" type="date" id="filter-start" />
+            <span class="cm-filter-sep">至</span>
+            <input class="a3-date-picker" type="date" id="filter-end" />
+            <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="btn-filter-reset">重置</button>
+          </div>
+          <div class="cm-range-stats">
+            <div class="cm-range-stat">
+              <span class="label">区间笔记数</span>
+              <strong id="range-note-count">0</strong>
+            </div>
+            <div class="cm-range-stat">
+              <span class="label">区间互动量</span>
+              <strong id="range-engagement">0</strong>
+              <span class="hint">赞+藏+评</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cm-board-grid">
+          <div class="cm-board-card">
+            <div class="hd">
+              <span>走势 · 笔记量与互动量</span>
+              <span class="a3-text-secondary" style="font-size: 12px; font-weight: 400">横轴：批次时间</span>
+            </div>
+            <div class="bd">
+              <div class="cm-chart-wrap"><canvas id="trend-chart"></canvas></div>
+            </div>
+          </div>
+          <div class="cm-board-card">
+            <div class="hd">
+              <span>达人矩阵 · 金字塔</span>
+              <span class="a3-text-secondary" style="font-size: 12px; font-weight: 400" id="tier-legend">按粉丝分层</span>
+            </div>
+            <div class="bd">
+              <div class="cm-pyramid" id="pyramid"></div>
+            </div>
+          </div>
+          <div class="cm-board-card cm-board-span">
+            <div class="hd">
+              <span>内容类型 · 词云</span>
+              <span class="a3-text-secondary" style="font-size: 12px; font-weight: 400">来源：标题 + 正文</span>
+            </div>
+            <div class="bd">
+              <div class="cm-wordcloud" id="wordcloud"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cm-section-title">抓取笔记</div>
+        <div class="a3-table-wrapper">
+          <table class="a3-table">
+            <thead>
+              <tr>
+                <th>发布时间</th>
+                <th>标题</th>
+                <th>作者</th>
+                <th>粉丝</th>
+                <th>分层</th>
+                <th>赞</th>
+                <th>藏</th>
+                <th>评</th>
+                <th>匹配词</th>
+              </tr>
+            </thead>
+            <tbody id="notes-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 新建 / 编辑 Modal -->
+  <div class="a3-modal-mask cm-modal" id="competitorModal">
+    <div class="a3-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="a3-modal-header">
+        <span id="modal-title">新建竞品</span>
+        <button type="button" class="a3-modal-close" data-close-modal aria-label="关闭">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="a3-modal-body">
+        <div class="cm-summary cm-config-summary cm-hidden" id="config-summary" aria-label="当前配置摘要">
+          <div class="cm-summary-item">
+            <div class="label">品牌词</div>
+            <div class="value" style="font-size:14px" id="cfg-keywords">—</div>
+          </div>
+          <div class="cm-summary-item">
+            <div class="label">抓取频次</div>
+            <div class="value" style="font-size:16px" id="cfg-freq">—</div>
+            <div class="sub" id="cfg-limit-sub">—</div>
+          </div>
+          <div class="cm-summary-item">
+            <div class="label">笔记数（累计）</div>
+            <div class="value" id="cfg-note-count">0</div>
+            <div class="sub">去重后</div>
+          </div>
+          <div class="cm-summary-item">
+            <div class="label">互动合计（累计）</div>
+            <div class="value" id="cfg-engagement">0</div>
+            <div class="sub">赞+藏+评</div>
+          </div>
+        </div>
+        <form id="competitor-form" autocomplete="off">
+          <input type="hidden" id="field-id" />
+          <div class="cm-form-grid">
+            <div class="cm-field cm-field-full">
+              <label for="field-brand">竞品品牌 *</label>
+              <input class="a3-input" id="field-brand" required placeholder="例如：竞品花语" />
+            </div>
+            <div class="cm-field cm-field-full">
+              <label>品牌词 *（可多个）</label>
+              <div class="cm-kw-input-row">
+                <div class="a3-input-wrapper" style="max-width: none">
+                  <input class="a3-input" id="field-kw-input" placeholder="输入后回车或点添加" />
+                </div>
+                <button type="button" class="a3-btn a3-btn-default" id="btn-add-kw">添加</button>
+              </div>
+              <div class="cm-kw-tags" id="kw-tags" style="margin-top: 8px"></div>
+              <div class="cm-field-hint">多词将分别搜索，按笔记 ID 去重合并</div>
+            </div>
+            <div class="cm-field">
+              <label for="field-freq">抓取频次 *</label>
+              <div class="a3-select-wrapper" style="max-width: none">
+                <select class="a3-select" id="field-freq">
+                  <option value="biweekly">每两周（默认）</option>
+                  <option value="weekly">每一周</option>
+                </select>
+                <i class="fas fa-chevron-down a3-select-arrow"></i>
+              </div>
+            </div>
+            <div class="cm-field">
+              <label for="field-limit">单次抓取上限 / 每个品牌词 *</label>
+              <input class="a3-input" id="field-limit" type="number" min="10" max="500" step="10" value="100" />
+              <div class="cm-field-hint">影响费用与看板覆盖面，建议 50–200</div>
+            </div>
+            <div class="cm-field cm-field-full">
+              <label>达人分层阈值（粉丝数，本竞品独立配置）*</label>
+              <div class="cm-tier-row">
+                <div>
+                  <label for="field-tier-bottom" style="font-size: 12px">底部达人 &lt;</label>
+                  <input class="a3-input" id="field-tier-bottom" type="number" min="1000" step="1000" value="10000" />
+                </div>
+                <div>
+                  <label for="field-tier-mid" style="font-size: 12px">中腰部达人 &lt;</label>
+                  <input class="a3-input" id="field-tier-mid" type="number" min="10000" step="10000" value="500000" />
+                </div>
+                <div>
+                  <label style="font-size: 12px">头部达人</label>
+                  <input class="a3-input" id="field-tier-top-label" disabled value="≥ 中腰上限" />
+                </div>
+              </div>
+              <div class="cm-field-hint">底部 &lt; 阈值1 ≤ 中腰 &lt; 阈值2 ≤ 头部</div>
+            </div>
+            <div class="cm-field">
+              <label for="field-enabled">启用自动抓取</label>
+              <label class="a3-switch" style="margin-top: 8px">
+                <input type="checkbox" id="field-enabled" checked />
+                <span class="a3-switch-core"></span>
+              </label>
+            </div>
+            <div class="cm-field">
+              <label>平台</label>
+              <input class="a3-input" value="小红书（MVP 固定）" disabled />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="a3-modal-footer">
+        <button type="button" class="a3-btn a3-btn-default" data-close-modal>取消</button>
+        <button type="button" class="a3-btn a3-btn-primary" id="btn-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除确认 -->
+  <div class="a3-modal-mask" id="deleteModal">
+    <div class="a3-modal" style="width: 420px">
+      <div class="a3-modal-header">
+        <span>删除竞品</span>
+        <button type="button" class="a3-modal-close" data-close-delete><i class="fas fa-times"></i></button>
+      </div>
+      <div class="a3-modal-body">
+        确定删除「<strong id="delete-name"></strong>」？演示层仅移除本地数据；产品请用 antd danger + Modal.confirm。
+      </div>
+      <div class="a3-modal-footer">
+        <button type="button" class="a3-btn a3-btn-default" data-close-delete>取消</button>
+        <button type="button" class="a3-btn" id="btn-confirm-delete" style="background: var(--a3-danger); color: #fff; border-color: var(--a3-danger)">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 产品文档抽屉 -->
+  <div class="docs-overlay" id="docs-overlay" aria-hidden="true">
+    <div class="docs-drawer" role="dialog" aria-label="产品文档">
+      <div class="docs-drawer-hd">
+        <strong>产品文档</strong>
+        <div class="docs-actions">
+          <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="docs-download">下载当前</button>
+          <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="docs-download-all">下载合集</button>
+          <a class="a3-btn a3-btn-text a3-btn-sm" id="docs-raw" href="./docs/prd-all.md" target="_blank" rel="noopener">原始 MD</a>
+          <button type="button" class="a3-btn a3-btn-text a3-btn-sm" id="docs-close"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+      <div class="docs-drawer-bd">
+        <div class="docs-list" id="docs-list"></div>
+        <div class="docs-preview"><div class="md-body" id="docs-preview">加载中…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
