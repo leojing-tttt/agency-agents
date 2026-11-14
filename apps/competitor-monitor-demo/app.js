@@ -1,6 +1,7 @@
 /* 演示层交互。产品落地：React 状态 + antd Modal / ProTable / message。 */
 (function () {
-  const STORAGE_KEY = "a3-cm-competitors-v1";
+  const STORAGE_KEY = "a3-cm-competitors-v2";
+  const DISPLAY_TZ = "Asia/Shanghai";
 
   const PRD_DOCS = [
     {
@@ -93,6 +94,25 @@
     },
   ];
 
+  function formatInTz(date, opts) {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: DISPLAY_TZ, ...opts }).format(date);
+  }
+
+  /** YYYY-MM-DD in Asia/Shanghai */
+  function localDateKey(date) {
+    return formatInTz(date, { year: "numeric", month: "2-digit", day: "2-digit" });
+  }
+
+  /** YYYY-MM-DD HH:mm in Asia/Shanghai */
+  function formatDisplayDateTime(value) {
+    if (!value) return "—";
+    const d = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
+    const day = localDateKey(d);
+    const time = formatInTz(d, { hour: "2-digit", minute: "2-digit", hour12: false });
+    return `${day} ${time}`;
+  }
+
   function mockTrend(base) {
     const points = [];
     const now = new Date("2026-11-14T00:00:00+08:00");
@@ -102,7 +122,7 @@
       const notes = Math.max(8, Math.round(base / 6 + (Math.random() * 12 - 4)));
       const engagement = notes * (800 + Math.round(Math.random() * 900));
       points.push({
-        date: d.toISOString().slice(0, 10),
+        date: localDateKey(d),
         noteCount: notes,
         engagement,
       });
@@ -184,7 +204,24 @@
     if (status === "paused") {
       return '<span class="a3-tag a3-tag-default"><span class="a3-tag-dot"></span>已停用</span>';
     }
+    if (status === "idle") {
+      return '<span class="a3-tag a3-tag-warning"><span class="a3-tag-dot"></span>待首次抓取</span>';
+    }
     return '<span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>已更新</span>';
+  }
+
+  function displayStatus(item) {
+    if (!item.enabled) return "paused";
+    return item.status || "idle";
+  }
+
+  function statusAfterEnableToggle(enabled, prev) {
+    if (!enabled) return "paused";
+    if (prev.status === "paused" || !prev.status) {
+      const hasNotes = (prev.noteCount || 0) > 0 || (prev.notes && prev.notes.length > 0);
+      return hasNotes ? "updated" : "idle";
+    }
+    return prev.status;
   }
 
   function formatFans(n) {
@@ -281,8 +318,8 @@
           .join("")}</div></td>
         <td>${freqLabel(c.frequency)}</td>
         <td>${c.limitPerKeyword}</td>
-        <td>${statusTag(c.enabled ? c.status : "paused")}</td>
-        <td>${c.lastUpdatedAt ? c.lastUpdatedAt.replace("T", " ").slice(0, 16) : "—"}</td>
+        <td>${statusTag(displayStatus(c))}</td>
+        <td>${formatDisplayDateTime(c.lastUpdatedAt)}</td>
         <td>${c.noteCount ?? 0}</td>
         <td>
           <div class="cm-ops">
@@ -311,9 +348,10 @@
     document.getElementById("view-list").classList.add("cm-hidden");
     document.getElementById("view-detail").classList.remove("cm-hidden");
     document.getElementById("detail-title").textContent = item.brand;
-    document.getElementById("detail-status").outerHTML = statusTag(
-      item.enabled ? item.status : "paused"
-    ).replace('class="a3-tag', 'id="detail-status" class="a3-tag');
+    document.getElementById("detail-status").outerHTML = statusTag(displayStatus(item)).replace(
+      'class="a3-tag',
+      'id="detail-status" class="a3-tag'
+    );
 
     const engagement =
       item.engagementTotal ??
@@ -342,12 +380,18 @@
 
   function renderPyramid(item) {
     const notes = item.notes || [];
+    const el = document.getElementById("pyramid");
+    if (!notes.length) {
+      el.innerHTML =
+        '<div class="a3-table-empty" style="padding:24px 0"><i class="fas fa-inbox"></i>暂无笔记，等待首次抓取后再看达人结构</div>';
+      return;
+    }
     const counts = { 底部: 0, 中腰: 0, 头部: 0 };
     notes.forEach((n) => {
       counts[n.tier] = (counts[n.tier] || 0) + 1;
     });
-    const total = notes.length || 1;
-    document.getElementById("pyramid").innerHTML = `
+    const total = notes.length;
+    el.innerHTML = `
       <div class="cm-pyramid-layer top"><strong>头部</strong><br>${counts["头部"]} 篇 · ${Math.round(
       (counts["头部"] / total) * 100
     )}%</div>
@@ -362,7 +406,13 @@
 
   function renderWordcloud(item) {
     const words = item.words || [];
-    document.getElementById("wordcloud").innerHTML = words
+    const el = document.getElementById("wordcloud");
+    if (!words.length) {
+      el.innerHTML =
+        '<div class="a3-table-empty" style="padding:24px 0"><i class="fas fa-inbox"></i>暂无语料，等待首次抓取后再看词云</div>';
+      return;
+    }
+    el.innerHTML = words
       .map(
         (w) =>
           `<span style="font-size:${Math.max(12, w.weight)}px;opacity:${0.55 + w.weight / 60}">${escapeHtml(
@@ -400,11 +450,29 @@
 
   function renderTrend(item) {
     const canvas = document.getElementById("trend-chart");
+    const wrap = canvas.parentElement;
     const data = item.trend || [];
     if (trendChart) {
       trendChart.destroy();
       trendChart = null;
     }
+    const emptyId = "trend-empty";
+    let emptyEl = document.getElementById(emptyId);
+    if (!data.length) {
+      canvas.classList.add("cm-hidden");
+      if (!emptyEl) {
+        emptyEl = document.createElement("div");
+        emptyEl.id = emptyId;
+        emptyEl.className = "a3-table-empty";
+        emptyEl.style.padding = "48px 0";
+        emptyEl.innerHTML = '<i class="fas fa-inbox"></i>暂无批次数据，等待首次抓取';
+        wrap.appendChild(emptyEl);
+      }
+      emptyEl.classList.remove("cm-hidden");
+      return;
+    }
+    canvas.classList.remove("cm-hidden");
+    if (emptyEl) emptyEl.classList.add("cm-hidden");
     if (typeof Chart === "undefined") return;
     trendChart = new Chart(canvas, {
       type: "line",
@@ -491,7 +559,7 @@
           tierBottomMax: bottom,
           tierMidMax: mid,
           enabled,
-          status: enabled ? prev.status || "updated" : "paused",
+          status: statusAfterEnableToggle(enabled, prev),
           notes: (prev.notes || []).map((n) => ({
             ...n,
             tier: tierOf(n.fans, bottom, mid),
@@ -508,13 +576,13 @@
         tierBottomMax: bottom,
         tierMidMax: mid,
         enabled,
-        status: enabled ? "updated" : "paused",
-        lastUpdatedAt: new Date().toISOString(),
+        status: enabled ? "idle" : "paused",
+        lastUpdatedAt: null,
         noteCount: 0,
         engagementTotal: 0,
         notes: [],
-        trend: mockTrend(24),
-        words: mockWords(draftKeywords.concat(["种草", "测评", "实测", "推荐"])),
+        trend: [],
+        words: [],
       });
     }
 
