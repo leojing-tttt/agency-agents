@@ -301,20 +301,29 @@
   }
 
   function defaultFilterRange(item) {
-    const notes = item.notes || [];
-    if (!notes.length) {
-      const today = localDateKey(new Date());
-      return { start: today, end: today };
-    }
+    // Cover both note publish dates and trend batch dates so seed data
+    // does not open with an empty 走势图 under a note-only window.
     let min = Infinity;
     let max = -Infinity;
-    notes.forEach((n) => {
+    (item.notes || []).forEach((n) => {
       const d = parseNoteTime(n.publishedAt);
       if (!d) return;
       const ms = d.getTime();
       if (ms < min) min = ms;
       if (ms > max) max = ms;
     });
+    (item.trend || []).forEach((p) => {
+      if (!p || !p.date) return;
+      const d = new Date(`${p.date}T00:00:00+08:00`);
+      if (Number.isNaN(d.getTime())) return;
+      const ms = d.getTime();
+      if (ms < min) min = ms;
+      if (ms > max) max = ms;
+    });
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      const today = localDateKey(new Date());
+      return { start: today, end: today };
+    }
     return {
       start: localDateKey(new Date(min)),
       end: localDateKey(new Date(max)),
@@ -452,12 +461,16 @@
   function applyDetailFilter() {
     const item = competitors.find((c) => c.id === currentDetailId);
     if (!item) return;
-    filterStart = document.getElementById("filter-start").value;
-    filterEnd = document.getElementById("filter-end").value;
-    if (filterStart && filterEnd && filterStart > filterEnd) {
+    const nextStart = document.getElementById("filter-start").value;
+    const nextEnd = document.getElementById("filter-end").value;
+    if (nextStart && nextEnd && nextStart > nextEnd) {
       alert("开始日期不能晚于结束日期");
+      document.getElementById("filter-start").value = filterStart;
+      document.getElementById("filter-end").value = filterEnd;
       return;
     }
+    filterStart = nextStart;
+    filterEnd = nextEnd;
     renderDetailBody(item);
   }
 
