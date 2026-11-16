@@ -84,10 +84,10 @@ Note（笔记）
 | `content` | TEXT | 最近一次见到的正文 |
 | `like_count` | INT NULL | 最近一次见到的点赞 |
 | `comment_created_at` | TIMESTAMP NULL | 平台侧创建时间 |
-| `first_seen_at` | TIMESTAMP | 首次入库 |
-| `last_seen_at` | TIMESTAMP | 最近一次出现在某次成功/部分成功 Run |
-| `first_seen_run_id` | BIGINT FK → monitor_runs | |
-| `last_seen_run_id` | BIGINT FK → monitor_runs | |
+| `first_seen_at` | TIMESTAMP | 首次被**成功/部分成功** Run 收录的时间 |
+| `last_seen_at` | TIMESTAMP | 最近一次出现在成功/部分成功 Run |
+| `first_seen_run_id` | BIGINT FK → monitor_runs | 仅指向 success/partial；失败 run 不得占用 |
+| `last_seen_run_id` | BIGINT FK → monitor_runs | 同上 |
 | `created_at` / `updated_at` | TIMESTAMP | |
 
 约束：`UNIQUE(note_id, platform_comment_id)`  
@@ -209,26 +209,48 @@ CREATE INDEX idx_monitor_runs_note_date ON monitor_runs (note_id, crawl_date DES
 
 2. **按接口返回顺序遍历**（禁止事后按点赞/时间重排）  
    对第 `i` 条（`i` 从 1 开始）：
-   - Upsert `comments`：命中则更新 `content` / `like_count` / `last_seen_*`；未命中则插入并设 `first_seen_*`。
+   - Upsert `comments` 的**内容字段**（`content` / `like_count` / author 等）。  
+     **不要在循环里写死 `first_seen_run_id` / `last_seen_run_id`**（见下条收尾）；新评论可先插入实体，`first_seen_*` 留空或暂记，以收尾为准。
    - Insert `comment_run_items(run_id, comment_id, position=i, ...)`。
 
-3. **收尾**  
-   `UPDATE monitor_runs SET status='success'|'partial', fetched_count=N, finished_at=now()`。
+3. **收尾（成功 / 部分成功才「生效」）**  
+   - `UPDATE monitor_runs SET status='success'|'partial', fetched_count=N, finished_at=now()`  
+   - 对本 run 的每条 `comment_run_items`：  
+     - 若 `comments.first_seen_run_id` 为空，或指向的 run 不是 `success`/`partial`，则设为**本 run**  
+     - 一律更新 `last_seen_run_id` / `last_seen_at` 为本 run  
+   - 这样失败 run 不会抢走「首次见到」的归属，也不会让次日成功抓取丢「新增」标记。
 
-4. **消失评论**  
-   不做 DELETE。展示层用「上一成功 Run 有 ∩ 本 Run 无」推导。
+4. **失败回滚**  
+   - `status='failed'` 时：删除该 run 的 `comment_run_items`；**不**把任何 comment 的 `first_seen_*` / `last_seen_*` 指到该 run。  
+   - 对比「上一成功日」时跳过 failed run。
+
+5. **消失评论**  
+   不做实体 DELETE。展示层用「上一成功 Run 有 ∩ 本成功 Run 无」推导。
 
 ### 伪代码
 
 ```text
 run = create_run(note_id, today, sort_mode)
 
-for position, raw in enumerate(api_comments_in_ui_order, start=1):
-    comment = upsert_comment(note_id, raw, run_id=run.id)
-    insert_run_item(run.id, comment.id, position, snapshot=raw)
-
-finalize_run(run, count=len(api_comments))
+try:
+  for position, raw in enumerate(api_comments_in_ui_order, start=1):
+      comment = upsert_comment_content(note_id, raw)   # 不写 first/last_seen_run
+      insert_run_item(run.id, comment.id, position, snapshot=raw)
+  finalize_run_success(run)  # 标记 success/partial，再批量回填 first/last_seen_*
+except:
+  mark_run_failed(run)
+  delete_run_items(run.id)   # 失败 run 不留排序快照，不污染 first_seen
 ```
+
+### 「今日新增」判定（与 first_seen 解耦）
+
+UI 上的「今日新增」**不要**用 `first_seen_run_id = 最新 run`。  
+应与「今日消失」对称，用**两次成功 Run 的集合差**：
+
+- 今日新增 = 在最新成功 Run 有，且不在上一成功 Run  
+- 今日消失 = 在上一成功 Run 有，且不在最新成功 Run  
+
+`first_seen_*` 仍保留，用于审计「系统最早在哪次成功抓取见到」，不直接当 UI 日更标签。
 
 ### 身份键
 
@@ -269,15 +291,22 @@ WHERE r.note_id = :note_id
 ORDER BY i.position;
 ```
 
-### 6.3 今日新增
+### 6.3 今日新增（相对上一成功日，集合差）
 
 ```sql
--- :latest_run_id = 最新成功 run
+-- :latest_run_id / :prev_run_id 均为 success|partial；无上一成功日则全部算新增
 SELECT c.*
-FROM comments c
-WHERE c.note_id = :note_id
-  AND c.first_seen_run_id = :latest_run_id;
+FROM comment_run_items cur
+JOIN comments c ON c.id = cur.comment_id
+WHERE cur.run_id = :latest_run_id
+  AND NOT EXISTS (
+    SELECT 1 FROM comment_run_items prev
+    WHERE prev.run_id = :prev_run_id
+      AND prev.comment_id = cur.comment_id
+  );
 ```
+
+> 不要用 `first_seen_run_id = :latest_run_id`：失败 run 若曾写入实体，会让次日成功抓取再也打不上「新增」。
 
 ### 6.4 今日消失（相对上一成功日）
 
@@ -318,6 +347,7 @@ SELECT r.crawl_date, i.position, i.like_count
 FROM comment_run_items i
 JOIN monitor_runs r ON r.id = i.run_id
 WHERE i.comment_id = :comment_id
+  AND r.status IN ('success', 'partial')
 ORDER BY r.crawl_date;
 ```
 
@@ -329,8 +359,8 @@ ORDER BY r.crawl_date;
 
 - 严格按最新 Run 的 `position` 渲染，与 App 一致。
 - 行内轻量标签（可选）：
-  - `新增`：`first_seen_run_id = 最新 run`
-  - `↑` / `↓`：相对昨日 `position` 变化
+  - `新增`：在最新成功 Run，且不在上一成功 Run（集合差，见 §6.3）
+  - `↑` / `↓`：相对上一成功日 `position` 变化
 - 顶部摘要一行即可：  
   `今日 128 条 · 新增 12 · 消失 5 · 重排 23`
 
@@ -363,10 +393,12 @@ ORDER BY r.crawl_date;
 | 展示状态 | 判定 |
 |----------|------|
 | 今日可见 | 存在于最新成功 Run 的 `comment_run_items` |
-| 今日新增 | `first_seen_run_id = 最新 run` |
-| 今日消失 | 在上一成功 Run 有，最新 Run 无 |
-| 历史曾现 | 在 `comments` 中，但不在最新 Run |
-| 持续可见 | 最新与上一 Run 均有（可再比 position） |
+| 今日新增 | 最新成功 Run 有，且上一成功 Run 无（集合差） |
+| 今日消失 | 上一成功 Run 有，且最新成功 Run 无 |
+| 历史曾现 | 在 `comments` 中，但不在最新成功 Run |
+| 持续可见 | 最新与上一成功 Run 均有（可再比 position） |
+
+`first_seen_run_id` 仅表示「首次被某次**成功/部分成功**抓取收录」，**不**作为日更「新增」标签的唯一依据。
 
 可选物化：每日跑批写入 `comment_daily_flags(note_id, crawl_date, comment_id, is_new, is_missing, ...)`；早期用查询推导即可。
 
@@ -377,7 +409,7 @@ ORDER BY r.crawl_date;
 1. **排序以抓取返回顺序为准**；`monitor_runs.sort_mode` 记录当时模式（热门/最新等）。  
 2. **时区**：`crawl_date` 用业务时区（如 Asia/Shanghai）的日历日，避免 UTC 切日错位。  
 3. **部分成功**：`status=partial` 仍可作「当日界面近似」，UI 标注「未抓全」。  
-4. **失败日**：无 `comment_run_items`；「上一成功日」跳过失败 run。  
+4. **失败日**：清空该 run 的 `comment_run_items`；不把 `first_seen_*` / `last_seen_*` 指到失败 run；「上一成功日」跳过失败 run。日更「新增/消失」一律用两次成功 Run 的集合差，避免失败污染。  
 5. **二级评论**：本方案默认一级；若要楼中楼，另加 `parent_comment_id` + 同 run 内子序，或独立 `reply_run_items`。  
 6. **保留周期**：监控结束后可继续保留 7 日快照；归档策略与产品另行约定。  
 7. **合规**：仅存业务所需字段；导出/展示注意脱敏与平台 ToS。
@@ -402,10 +434,10 @@ ORDER BY r.crawl_date;
 
 - [ ] 最新列表顺序与当日抓取原始顺序一致（抽检 position）  
 - [ ] 昨日有、今日无的评论仍可在「消失/历史」中查到  
-- [ ] 今日新评论标记正确，且出现在最新列表对应 position  
-- [ ] 任意历史 `crawl_date` 可回放当日顺序  
+- [ ] 今日新评论标记正确（相对上一成功 Run 的集合差），且出现在最新列表对应 position  
+- [ ] 任意历史成功 `crawl_date` 可回放当日顺序  
 - [ ] 同日重跑策略明确且不产生重复 position  
-- [ ] 失败日不污染「上一成功日」对比  
+- [ ] 失败日清空 items、不占用 first/last_seen，且不污染「上一成功日」对比与「今日新增」  
 
 ---
 
