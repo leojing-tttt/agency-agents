@@ -184,11 +184,11 @@ def build_parser() -> argparse.ArgumentParser:
     trem.add_argument("--enum-id", required=True)
     trem.set_defaults(func=cmd_taxonomy_remove_enum)
 
-    mlist = sub.add_parser("mapping-list", help="列出大类与叶子映射")
+    mlist = sub.add_parser("mapping-list", help="列出汇总大类与细类枚举映射")
     mlist.add_argument("--mapping", default=str(DEFAULT_MAPPING))
     mlist.set_defaults(func=cmd_mapping_list)
 
-    mset = sub.add_parser("mapping-set", help="设置叶子→大类映射")
+    mset = sub.add_parser("mapping-set", help="设置细类枚举→汇总大类映射")
     mset.add_argument("--mapping", default=str(DEFAULT_MAPPING))
     mset.add_argument("--leaf", required=True)
     mset.add_argument("--category", required=True)

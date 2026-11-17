@@ -7,7 +7,7 @@
 > **机器可读源**：`apps/image-tagger/data/taxonomy.json`（词表 v1.0.0）、`apps/image-tagger/data/image_type_category_map.json`（映射 v1.0.0）  
 > **实现包**：`apps/image-tagger/`（本地 CLI 打标 + FastAPI/静态页词表管理）  
 > **视觉模型**：本机 Ollama `xhs-tagger`（Qwen3-VL-4B-Instruct 量化，离线）  
-> **日期**：2026-11-16  
+> **日期**：2026-11-17（术语：细类枚举 / 汇总大类；交接包同步更新）  
 
 ---
 

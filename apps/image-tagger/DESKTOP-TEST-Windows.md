@@ -125,7 +125,7 @@ python -m image_tagger.cli serve --host 127.0.0.1 --port 8787
 可检查并改：
 
 - **维度管理**：各标签类型下的枚举
-- **映射管理**：图片类型叶子 → 大类
+- **映射管理**：图片类型细类枚举 → 汇总大类
 - **校验**：词表与映射是否一致
 
 不选品牌/产品也能先把词表看完。关窗口或 `Ctrl+C` 停止服务。
@@ -144,8 +144,8 @@ python -m image_tagger.cli mapping-list
 期望：
 
 - `validate-config` → `OK: taxonomy and mapping are consistent`
-- `taxonomy-list` 里有 `[image_type] 图片类型`，枚举是叶子（如 `scene_intro` / 场景介绍）
-- `mapping-list` 里叶子能映到大类（如 `scene_intro → scene`）
+- `taxonomy-list` 里有 `[image_type] 图片类型`，枚举是细类（如 `scene_intro` / 场景介绍）
+- `mapping-list` 里细类能映到汇总大类（如 `scene_intro → scene`）
 
 **可选：维度管理小练习（证明管理功能可用）**
 
@@ -232,7 +232,7 @@ Get-Content D:\image-tagger-test\out\results.jsonl -TotalCount 1
 | 检查 | 期望 |
 |---|---|
 | 产品是不是人选的 | 是；模型没改成别的品牌名当正式产品字段 |
-| 图片类型 | 是词表叶子 id；说得通 |
+| 图片类型 | 是词表细类枚举 id；说得通 |
 | 大类 | 与映射一致（如场景介绍 → scene） |
 | 低置信度 / 非法枚举 | `needs_review`，并在 `errors` 有原因 |
 | 只有手的图 | `person_visibility` 倾向 `hand_only`，不要当成完整人物 |
@@ -300,7 +300,7 @@ python -m pytest -q
 - [ ] `validate-config` = OK  
 - [ ] `inbox` ≥ 3 张图  
 - [ ] `tag` 跑完，生成 jsonl + csv  
-- [ ] 抽查产品字段正确、类型为叶子枚举  
+- [ ] 抽查产品字段正确、类型为细类枚举  
 - [ ] 重跑不导致 jsonl 行数翻倍  
 - [ ] 按第 11 节回传结果  
 

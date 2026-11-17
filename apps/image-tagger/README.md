@@ -13,7 +13,7 @@ python -m image_tagger.cli serve --port 8787
 # 浏览器打开 http://127.0.0.1:8787/
 ```
 
-本地 FastAPI 后端 + `web/` 前端（无外网 CDN）。可管理维度枚举、叶子→大类映射、一键校验。
+本地 FastAPI 后端 + `web/` 前端（无外网 CDN）。可管理维度枚举、细类→汇总大类映射、一键校验。
 
 ### A. 维度（标签类型）管理
 
@@ -25,18 +25,18 @@ python -m image_tagger.cli serve --port 8787
 | 词表文件 | `data/taxonomy.json`（可手改，改完跑校验） |
 
 维度例：`image_type`、`tonality_primary`、`cover_fit`、`scene_category`、`channel`…  
-`image_type` 的枚举是**叶子**（原「子类型」；无子类的主类型本身也是叶子）。
+`image_type` 的枚举是**细类枚举**（原「子类型」；无子类的旧主类型自身也是一条细类）。术语勿再称「叶子」。
 
-### B. 映射表管理（叶子 → 大类）
+### B. 映射表管理（细类枚举 → 汇总大类）
 
 | 能力 | 命令 |
 |---|---|
 | 列出大类与映射 | `image-tagger mapping-list` |
-| 设置叶子映射 | `image-tagger mapping-set --leaf scene_intro --category scene` |
+| 设置细类映射 | `image-tagger mapping-set --leaf scene_intro --category scene` |
 | 与词表交叉校验 | `image-tagger validate-config` |
 | 映射文件 | `data/image_type_category_map.json` |
 
-映射只用于汇总/筛图/推荐图位，**标注员不填第三层**。
+映射只用于汇总/筛图/推荐图位，得到**汇总大类（派生）**；**标注员不填第三层**。CLI 参数名 `--leaf` 为历史兼容，语义即细类枚举 id。
 
 ### C. 打标
 
@@ -82,7 +82,7 @@ taxonomy 全部维度枚举
 | **一次调用 + 词表塞进 prompt + 代码校验（本项目）** | 与业务 Skill「先观察后打标」一致；规矩在程序里 |
 | 校验失败再对失败维度补打 | 可作后续优化，第一版不做 |
 
-模型**看不见**映射表大类；大类由程序根据 `image_type` 叶子查表得出。
+模型**看不见**映射表大类；汇总大类由程序根据 `image_type` 细类枚举查表得出。
 
 ## 安装（Windows 离线机）
 

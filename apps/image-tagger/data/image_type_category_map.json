@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "description": "图片类型叶子枚举 → 大类。仅用于汇总/筛图，标注员不填第三层。",
+  "description": "图片类型细类枚举 → 汇总大类（派生）。仅用于汇总/筛图，标注员不填第三层。",
   "categories": [
     { "id": "product_shot", "label": "产品实拍" },
     { "id": "feature", "label": "产品特点" },
