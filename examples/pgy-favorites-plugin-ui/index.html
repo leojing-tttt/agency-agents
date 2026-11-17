@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>蒲公英插件 · 收藏夹 / 我的更新 — 高保真原型</title>
+  <!-- 演示层：a3-* + Font Awesome；非 monorepo 产品组件 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="./a3-components.css" />
+  <link rel="stylesheet" href="./prototype.css" />
+</head>
+<body>
+  <!--
+    DESIGN SPEC
+    ===========
+    1. Purpose: 蒲公英插件内管理收藏夹达人，并查看可下载的更新任务；让用户一眼看清容量、选中态、任务进度。
+    2. Aesthetic Direction: Industrial/utilitarian SaaS（对齐 A3 产品壳，非装饰性创意页）
+    3. Color Palette: #c9677d primary · #fff8f0 selected · #ff4d4f danger · #333 text · #F0F2F5 body
+    4. Typography: PingFang SC / Microsoft YaHei（A3 品牌覆盖 ui-design-guide 默认禁字体系）
+    5. Layout Strategy: 顶栏分段主导航 + 收藏夹主从左右栏；「我的更新」单栏任务表。非居中卡片堆叠。
+  -->
+
+  <div class="stage">
+    <div class="proto-chrome">
+      <span class="proto-chrome-dot"></span>
+      <span class="proto-chrome-dot"></span>
+      <span class="proto-chrome-dot"></span>
+      <span class="proto-chrome-title">A3 · 蒲公英插件高保真原型（方案 A + 顶栏分段）</span>
+    </div>
+
+    <div class="plugin-shell" id="plugin">
+      <!-- Top segment nav -->
+      <header class="plugin-top">
+        <nav class="seg-nav" role="tablist" aria-label="主导航">
+          <button type="button" class="seg-item active" data-view="favorites" role="tab" aria-selected="true">
+            <i class="fas fa-folder"></i>
+            收藏夹
+          </button>
+          <button type="button" class="seg-item" data-view="updates" role="tab" aria-selected="false">
+            <i class="fas fa-sync-alt"></i>
+            我的更新
+            <span class="seg-badge" id="update-badge">2</span>
+          </button>
+        </nav>
+        <button type="button" class="plugin-close" aria-label="关闭" title="关闭">
+          <i class="fas fa-times"></i>
+        </button>
+      </header>
+
+      <!-- ========== VIEW: 收藏夹 ========== -->
+      <section class="view view-favorites active" id="view-favorites" data-view-panel="favorites">
+        <aside class="fav-sider">
+          <div class="sider-toolbar">
+            <button type="button" class="a3-btn a3-btn-primary a3-btn-sm">
+              <i class="fas fa-plus"></i> 新增
+            </button>
+            <div class="a3-input-wrapper a3-input-search sider-search">
+              <input class="a3-input" type="search" placeholder="输入收藏夹名称..." />
+              <span class="a3-input-suffix"><i class="fas fa-search"></i></span>
+            </div>
+          </div>
+
+          <div class="sider-alert" role="status">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>1 个收藏夹已超限，建议转移或删除达人后再更新</span>
+          </div>
+
+          <div class="sider-meta">
+            <span>收藏夹 · 12 个</span>
+            <span class="sider-meta-muted">容量按夹独立计</span>
+          </div>
+
+          <ul class="folder-list" id="folder-list">
+            <li class="folder-item active over-limit" data-name="默认收藏夹" data-count="2828" data-cap="1000" data-updated="2026-11-16 21:20">
+              <div class="folder-main">
+                <span class="folder-name">默认收藏夹</span>
+                <span class="folder-count over">2828/1000</span>
+              </div>
+              <div class="folder-bar"><span style="width:100%"></span></div>
+            </li>
+            <li class="folder-item" data-name="美妆种草池" data-count="182" data-cap="1000" data-updated="2026-11-17 09:12">
+              <div class="folder-main">
+                <span class="folder-name">美妆种草池</span>
+                <span class="folder-count">182/1000</span>
+              </div>
+              <div class="folder-bar"><span style="width:18%"></span></div>
+            </li>
+            <li class="folder-item" data-name="家居生活" data-count="96" data-cap="1000" data-updated="2026-11-15 18:40">
+              <div class="folder-main">
+                <span class="folder-name">家居生活</span>
+                <span class="folder-count">96/1000</span>
+              </div>
+              <div class="folder-bar"><span style="width:10%"></span></div>
+            </li>
+            <li class="folder-item" data-name="母婴育儿" data-count="210" data-cap="1000" data-updated="2026-11-14 11:05">
+              <div class="folder-main">
+                <span class="folder-name">母婴育儿</span>
+                <span class="folder-count">210/1000</span>
+              </div>
+              <div class="folder-bar"><span style="width:21%"></span></div>
+            </li>
+            <li class="folder-item" data-name="数码测评" data-count="64" data-cap="1000" data-updated="2026-11-12 16:22">
+              <div class="folder-main">
+                <span class="folder-name">数码测评</span>
+                <span class="folder-count">64/1000</span>
+              </div>
+              <div class="folder-bar"><span style="width:6%"></span></div>
+            </li>
+            <li class="folder-item" data-name="穿搭合集" data-count="128" data-cap="1000" data-updated="2026-11-10 10:08">
+              <div class="folder-main">
+                <span class="folder-name">穿搭合集</span>
+                <span class="folder-count">128/1000</span>
+              </div>
+              <div class="folder-bar"><span style="width:13%"></span></div>
+            </li>
+          </ul>
+
+          <div class="sider-footer">
+            <button type="button" class="a3-btn a3-btn-default a3-btn-block">
+              <i class="fas fa-layer-group"></i> 批量处理
+            </button>
+          </div>
+        </aside>
+
+        <main class="fav-main">
+          <div class="main-header">
+            <div class="main-title-block">
+              <h1 class="main-title" id="folder-title">默认收藏夹</h1>
+              <p class="main-sub" id="folder-sub">
+                共 <b>2828</b> 人 · 容量 <b>1000</b>
+                <span class="status-pill danger"><i class="fas fa-exclamation-triangle"></i> 已超限</span>
+                <span class="sub-sep">·</span>
+                上次更新 <time>2026-11-16 21:20</time>
+              </p>
+            </div>
+            <button type="button" class="a3-btn a3-btn-primary" id="btn-update-data">
+              <i class="fas fa-cloud-download-alt"></i> 更新数据
+            </button>
+          </div>
+
+          <div class="over-banner" id="over-banner">
+            <i class="fas fa-info-circle"></i>
+            当前夹已超容量上限。更新任务仍可创建，但建议先批量转移/删除后再同步，以免结果不完整。
+          </div>
+
+          <div class="toolbar">
+            <div class="a3-input-wrapper a3-input-search toolbar-search">
+              <input class="a3-input" type="search" placeholder="昵称/机构模糊搜；粘贴主页链接可精确匹配" />
+              <span class="a3-input-suffix"><i class="fas fa-search"></i></span>
+            </div>
+            <div class="a3-select-wrapper toolbar-select">
+              <select class="a3-select" aria-label="应用模板">
+                <option>默认模板</option>
+                <option>报价对比模板</option>
+                <option>提报精简模板</option>
+              </select>
+              <i class="fas fa-chevron-down a3-select-arrow"></i>
+            </div>
+            <div class="toolbar-actions">
+              <button type="button" class="a3-btn a3-btn-default a3-btn-sm" title="刷新">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+              <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="btn-batch-move" disabled title="请先勾选达人">
+                批量转移
+              </button>
+              <button type="button" class="a3-btn a3-btn-default a3-btn-sm" id="btn-batch-del" disabled title="请先勾选达人">
+                批量删除
+              </button>
+              <button type="button" class="a3-btn a3-btn-default a3-btn-sm">
+                <i class="fas fa-file-import"></i> 批量导入
+              </button>
+            </div>
+          </div>
+
+          <div class="selection-bar" id="selection-bar" hidden>
+            <span>已选择 <b id="selected-count">0</b> 条</span>
+            <div class="selection-actions">
+              <button type="button" class="a3-btn a3-btn-text a3-btn-sm" id="clear-selection">取消选择</button>
+              <button type="button" class="a3-btn a3-btn-default a3-btn-sm">批量转移</button>
+              <button type="button" class="a3-btn a3-btn-sm" style="color:#ff4d4f;border:1px solid #ff4d4f;background:#fff">批量删除</button>
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <table class="a3-table kol-table">
+              <thead>
+                <tr>
+                  <th class="col-check"><input type="checkbox" class="a3-checkbox-input" id="check-all" aria-label="全选" /></th>
+                  <th class="col-kol">达人信息</th>
+                  <th>所属机构</th>
+                  <th class="col-num">粉丝数</th>
+                  <th class="col-num">图文一口价</th>
+                  <th class="col-num">视频一口价</th>
+                  <th class="col-ops">操作</th>
+                </tr>
+              </thead>
+              <tbody id="kol-tbody">
+                <tr>
+                  <td><input type="checkbox" class="a3-checkbox-input row-check" /></td>
+                  <td>
+                    <div class="kol-cell">
+                      <img class="kol-avatar" src="https://i.pravatar.cc/64?img=5" alt="" />
+                      <div>
+                        <div class="kol-name">Hello Ve</div>
+                        <div class="kol-loc">四川 成都 金牛区</div>
+                        <div class="kol-tags"><span class="tag">插画师</span><span class="tag">家居</span></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="muted">暂无</span></td>
+                  <td class="col-num">3,877</td>
+                  <td class="col-num">¥800</td>
+                  <td class="col-num">¥1,500</td>
+                  <td class="col-ops">
+                    <button type="button" class="icon-btn" title="转移"><i class="fas fa-exchange-alt"></i></button>
+                    <button type="button" class="icon-btn danger" title="删除"><i class="fas fa-trash-alt"></i></button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="a3-checkbox-input row-check" /></td>
+                  <td>
+                    <div class="kol-cell">
+                      <img class="kol-avatar" src="https://i.pravatar.cc/64?img=9" alt="" />
+                      <div>
+                        <div class="kol-name">哈哈大王</div>
+                        <div class="kol-loc">四川 成都</div>
+                        <div class="kol-tags"><span class="tag">宠物</span></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>萌宠传媒</td>
+                  <td class="col-num">128,400</td>
+                  <td class="col-num">¥2,000</td>
+                  <td class="col-num">¥3,500</td>
+                  <td class="col-ops">
+                    <button type="button" class="icon-btn" title="转移"><i class="fas fa-exchange-alt"></i></button>
+                    <button type="button" class="icon-btn danger" title="删除"><i class="fas fa-trash-alt"></i></button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="a3-checkbox-input row-check" /></td>
+                  <td>
+                    <div class="kol-cell">
+                      <img class="kol-avatar" src="https://i.pravatar.cc/64?img=12" alt="" />
+                      <div>
+                        <div class="kol-name">阿月在成都</div>
+                        <div class="kol-loc">四川 成都 武侯区</div>
+                        <div class="kol-tags"><span class="tag">生活方式</span><span class="tag">探店</span></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="muted">暂无</span></td>
+                  <td class="col-num">56,210</td>
+                  <td class="col-num">¥1,200</td>
+                  <td class="col-num">¥2,800</td>
+                  <td class="col-ops">
+                    <button type="button" class="icon-btn" title="转移"><i class="fas fa-exchange-alt"></i></button>
+                    <button type="button" class="icon-btn danger" title="删除"><i class="fas fa-trash-alt"></i></button>
+                  </td>
+                </tr>
+                <tr class="row-sparse">
+                  <td><input type="checkbox" class="a3-checkbox-input row-check" /></td>
+                  <td>
+                    <div class="kol-cell">
+                      <span class="kol-avatar placeholder"><i class="fas fa-user"></i></span>
+                      <div>
+                        <div class="kol-name muted-strong">待补全资料</div>
+                        <div class="kol-loc"><span class="muted">暂无地区</span></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="muted">暂无</span></td>
+                  <td class="col-num"><span class="muted">—</span></td>
+                  <td class="col-num"><span class="muted">—</span></td>
+                  <td class="col-num"><span class="muted">—</span></td>
+                  <td class="col-ops">
+                    <button type="button" class="icon-btn" title="转移"><i class="fas fa-exchange-alt"></i></button>
+                    <button type="button" class="icon-btn danger" title="删除"><i class="fas fa-trash-alt"></i></button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="a3-checkbox-input row-check" /></td>
+                  <td>
+                    <div class="kol-cell">
+                      <img class="kol-avatar" src="https://i.pravatar.cc/64?img=20" alt="" />
+                      <div>
+                        <div class="kol-name">林间小厨</div>
+                        <div class="kol-loc">浙江 杭州</div>
+                        <div class="kol-tags"><span class="tag">美食</span><span class="tag">家常菜</span></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>星火 MCN</td>
+                  <td class="col-num">89,030</td>
+                  <td class="col-num">¥1,800</td>
+                  <td class="col-num">¥4,200</td>
+                  <td class="col-ops">
+                    <button type="button" class="icon-btn" title="转移"><i class="fas fa-exchange-alt"></i></button>
+                    <button type="button" class="icon-btn danger" title="删除"><i class="fas fa-trash-alt"></i></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="toast" id="toast" hidden>
+            <i class="fas fa-check-circle"></i>
+            <span>已加入更新队列 · 可在「我的更新」下载</span>
+            <button type="button" class="a3-btn a3-btn-text a3-btn-sm" id="toast-go">去查看</button>
+          </div>
+        </main>
+      </section>
+
+      <!-- ========== VIEW: 我的更新 ========== -->
+      <section class="view view-updates" id="view-updates" data-view-panel="updates" hidden>
+        <div class="updates-page">
+          <div class="updates-header">
+            <div>
+              <h1 class="main-title">我的更新</h1>
+              <p class="main-sub">
+                进行中 <b>2</b> · 可下载 <b>3</b> · 近 7 天任务
+              </p>
+            </div>
+            <div class="updates-filters">
+              <div class="a3-input-wrapper a3-input-search" style="max-width:240px">
+                <input class="a3-input" type="search" placeholder="搜索任务 / 收藏夹" />
+                <span class="a3-input-suffix"><i class="fas fa-search"></i></span>
+              </div>
+              <div class="filter-chips">
+                <button type="button" class="chip active">全部</button>
+                <button type="button" class="chip">进行中</button>
+                <button type="button" class="chip">可下载</button>
+                <button type="button" class="chip">失败</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-scroll updates-table-wrap">
+            <table class="a3-table updates-table">
+              <thead>
+                <tr>
+                  <th>任务</th>
+                  <th>范围</th>
+                  <th>状态</th>
+                  <th>进度</th>
+                  <th>创建时间</th>
+                  <th>完成时间</th>
+                  <th class="col-ops">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="task-name">默认收藏夹 · 全量同步</div>
+                    <div class="task-id">TASK-20261117-001</div>
+                  </td>
+                  <td>2828 人</td>
+                  <td><span class="a3-tag a3-tag-info"><span class="a3-tag-dot"></span>进行中</span></td>
+                  <td>
+                    <div class="progress">
+                      <div class="progress-track"><span style="width:62%"></span></div>
+                      <span class="progress-text">62%</span>
+                    </div>
+                  </td>
+                  <td>11-17 11:42</td>
+                  <td><span class="muted">—</span></td>
+                  <td class="col-ops">
+                    <button type="button" class="a3-btn a3-btn-text a3-btn-sm" disabled>下载</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="task-name">美妆种草池 · 报价刷新</div>
+                    <div class="task-id">TASK-20261117-002</div>
+                  </td>
+                  <td>182 人</td>
+                  <td><span class="a3-tag a3-tag-info"><span class="a3-tag-dot"></span>进行中</span></td>
+                  <td>
+                    <div class="progress">
+                      <div class="progress-track"><span style="width:28%"></span></div>
+                      <span class="progress-text">28%</span>
+                    </div>
+                  </td>
+                  <td>11-17 10:05</td>
+                  <td><span class="muted">—</span></td>
+                  <td class="col-ops">
+                    <button type="button" class="a3-btn a3-btn-text a3-btn-sm" disabled>下载</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="task-name">家居生活 · 增量更新</div>
+                    <div class="task-id">TASK-20261116-018</div>
+                  </td>
+                  <td>96 人</td>
+                  <td><span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>可下载</span></td>
+                  <td>
+                    <div class="progress">
+                      <div class="progress-track done"><span style="width:100%"></span></div>
+                      <span class="progress-text">100%</span>
+                    </div>
+                  </td>
+                  <td>11-16 19:20</td>
+                  <td>11-16 19:28</td>
+                  <td class="col-ops">
+                    <button type="button" class="a3-btn a3-btn-primary a3-btn-sm">
+                      <i class="fas fa-download"></i> 下载
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="task-name">母婴育儿 · 全量同步</div>
+                    <div class="task-id">TASK-20261115-009</div>
+                  </td>
+                  <td>210 人</td>
+                  <td><span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>可下载</span></td>
+                  <td>
+                    <div class="progress">
+                      <div class="progress-track done"><span style="width:100%"></span></div>
+                      <span class="progress-text">100%</span>
+                    </div>
+                  </td>
+                  <td>11-15 14:02</td>
+                  <td>11-15 14:11</td>
+                  <td class="col-ops">
+                    <button type="button" class="a3-btn a3-btn-primary a3-btn-sm">
+                      <i class="fas fa-download"></i> 下载
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="task-name">数码测评 · 报价刷新</div>
+                    <div class="task-id">TASK-20261114-004</div>
+                  </td>
+                  <td>64 人</td>
+                  <td><span class="a3-tag a3-tag-success"><span class="a3-tag-dot"></span>可下载</span></td>
+                  <td>
+                    <div class="progress">
+                      <div class="progress-track done"><span style="width:100%"></span></div>
+                      <span class="progress-text">100%</span>
+                    </div>
+                  </td>
+                  <td>11-14 09:40</td>
+                  <td>11-14 09:45</td>
+                  <td class="col-ops">
+                    <button type="button" class="a3-btn a3-btn-primary a3-btn-sm">
+                      <i class="fas fa-download"></i> 下载
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="task-name">穿搭合集 · 全量同步</div>
+                    <div class="task-id">TASK-20261112-021</div>
+                  </td>
+                  <td>128 人</td>
+                  <td><span class="a3-tag" style="background:#FFF2F0;color:#ff4d4f"><span class="a3-tag-dot" style="background:#ff4d4f"></span>失败</span></td>
+                  <td>
+                    <div class="progress">
+                      <div class="progress-track fail"><span style="width:40%"></span></div>
+                      <span class="progress-text">40%</span>
+                    </div>
+                  </td>
+                  <td>11-12 16:30</td>
+                  <td><span class="muted">—</span></td>
+                  <td class="col-ops">
+                    <button type="button" class="a3-btn a3-btn-default a3-btn-sm">重试</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="updates-hint">
+            <i class="fas fa-lightbulb"></i>
+            下载文件为当前任务快照（达人基础信息 + 报价字段）。进行中的任务完成后，「下载」会自动可用。
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <p class="proto-note">演示层静态稿 · 顶栏切换「收藏夹 / 我的更新」· 勾选达人可看选中条 · 点「更新数据」可看引导</p>
+  </div>
+
+  <script src="./prototype.js"></script>
+</body>
+</html>
